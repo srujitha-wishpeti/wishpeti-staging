@@ -118,61 +118,59 @@ export default function Auth() {
   }, [mode]);
 
   const handleSubmit = async (e) => {
-  e.preventDefault();
-  setLoading(true);
-  setError(null);
+    e.preventDefault();
+    setLoading(true);
+    setError(null);
 
-  if (isSignup) {
-    // 1. Manually check if the username is already taken
-    const { data: existingUser } = await supabase
-      .from('creator_profiles')
-      .select('username')
-      .ilike('username', username)
-      .maybeSingle();
+    try {
+      if (isSignup) {
+        // 1. Check for duplicate username first
+        const { data: existingUser } = await supabase
+          .from('creator_profiles')
+          .select('username')
+          .ilike('username', username)
+          .maybeSingle();
 
-    if (existingUser) {
-      setError("This username is already taken. Please try another.");
-      setLoading(false);
-      return;
-    }
-
-    // 2. Proceed with Supabase Signup
-    const { data, error: signUpError } = await supabase.auth.signUp({
-      email,
-      password,
-    });
-
-    if (signUpError) {
-      setError(signUpError.message); // Catches "User already registered"
-      setLoading(false);
-      return;
-    }
-
-    // 3. Create the profile row using the gathered username
-    if (data.user) {
-      const { error: profileError } = await supabase
-        .from('creator_profiles')
-        .insert({
-          id: data.user.id,
-          email: email,
-          display_name: username,
-          username: username.toLowerCase().trim(),
+        if (existingUser) {
+          setError("This username is already taken.");
+          setLoading(false); // Manually stop loading here
+          return;
+        }
+        
+        // 2. Attempt Signup
+        const { data, error: signUpError } = await supabase.auth.signUp({
+          email,
+          password,
         });
 
-      if (profileError) {
-        setError("Profile Error: " + profileError.message);
+        if (signUpError) throw signUpError;
+
+        // 3. Create Profile
+        if (data.user) {
+          const { error: profileError } = await supabase
+            .from('creator_profiles')
+            .insert([{ id: data.user.id, email, display_name: username, username: username.toLowerCase() }]);
+          
+          if (profileError) throw profileError;
+          setIsSuccess(true);
+        }
       } else {
-        alert("Success! Check your email for a confirmation link.");
+        // Login logic
+        const { error: loginError } = await supabase.auth.signInWithPassword({ email, password });
+        if (loginError) throw loginError;
+        navigate('/dashboard');
       }
+    } catch (err) {
+      // Check if it's the specific duplicate error to show a friendly message
+      if (err.message.includes("unique constraint")) {
+        setError("This account or username is already partially registered. Try logging in instead.");
+      } else {
+        setError(err.message);
+      }
+    } finally {
+      setLoading(false); // 🔑 This stops the "Processing" spinner
     }
-  } else {
-    // Standard Login Logic
-    const { error: loginError } = await supabase.auth.signInWithPassword({ email, password });
-    if (loginError) setError(loginError.message);
-    else navigate('/dashboard');
-  }
-  setLoading(false);
-};
+  };
 
   const handleGoogleLogin = () => {
     supabase.auth.signInWithOAuth({ 
