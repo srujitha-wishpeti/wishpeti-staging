@@ -241,9 +241,21 @@ export default function WishlistPage() {
                 {filteredWishlist.map((item) => (
                   <div key={item.id} className="wishlist-item-card">
                     <div className="wishlist-item-image">
-                      {item.image || '🎁'}
+                      {item.image_url ? (
+                        <img
+                          src={item.image_url}
+                          alt={item.title}
+                          className="wishlist-item-img"
+                          loading="lazy"
+                        />
+                      ) : (
+                        <span className="wishlist-item-placeholder">🎁</span>
+                      )}
+                    
                       {item.discount && (
-                        <div className="wishlist-item-discount">{item.discount}</div>
+                        <div className="wishlist-item-discount">
+                          {item.discount}
+                        </div>
                       )}
                     </div>
 
