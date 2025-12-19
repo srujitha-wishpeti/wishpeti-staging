@@ -77,10 +77,9 @@ export default function WishlistPage() {
         alert('Failed to delete item');
         }
     };
-    const handleShare = () => {
-    // Create a URL like: yoursite.com/wishlist/user_123
+  const handleShare = () => {
+    // Public URL for fans
     const shareUrl = `${window.location.origin}/wishlist/${session.user.id}`;
-    
     navigator.clipboard.writeText(shareUrl);
     alert("Link copied! Share this with your fans. 🔗");
   };
