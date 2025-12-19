@@ -38,7 +38,7 @@ export default function CartPage() {
   };
 
   const subtotal = calculateSubtotal();
-  const platformFee = subtotal * 0.10; // 10% Fee
+  const platformFee = subtotal * 0.08; // 8% Fee
   const finalPayable = subtotal + platformFee;
 
   
@@ -137,7 +137,7 @@ export default function CartPage() {
           </div>
           
           <div className="summary-row">
-            <span>Platform Fee (5%)</span>
+            <span>Platform Fee (8%)</span>
             <span>{formatPrice(platformFee)}</span>
           </div>
           
