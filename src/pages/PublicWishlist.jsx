@@ -5,8 +5,12 @@ import { getWishlistItems } from '../services/wishlist';
 import { addToCart } from '../services/cart';
 import WishlistItemCard from '../components/wishlist/WishlistItemCard';
 import './WishlistPage.css'; // 🔑 Use the same CSS for layout consistency
+import './PublicWishlist.css'; // 🔑 Use the same CSS for layout consistency
+import Toast from '../components/ui/Toast';
 
 export default function PublicWishlist() {
+  const [showToast, setShowToast] = useState(false);
+  const [toastMsg, setToastMsg] = useState('');
   const { username } = useParams(); // 🔑 Changed from creatorId to username
   const [items, setItems] = useState([]);
   const [creator, setCreator] = useState(null); // 🔑 Store creator profile info
@@ -58,10 +62,13 @@ export default function PublicWishlist() {
         ...item,
         recipient_id: creator.id // 🔑 Use the ID from the fetched creator profile
       });
-      alert(`Added to your gift cart for ${creator.display_name}! 🎁`);
+      window.dispatchEvent(new Event('cartUpdated'));
+      setToastMsg(`Added to your gift cart for ${creator.display_name}! 🎁`);
+      setShowToast(true);
     } catch (err) {
       console.error(err);
-      alert("Failed to add gift to cart.");
+      setToastMsg("Failed to add gift to cart.");
+      setShowToast(true);
     }
   };
 
@@ -74,23 +81,23 @@ export default function PublicWishlist() {
   );
 
   return (
-    <div className="wishlist-page">
-      {/* 🔑 Re-using your Hero Header layout for consistency */}
-      <div className="wishlist-hero-header">
-        <div className="wishlist-profile-container">
-          <div className="wishlist-profile-card">
-            <div className="wishlist-profile-info">
-              <h1 className="wishlist-title">{creator.display_name}'s Wishlist</h1>
-              <p className="wishlist-subtitle">Choose a gift to send to @{creator.username}</p>
-            </div>
-            {/* Optional: Add a 'Follow' or 'Share' button here for fans */}
-          </div>
+        <div className="wishlist-page">
+    <div className="public-profile-header">
+        <div className="profile-inner">
+        {/* Small circle for profile picture if you add one later */}
+        <div className="profile-avatar">
+            {creator.display_name.charAt(0)}
         </div>
-      </div>
-      
+        <div className="profile-text">
+            <h1>{creator.display_name}'s Wishlist</h1>
+            <p>@{creator.username} • {items.length} items</p>
+        </div>
+        </div>
+    </div>
+
       <main className="wishlist-main-content">
         {items.length > 0 ? (
-          <div className="wishlist-grid">
+          <div className="public-wishlist-grid">
             {items.map(item => (
               <WishlistItemCard 
                 key={item.id} 
@@ -107,6 +114,12 @@ export default function PublicWishlist() {
           </div>
         )}
       </main>
+      {showToast && (
+        <Toast 
+          message={toastMsg} 
+          onClose={() => setShowToast(false)} 
+        />
+      )}
     </div>
   );
 }

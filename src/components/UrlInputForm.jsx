@@ -23,6 +23,13 @@ export default function UrlInputForm({
     }));
   };
 
+  const currencies = [
+    { code: 'INR', symbol: '₹' },
+    { code: 'USD', symbol: '$' },
+    { code: 'GBP', symbol: '£' },
+    { code: 'EUR', symbol: '€' },
+  ];
+  
   return (
     <div style={modalOverlayStyle}>
       <div style={modalContentStyle}>
@@ -47,6 +54,7 @@ export default function UrlInputForm({
             {error && <div style={{ color: 'red', fontSize: '12px', marginTop: '5px' }}>{error}</div>}
           </div>
 
+
           {/* ONLY show the editable form once we have scrapedData */}
           {scrapedData && (
             <div className="editable-section">
@@ -57,26 +65,72 @@ export default function UrlInputForm({
                   onChange={(e) => handleEdit('title', e.target.value)}
                   style={inputStyle}
                 />
+                {editableData.image && (
+                    <div style={{ textAlign: 'center', marginBottom: '1rem' }}>
+                        <img 
+                        src={editableData.image} 
+                        alt="Preview" 
+                        style={{ maxHeight: '150px', borderRadius: '8px', objectFit: 'contain' }} 
+                        onError={(e) => e.target.src = 'https://via.placeholder.com/150?text=No+Image'}
+                        />
+                    </div>
+                )}
               </div>
 
-              <div style={{ display: 'flex', gap: '1rem', marginBottom: '1rem' }}>
-                <div style={{ flex: 1 }}>
-                  <label style={labelStyle}>Price</label>
-                  <input 
-                    value={editableData.price} 
-                    onChange={(e) => handleEdit('price', e.target.value)}
-                    style={inputStyle}
-                  />
+              
+
+              <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem' }}>
+                <div style={{ flex: 2 }}>
+                    <label style={labelStyle}>Price</label>
+                    <div style={{ display: 'flex', gap: '0.5rem' }}>
+                    {/* NEW: Currency Dropdown */}
+                    <select
+                        value={editableData.currency || 'INR'}
+                        onChange={(e) => handleEdit('currency', e.target.value)}
+                        style={{ ...inputStyle, width: '80px', padding: '8px 4px' }}
+                    >
+                        {currencies.map((curr) => (
+                        <option key={curr.code} value={curr.code}>
+                            {curr.code} ({curr.symbol})
+                        </option>
+                        ))}
+                    </select>
+
+                    {/* Price Input */}
+                    <input 
+                        type="text"
+                        value={editableData.price} 
+                        onChange={(e) => handleEdit('price', e.target.value)}
+                        style={inputStyle}
+                        placeholder="0.00"
+                    />
+                    </div>
                 </div>
-                <div style={{ width: '80px' }}>
-                  <label style={labelStyle}>Quantity</label>
-                  <input 
+                
+                <div style={{ flex: 1 }}>
+                    <label style={labelStyle}>Quantity</label>
+                    <input 
                     type="number" 
-                    value={editableData.quantity} 
+                    min="1"
+                    value={editableData.quantity || 1} 
                     onChange={(e) => handleEdit('quantity', e.target.value)}
                     style={inputStyle}
-                  />
+                    />
                 </div>
+              </div>
+              <div style={{ marginBottom: '1.5rem' }}>
+                <label style={labelStyle}>Notes for Fans (Optional)</label>
+                <textarea 
+                    value={editableData.notes || ''} 
+                    onChange={(e) => handleEdit('notes', e.target.value)}
+                    placeholder="e.g. Please buy the Blue color in Size Medium!"
+                    style={{ 
+                    ...inputStyle, 
+                    height: '80px', 
+                    resize: 'none', 
+                    padding: '10px' 
+                    }}
+                />
               </div>
 
               {/* Variant Selectors */}
@@ -100,7 +154,53 @@ export default function UrlInputForm({
                     style={inputStyle}
                   >
                     <option value="">Select Color</option>
-                    {scrapedData.variants?.colors?.map(c => <option key={c} value={c}>{c}</option>)}
+                    {/* DYNAMIC VARIANT SECTION */}
+                    {scrapedData && (scrapedData.variants?.sizes?.length > 0 || scrapedData.variants?.colors?.length > 0) && (
+                    <div style={{ display: 'flex', gap: '1rem', marginBottom: '1rem' }}>
+                        
+                        {/* Only show Size if sizes were found */}
+                        {scrapedData.variants?.sizes?.length > 0 && (
+                        <div style={{ flex: 1 }}>
+                            <label style={labelStyle}>Size</label>
+                            <select 
+                            value={editableData.selectedSize}
+                            onChange={(e) => handleEdit('selectedSize', e.target.value)}
+                            style={inputStyle}
+                            >
+                            <option value="">Select Size</option>
+                            {scrapedData.variants.sizes.map(s => <option key={s} value={s}>{s}</option>)}
+                            </select>
+                        </div>
+                        )}
+
+                        {/* Only show Color if colors were found */}
+                        {scrapedData.variants?.colors?.length > 0 && (
+                        <div style={{ flex: 1 }}>
+                            <label style={labelStyle}>Color</label>
+                            <select 
+                            value={editableData.selectedColor}
+                            onChange={(e) => handleEdit('selectedColor', e.target.value)}
+                            style={inputStyle}
+                            >
+                            <option value="">Select Color</option>
+                            {scrapedData.variants.colors.map(c => <option key={c} value={c}>{c}</option>)}
+                            </select>
+                        </div>
+                        )}
+                    </div>
+                    )}
+
+                    {/* IMAGE PREVIEW: Added this to verify fetching worked */}
+                    {editableData.image && (
+                    <div style={{ textAlign: 'center', marginBottom: '1rem' }}>
+                        <img 
+                        src={editableData.image} 
+                        alt="Product Preview" 
+                        style={{ maxHeight: '120px', borderRadius: '8px' }} 
+                        onError={(e) => e.target.style.display = 'none'} // Hide if link is broken
+                        />
+                    </div>
+                    )}
                   </select>
                 </div>
               </div>

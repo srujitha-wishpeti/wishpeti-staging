@@ -152,6 +152,41 @@
   box-shadow: 0 2px 5px rgba(0,0,0,0.1);
 }
 
+/* --- SHARED CARD (Stays the same) --- */
+.unified-wishlist-card {
+  width: 100%;
+  background: white;
+  border-radius: 16px;
+  border: 1px solid #f1f5f9;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* --- PUBLIC VIEW GRID (Full width) --- */
+.public-wishlist-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 24px;
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+/* --- PRIVATE ADMIN GRID (Leaves room for the sidebar/input) --- */
+.admin-wishlist-layout {
+  display: flex; /* Sidebar on left, Grid on right */
+  gap: 30px;
+  padding: 20px;
+}
+
+.admin-items-grid {
+  flex: 1;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); /* Slightly smaller cards */
+  gap: 20px;
+}
+
 /* Grid Layout */
 .wishlist-container-grid {
   display: grid;
@@ -164,15 +199,6 @@
   display: flex;
   flex-direction: column;
   gap: 16px;
-}
-
-/* --- Grid View Layout --- */
-.wishlist-container-grid {
-  display: grid;
-  /* Adjust 280px to make cards wider or narrower */
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); 
-  gap: 24px;
-  width: 100%;
 }
 
 /* --- List View Layout --- */
