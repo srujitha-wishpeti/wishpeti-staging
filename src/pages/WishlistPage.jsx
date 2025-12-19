@@ -11,6 +11,7 @@ import { addToCart } from '../services/cart';
 import WishlistItemCard from '../components/wishlist/WishlistItemCard';
 import { supabase } from '../services/supabaseClient';
 import './WishlistPage.css';
+import Toast from '../components/ui/Toast';
 
 export default function WishlistPage() {
   const { session } = useAuth();
@@ -21,17 +22,12 @@ export default function WishlistPage() {
   const [activeCategory, setActiveCategory] = useState('all');
   const [viewMode, setViewMode] = useState('grid');
   const [stats, setStats] = useState(null);
-  const [profile, setProfile] = useState(null); // 🔑 Added to store user profile
-
-  const categories = [
-    { id: 'all', name: 'All Wishes', icon: '🎁', color: '#8b5cf6' },
-    { id: 'electronics', name: 'Electronics', icon: '💻', color: '#3b82f6' },
-    { id: 'fashion', name: 'Fashion', icon: '👕', color: '#ec4899' },
-    { id: 'home', name: 'Home & Living', icon: '🏠', color: '#10b981' },
-    { id: 'books', name: 'Books', icon: '📚', color: '#f59e0b' },
-    { id: 'gaming', name: 'Gaming', icon: '🎮', color: '#8b5cf6' },
-    { id: 'general', name: 'Other', icon: '🛍️', color: '#6b7280' },
-  ];
+  const [profile, setProfile] = useState(null);
+  const [showToast, setShowToast] = useState(false);
+  const [toastMsg, setToastMsg] = useState('');
+  
+  // 🔑 1. Added Currency State
+  const [selectedCurrency, setSelectedCurrency] = useState('INR');
 
   const loadData = async () => {
     if (!session?.user?.id) return;
@@ -57,7 +53,6 @@ export default function WishlistPage() {
     if (session) loadData();
   }, [session]);
 
-  // Filtering Logic
   useEffect(() => {
     let filtered = wishlist;
     if (activeCategory !== 'all') {
@@ -78,7 +73,8 @@ export default function WishlistPage() {
       await navigator.share({ title: `${profile?.display_name}'s Wishlist`, url: shareUrl });
     } else {
       navigator.clipboard.writeText(shareUrl);
-      alert("Link copied! 🔗");
+      setToastMsg("Link copied! 🔗");
+      setShowToast(true);
     }
   };
 
@@ -88,27 +84,43 @@ export default function WishlistPage() {
     loadData();
   };
 
+  // 🔑 2. Updated to include currency and notify Navbar
   const handleAddToCart = async (item) => {
     try {
-      const priceVal = typeof item.price === 'string' ? Number(item.price.replace(/[^\d]/g, '')) : item.price;
-      await addToCart({
+      const priceVal = typeof item.price === 'string' ? Number(item.price.replace(/[^\d.]/g, '')) : item.price;
+      
+      const itemWithCurrency = {
         user_id: session.user.id,
         product_id: item.id,
         quantity: 1,
         price: priceVal,
-        image_url: item.image_url,
+        currency: selectedCurrency, // 🔑 Store the user's choice
+        image_url: item.image_url || item.image,
         title: item.title,
+        recipient_id: session.user.id, // For admin, recipient is self
         variants: item.variants || {}
-      });
-      alert('Added to cart ✅');
+      };
+
+      // Update LocalStorage for instant Navbar update
+      const existingCart = JSON.parse(localStorage.getItem('wishlist_cart') || '[]');
+      localStorage.setItem('wishlist_cart', JSON.stringify([...existingCart, itemWithCurrency]));
+
+      // Save to DB
+      await addToCart(itemWithCurrency);
+
+      // 🔥 3. Notify Navbar to refresh the badge count
+      window.dispatchEvent(new Event('cartUpdated'));
+
+      setToastMsg(`Added to your cart in ${selectedCurrency}! 🎁`);
+      setShowToast(true);
     } catch (err) {
-      alert('Failed to add to cart');
+      setToastMsg("Failed to add gift to cart.");
+      setShowToast(true);
     }
   };
 
   return (
     <div className="wishlist-modern-page">
-      {/* 1. Clean Header */}
       <header className="wishlist-hero-card">
         <div className="hero-flex">
           <div className="user-branding">
@@ -119,16 +131,29 @@ export default function WishlistPage() {
             <div className="hero-stats">
               <span>{stats?.totalItems || 0} items</span>
               <span className="dot"></span>
+              {/* Note: In production, you'd convert this total based on selectedCurrency */}
               <span>₹{stats?.totalValue?.toLocaleString() || 0} total</span>
             </div>
           </div>
-          <button className="modern-share-btn" onClick={handleShare}>
-            <Share2 size={18} /> Share List
-          </button>
+          
+          <div className="header-actions-group">
+            {/* 🔑 4. Currency Selector added to Header */}
+            <select 
+              className="currency-dropdown-minimal"
+              value={selectedCurrency}
+              onChange={(e) => setSelectedCurrency(e.target.value)}
+            >
+              <option value="INR">₹ INR</option>
+              <option value="USD">$ USD</option>
+            </select>
+
+            <button className="modern-share-btn" onClick={handleShare}>
+              <Share2 size={18} /> Share List
+            </button>
+          </div>
         </div>
       </header>
 
-      {/* 2. Focused Controls (No Category Bar here) */}
       <section className="modern-controls-container">
         <div className="search-bar-wrapper">
           <Search size={20} className="search-icon-fixed" />
@@ -146,12 +171,10 @@ export default function WishlistPage() {
             <button onClick={() => setViewMode('grid')} className={viewMode === 'grid' ? 'active' : ''}><Grid size={18}/></button>
             <button onClick={() => setViewMode('list')} className={viewMode === 'list' ? 'active' : ''}><List size={18}/></button>
           </div>
-          {/* Note: Pass an empty array or remove the category prop if AddWishlistItem expects it */}
           <AddWishlistItem session={session} onItemAdded={loadData} categories={[]} />
         </div>
       </section>
 
-      {/* 3. The Grid */}
       <main className="wishlist-display-area">
         {loading ? (
           <div className="loading-state">Loading your wishes...</div>
@@ -163,7 +186,8 @@ export default function WishlistPage() {
                   key={item.id} 
                   item={item} 
                   onDelete={handleDelete} 
-                  onAddToCart={handleAddToCart} 
+                  onAddToCart={handleAddToCart}
+                  forcedCurrency={selectedCurrency} // 🔑 5. Pass currency to Card for display
                 />
               ))
             ) : (
@@ -174,6 +198,13 @@ export default function WishlistPage() {
           </div>
         )}
       </main>
+
+      {showToast && (
+        <Toast 
+          message={toastMsg} 
+          onClose={() => setShowToast(false)} 
+        />
+      )}
     </div>
   );
 }

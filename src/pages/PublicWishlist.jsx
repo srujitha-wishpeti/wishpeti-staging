@@ -15,7 +15,8 @@ export default function PublicWishlist() {
   const [items, setItems] = useState([]);
   const [creator, setCreator] = useState(null); 
   const [loading, setLoading] = useState(true);
-
+  const [selectedCurrency, setSelectedCurrency] = useState('INR');
+  
   useEffect(() => {
     const loadPublicWishes = async () => {
       if (!username) return;
