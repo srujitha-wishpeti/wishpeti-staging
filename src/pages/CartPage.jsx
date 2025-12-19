@@ -3,25 +3,36 @@ import { getCartItems, removeCartItem } from '../services/cart';
 import { useAuth } from '../auth/AuthProvider';
 
 export default function CartPage() {
-  const { session } = useAuth();
+  const { session, loading: authLoading } = useAuth(); // Added authLoading to wait for session check
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
 
   const loadItems = async () => {
-    if (!session?.user?.id) return;
+    // 1. Determine which ID to use: Logged-in User or Guest
+    const cartId = session?.user?.id || localStorage.getItem('guest_cart_id');
+    
+    if (!cartId) {
+      setItems([]);
+      setLoading(false);
+      return;
+    }
+
     try {
-      const data = await getCartItems(session.user.id);
+      const data = await getCartItems(cartId);
       setItems(data);
     } catch (err) {
-      console.error(err);
+      console.error("Cart Load Error:", err);
     } finally {
       setLoading(false);
     }
   };
 
+  // 2. Re-run when auth state changes (e.g., user logs in)
   useEffect(() => {
-    loadItems();
-  }, [session]);
+    if (!authLoading) {
+      loadItems();
+    }
+  }, [session, authLoading]);
 
   const handleRemove = async (id) => {
     try {

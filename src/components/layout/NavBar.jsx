@@ -29,12 +29,14 @@ export default function Navbar() {
             <Link to="/auth?mode=signup" style={styles.primaryBtn}>
               Sign up
             </Link>
+            <Link to="/cart">🛒 Cart</Link>
           </>
         ) : (
           <>
             <button onClick={logout} style={styles.button}>
               Logout
             </button>
+            <Link to="/cart">🛒 Cart</Link>
           </>
         )}
       </nav>
