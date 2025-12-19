@@ -81,13 +81,9 @@ export default function PublicWishlist() {
   );
 
   return (
-        <div className="wishlist-page">
+  <div className="wishlist-page">
     <div className="public-profile-header">
         <div className="profile-inner">
-        {/* Small circle for profile picture if you add one later */}
-        <div className="profile-avatar">
-            {creator.display_name.charAt(0)}
-        </div>
         <div className="profile-text">
             <h1>{creator.display_name}'s Wishlist</h1>
             <p>@{creator.username} • {items.length} items</p>
