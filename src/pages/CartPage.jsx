@@ -36,9 +36,9 @@ export default function CartPage() {
       return sum + numericPrice;
     }, 0);
   };
-  
+
   const subtotal = calculateSubtotal();
-  const platformFee = subtotal * 0.05; // 5% Fee
+  const platformFee = subtotal * 0.10; // 10% Fee
   const finalPayable = subtotal + platformFee;
 
   
