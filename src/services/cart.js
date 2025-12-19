@@ -1,15 +1,23 @@
 import { supabase } from './supabaseClient';
 
 export async function addToCart(userId, item) {
-  return supabase.from('cart_items').insert({
+  // Ensure price is a clean number before inserting
+  const numericPrice = typeof item.price === 'string' 
+    ? Number(item.price.replace(/[^0-9.-]+/g, "")) 
+    : item.price;
+
+  const { data, error } = await supabase.from('cart_items').insert({
     user_id: userId,
-    wishlist_item_id: item.id,
+    wishlist_item_id: item.id || item.product_id,
     title: item.title,
     image_url: item.image_url,
-    price: item.price,
-    store: item.store,
-    product_url: item.url
+    price: numericPrice, // Store as a number
+    store: item.store || 'Unknown Store',
+    product_url: item.url || item.product_url
   });
+
+  if (error) throw error;
+  return data;
 }
 
 export async function getCartItems(userId) {
@@ -24,5 +32,11 @@ export async function getCartItems(userId) {
 }
 
 export async function removeCartItem(id) {
-  return supabase.from('cart_items').delete().eq('id', id);
+  const { data, error } = await supabase
+    .from('cart_items')
+    .delete()
+    .eq('id', id);
+    
+  if (error) throw error;
+  return data;
 }

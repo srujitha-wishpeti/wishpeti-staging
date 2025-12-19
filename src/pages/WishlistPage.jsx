@@ -70,12 +70,19 @@ export default function WishlistPage() {
 
   const handleDelete = async (itemId) => {
     if (!confirm('Remove this item?')) return;
-    try {
-      await deleteWishlistItem(itemId);
-      await loadWishlist();
-    } catch (error) {
-      alert('Failed to delete item');
-    }
+        try {
+        await deleteWishlistItem(itemId);
+        await loadWishlist();
+        } catch (error) {
+        alert('Failed to delete item');
+        }
+    };
+    const handleShare = () => {
+    // Create a URL like: yoursite.com/wishlist/user_123
+    const shareUrl = `${window.location.origin}/wishlist/${session.user.id}`;
+    
+    navigator.clipboard.writeText(shareUrl);
+    alert("Link copied! Share this with your fans. 🔗");
   };
 
   const handleAddToCart = async (item) => {
@@ -121,8 +128,8 @@ export default function WishlistPage() {
                 {stats?.totalItems || 0} items • {stats?.totalValue ? `₹${stats.totalValue.toLocaleString()}` : '₹0'}
               </p>
             </div>
-            <button className="wishlist-share-btn">
-              <Share2 size={18} /> <span>Share List</span>
+            <button className="wishlist-share-btn" onClick={handleShare}>
+                <Share2 size={18} /> <span>Share List</span>
             </button>
           </div>
         </div>

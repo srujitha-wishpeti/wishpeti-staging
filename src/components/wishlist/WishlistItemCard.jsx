@@ -1,7 +1,12 @@
 import React from 'react';
 import { ShoppingBag, Trash2, ExternalLink } from 'lucide-react';
 
-export default function WishlistItemCard({ item, onDelete, onAddToCart }) {
+export default function WishlistItemCard({ 
+  item, 
+  onDelete, 
+  onAddToCart, 
+  isPublicView = false // New prop: defaults to false for the creator dashboard
+}) {
   return (
     <div className="wishlist-item-card">
       <div className="wishlist-item-image-wrapper">
@@ -19,9 +24,13 @@ export default function WishlistItemCard({ item, onDelete, onAddToCart }) {
             {item.brand && <span className="wishlist-brand-name">{item.brand}</span>}
             <h3 className="wishlist-item-title">{item.title}</h3>
           </div>
-          <button className="delete-btn" onClick={() => onDelete(item.id)}>
-            <Trash2 size={16} />
-          </button>
+          
+          {/* Only show the delete button if NOT in public view */}
+          {!isPublicView && (
+            <button className="delete-btn" onClick={() => onDelete(item.id)}>
+              <Trash2 size={16} />
+            </button>
+          )}
         </div>
 
         <div className="wishlist-price-row">
@@ -38,10 +47,12 @@ export default function WishlistItemCard({ item, onDelete, onAddToCart }) {
 
         <div className="wishlist-card-actions">
           <button className="add-to-cart-btn" onClick={() => onAddToCart(item)}>
-            <ShoppingBag size={16} /> Add to Cart
+            <ShoppingBag size={16} /> 
+            {/* Context-aware button text */}
+            {isPublicView ? 'Gift this Item' : 'Add to Cart'}
           </button>
           <a href={item.url} target="_blank" rel="noopener noreferrer" className="buy-now-btn">
-             Buy <ExternalLink size={14} />
+             View <ExternalLink size={14} />
           </a>
         </div>
       </div>
