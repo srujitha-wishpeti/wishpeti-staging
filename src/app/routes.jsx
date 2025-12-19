@@ -4,6 +4,7 @@ import Login from '../pages/Login'
 import Dashboard from '../pages/Dashboard'
 import RequireAuth from '../auth/RequireAuth'
 import Auth from '../pages/Auth'
+import WishlistPage from '../pages/WishlistPage';
 
 
 export default function AppRoutes() {
@@ -11,11 +12,12 @@ export default function AppRoutes() {
     <Routes>
       <Route path="/" element={<Landing />} />
       <Route path="/auth" element={<Auth />} />
+      <Route path="/wishlist" element={<WishlistPage />} />
       <Route
         path="/dashboard"
         element={
           <RequireAuth>
-            <Dashboard />
+            <WishlistPage />
           </RequireAuth>
         }
       />

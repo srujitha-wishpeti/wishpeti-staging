@@ -1,6 +1,6 @@
 import AppRoutes from './routes'
 import { AuthProvider } from '../auth/AuthProvider'
-import Navbar from '../components/layout/Navbar'
+import Navbar from '../components/layout/NavBar'
 
 export default function App() {
 

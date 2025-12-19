@@ -11,10 +11,15 @@ export default function Navbar() {
 
   return (
     <header style={styles.header}>
-      <Link to="/" style={styles.logo}>
+      {!session ? (
+        <Link to="/" style={styles.logo}>
         🎁 WishGifts
       </Link>
-
+      ) : (
+        <Link to="/wishlist" style={styles.logo}>
+        🎁 WishGifts
+      </Link>
+      )}
       <nav style={styles.nav}>
         {!session ? (
           <>
@@ -27,9 +32,6 @@ export default function Navbar() {
           </>
         ) : (
           <>
-            <Link to="/dashboard" style={styles.link}>
-              Dashboard
-            </Link>
             <button onClick={logout} style={styles.button}>
               Logout
             </button>
