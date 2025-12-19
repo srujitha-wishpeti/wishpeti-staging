@@ -9,8 +9,8 @@ export default function Landing() {
 
   return (
     <div style={{ padding: 32 }}>
-      <h1>🎁 Wish-based Gifting Platform</h1>
-      <p>Create wishlists. Let your audience gift meaningfully.</p>
+      <h1>🎁 Privacy-based Gifting Platform</h1>
+      <p>Create wishlists. Let your audience gift meaningfully without revealing your details.</p>
     </div>
   )
 }
