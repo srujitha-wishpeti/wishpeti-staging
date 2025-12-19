@@ -157,11 +157,12 @@ export default function CartPage() {
       </div>
       <footer className="cart-footer">
         <div className="policy-links">
-            <a href="/terms">Terms</a>
-            <a href="/privacy">Privacy</a>
-            <a href="/refunds">Refund Policy</a>
+            <Link to="/terms">Terms & Conditions</Link>
+            <Link to="/privacy">Privacy Policy</Link>
+            <Link to="/refund">Refund Policy</Link>
+            <Link to="/contact">Contact Us</Link> {/* Razorpay also requires a Contact Us link */}
         </div>
-        <p>© 2025 WishGifts - All payments secured by Razorpay</p>
+        <p>© 2025 YourBrand - Secure Payments by Razorpay</p>
       </footer>
     </div>
   );

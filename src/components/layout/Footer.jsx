@@ -1,50 +1,42 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Instagram, Linkedin, Heart } from 'lucide-react';
-
+import '../../pages/CartPage.css'
 export default function Footer() {
   const currentYear = new Date().getFullYear();
 
   return (
-    <footer style={styles.footer}>
-      <div style={styles.container}>
+    <footer className="cart-footer">
+      <div className="footer-container">
         {/* Brand Section */}
-        <div style={styles.section}>
-          <h3 style={styles.logo}>🎁 WishGifts</h3>
-          <p style={styles.tagline}>The easiest way to gift your favorite creators.</p>
-          <div style={styles.socialLinks}>
-            <a href="https://instagram.com/yourhandle" target="_blank" rel="noreferrer" style={styles.socialIcon}>
-              <Instagram size={20} />
-            </a>
-            <a href="https://linkedin.com/company/yourcompany" target="_blank" rel="noreferrer" style={styles.socialIcon}>
-              <Linkedin size={20} />
-            </a>
+        <div className="footer-brand">
+          <h3 className="footer-logo">🎁 WishGifts</h3>
+          <p className="footer-tagline">The easiest way to gift your favorite creators.</p>
+          <div className="social-links">
+            <a href="https://instagram.com" target="_blank" rel="noreferrer"><Instagram size={18} /></a>
+            <a href="https://linkedin.com" target="_blank" rel="noreferrer"><Linkedin size={18} /></a>
           </div>
         </div>
 
-        {/* Links Section */}
-        <div style={styles.linkGroup}>
-          <h4 style={styles.heading}>Platform</h4>
-          <Link to="/how-it-works" style={styles.link}>How it Works</Link>
-          <Link to="/search" style={styles.link}>Find a Wishlist</Link>
-        </div>
+        {/* Legal Links (Vital for Razorpay) */}
+        <nav className="policy-links">
+          <Link to="/terms">Terms & Conditions</Link>
+          <Link to="/privacy">Privacy Policy</Link>
+          <Link to="/refund">Refund Policy</Link>
+          <Link to="/contact">Contact Us</Link>
+        </nav>
 
-        <div style={styles.linkGroup}>
-          <h4 style={styles.heading}>Legal</h4>
-          <Link to="/terms" style={styles.link}>Terms & Conditions</Link>
-          <Link to="/privacy" style={styles.link}>Privacy Policy</Link>
+        {/* Bottom Copyright */}
+        <div className="footer-bottom">
+          <p>© {currentYear} WishGifts - Secure Payments by Razorpay</p>
+          <p className="made-with">
+            Made with <Heart size={12} fill="#ef4444" color="#ef4444" /> in India
+          </p>
         </div>
-      </div>
-
-      <div style={styles.bottomBar}>
-        <p style={styles.copyright}>
-          © {currentYear} WishGifts. Made with <Heart size={14} fill="#ef4444" color="#ef4444" /> in India.
-        </p>
       </div>
     </footer>
   );
 }
-
 const styles = {
   footer: {
     backgroundColor: '#ffffff',

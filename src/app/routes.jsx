@@ -10,6 +10,7 @@ import PublicWishlist from '../pages/PublicWishlist';
 import { useAuth } from '../auth/AuthProvider';
 import CheckProfileCompletion from '../auth/CheckProfileCompletion';
 import Onboarding from '../pages/OnBoarding';
+import PolicyPage from '../pages/PolicyPage'; // Adjust path
 
 export default function AppRoutes() {
   const { session, loading } = useAuth();
@@ -46,6 +47,127 @@ export default function AppRoutes() {
 
       {/* Redirect /wishlist to dashboard if logged in, otherwise landing */}
       <Route path="/wishlist" element={<Navigate to={session ? "/dashboard" : "/"} />} />
+      <Route 
+        path="/terms" 
+        element={<PolicyPage title="Terms & Conditions" content={`<div class="policy-text">
+    <p>Last updated on <strong>December 20, 2025</strong></p>
+    <p>Welcome to <strong>WishGifts</strong>. By using our website and services, you agree to comply with and be bound by the following terms and conditions.</p>
+
+    <h3>1. Service Overview</h3>
+    <p><strong>WishGifts</strong> provides a platform that allows users ("Fans") to purchase gifts for third-party individuals ("Creators"). We act as a facilitator between the Fan and third-party merchants who fulfill and ship the items.</p>
+
+    <h3>2. Payments and Fees</h3>
+    <ul>
+        <li>All payments are processed securely through <strong>Razorpay</strong>.</li>
+        <li>Users agree to pay the total amount shown at checkout, which includes the item subtotal and a <strong>8% Platform Service Fee</strong>.</li>
+        <li>By completing a transaction, you authorize us to charge your selected payment method for the total amount.</li>
+    </ul>
+
+    <h3>3. Order Fulfillment</h3>
+    <ul>
+        <li>Items are shipped directly from third-party merchants to the recipient.</li>
+        <li>We are not responsible for delays caused by the merchant or shipping carriers.</li>
+        <li>Delivery timelines are typically <strong>7-10 working days</strong>, depending on the merchant's location and stock availability.</li>
+    </ul>
+
+    <h3>4. User Responsibilities</h3>
+    <p>You agree to provide accurate and current information during the checkout process, including your name and email address. You are responsible for ensuring that the gift selected is appropriate for the recipient.</p>
+
+    <h3>5. Limitation of Liability</h3>
+    <p><strong>WishGifts</strong> shall not be liable for any indirect, incidental, or consequential damages arising out of the use of our service or the purchase of any gifts. Our total liability is limited to the amount paid for the specific transaction in question.</p>
+
+    <h3>6. Governing Law</h3>
+    <p>These terms are governed by the laws of India. Any disputes arising out of or in connection with these terms shall be subject to the exclusive jurisdiction of the courts in <strong>[Your City, State]</strong>.</p>
+
+    <h3>7. Contact Information</h3>
+    <p>If you have any questions about these Terms, please contact us at:</p>
+    <p>Email: <strong>msrujitha@gmail.com</strong><br>
+    Phone: <strong>+919972769491</strong><br>
+    Address: <strong>Vidya Nagar 1st cross, Bellary, Karntaka - 583104</strong></p>
+</div>`} />} 
+      />
+      <Route 
+        path="/privacy" 
+        element={<PolicyPage title="Privacy Policy" content={`<div class="policy-text">
+    <p>Last updated on <strong>December 20, 2025</strong></p>
+    
+    <h3>1. Information We Collect</h3>
+    <p>At <strong>WishGifts</strong>, we collect information to provide a better gifting experience. This includes:</p>
+    <ul>
+        <li><strong>Personal Information:</strong> Name, email address, and contact details provided during checkout.</li>
+        <li><strong>Transaction Data:</strong> Details of the gifts purchased, though we do not store your full card details (these are handled securely by Razorpay).</li>
+        <li><strong>Recipient Data:</strong> The creator's name or username to whom the gift is being sent.</li>
+    </ul>
+
+    <h3>2. How We Use Your Information</h3>
+    <p>We use the collected data to:</p>
+    <ul>
+        <li>Process and fulfill your gift orders.</li>
+        <li>Communicate with third-party merchants to arrange delivery to the creator.</li>
+        <li>Send order confirmations and updates via email.</li>
+        <li>Comply with legal and regulatory requirements from our payment partners.</li>
+    </ul>
+
+    <h3>3. Data Sharing and Disclosure</h3>
+    <p>We do not sell your data. We only share information with:</p>
+    <ul>
+        <li><strong>Third-Party Merchants:</strong> Necessary details (like the item and recipient address) to fulfill the gift.</li>
+        <li><strong>Payment Processors:</strong> We use <strong>Razorpay</strong> for secure transactions. Your data is handled according to <a href="https://razorpay.com/privacy/" target="_blank">Razorpay’s Privacy Policy</a>.</li>
+    </ul>
+
+    <h3>4. Data Security</h3>
+    <p>We implement industry-standard security measures to protect your personal information. However, please note that no method of transmission over the internet is 100% secure.</p>
+
+    <h3>5. Your Rights</h3>
+    <p>You have the right to access, correct, or delete your personal information. If you wish to exercise these rights, please contact us at <strong>[Your Support Email]</strong>.</p>
+
+    <h3>6. Contact Us</h3>
+    <p>For any questions regarding this Privacy Policy, you can reach us at:</p>
+    <p>Email: <strong>msrujitha@gmail.com</strong><br>
+    Phone: <strong>+919972769491</strong><br>
+    Address: <strong>Vidya Nagar 1st cross, Bellary, Karntaka - 583104</strong></p>
+</div>`} />} 
+      />
+      <Route 
+        path="/refund" 
+        element={<PolicyPage title="Refund & Cancellation Policy" content={`<div class="policy-text">
+    <p>Last updated on [Date]</p>
+    
+    <h3>1. Cancellation Policy</h3>
+    <p>Gifts on <strong>WishGifts</strong> are often processed immediately to ensure timely delivery to creators. Therefore:</p>
+    <ul>
+        <li>Cancellations are only accepted within <strong>24 hours</strong> of placing the order, provided the order has not yet been processed or shipped by our third-party merchants.</li>
+        <li>To request a cancellation, please email us at <strong>[Your Support Email]</strong> with your Order ID.</li>
+    </ul>
+
+    <h3>2. Refund Policy</h3>
+    <p>Due to the nature of our service (third-party gifting), we generally follow a <strong>No Refund</strong> policy once a gift has been successfully delivered to the recipient. However, a refund may be initiated in the following cases:</p>
+    <ul>
+        <li>The requested item is out of stock with the merchant.</li>
+        <li>The merchant is unable to deliver to the creator's specific location.</li>
+        <li>The payment was successful, but the order failed to generate in our system.</li>
+    </ul>
+
+    <h3>3. Refund Processing</h3>
+    <p>Approved refunds will be processed back to the original payment method (Credit Card, Debit Card, UPI, or Net Banking) used during the transaction.</p>
+    <ul>
+        <li>The refund will typically reflect in your account within <strong>5 to 7 working days</strong>, depending on your bank's processing time.</li>
+    </ul>
+
+    <h3>4. Damaged or Incorrect Items</h3>
+    <p>Since items are shipped directly from merchants to creators, if a creator receives a damaged or incorrect item, please contact our support team within 48 hours of delivery with photographic evidence. We will coordinate with the merchant for a replacement or resolution.</p>
+
+    <h3>5. Contact Us</h3>
+    <p>For any questions regarding our Refund and Cancellation Policy, please contact us at:</p>
+    <p>Email: <strong>msrujitha@gmail.com</strong><br>
+    Phone: <strong>+919972769491</strong><br>
+    Address: <strong>Vidya Nagar 1st cross, Bellary, Karntaka - 583104</strong></p>
+</div>`} />} 
+      />
+      <Route 
+        path="/contact" 
+        element={<PolicyPage title="Contact Us" content="<p>Email: msrujitha@gmail.com</p><p>Phone: +919972769491</p>" />} 
+      />
     </Routes>
   );
 }
