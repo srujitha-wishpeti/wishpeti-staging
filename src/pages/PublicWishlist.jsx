@@ -69,11 +69,18 @@ export default function PublicWishlist() {
       const updatedCart = [...existingCart, item];
       localStorage.setItem('wishlist_cart', JSON.stringify(updatedCart));
 
-      // Call your backend service
-      await addToCart(guestId, {
-        ...item,
-        recipient_id: creator.id 
-      });
+      const addToCart = (product, creatorName) => {
+        const cart = JSON.parse(localStorage.getItem('wishlist_cart') || '[]');
+        
+        const itemToAdd = {
+            ...product,
+            recipient_name: creatorName, // 🚀 Make sure this variable is passed here!
+        };
+        
+        cart.push(itemToAdd);
+        localStorage.setItem('wishlist_cart', JSON.stringify(cart));
+        window.dispatchEvent(new Event('cartUpdated'));
+      };
 
       // 🔥 Trigger the Navbar update
       window.dispatchEvent(new Event('cartUpdated'));

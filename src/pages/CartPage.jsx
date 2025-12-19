@@ -45,12 +45,17 @@ export default function CartPage() {
 
   // 4. Formatting Helper
   const formatPrice = (amount) => {
-    const currency = cartItems[0]?.currency || 'INR';
+    // 1. Clean the input: Remove ₹, commas, and spaces
+    const cleanAmount = typeof amount === 'string' 
+        ? parseFloat(amount.replace(/[^\d.]/g, '')) 
+        : amount;
+
+    // 2. Format it
     return new Intl.NumberFormat('en-IN', {
-      style: 'currency',
-      currency: currency,
-      maximumFractionDigits: 0
-    }).format(amount);
+        style: 'currency',
+        currency: 'INR',
+        maximumFractionDigits: 0
+    }).format(cleanAmount || 0);
   };
 
   // 5. Razorpay Logic
@@ -117,7 +122,7 @@ export default function CartPage() {
               <img src={item.image_url || item.image} alt={item.title} className="cart-item-img" />
               <div className="cart-item-info">
                 <h4>{item.title}</h4>
-                <p className="cart-item-recipient">For: {item.recipient_name || 'Creator'}</p>
+                <p className="cart-item-recipient">For: {item.recipient_name || 'Name not found'}</p>
                 <span className="cart-item-price">{formatPrice(item.price)}</span>
               </div>
               <button onClick={() => removeItem(index)} className="cart-remove-btn">
