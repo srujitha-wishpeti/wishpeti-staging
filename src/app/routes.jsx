@@ -8,6 +8,8 @@ import WishlistPage from '../pages/WishlistPage';
 import CartPage from '../pages/CartPage';
 import PublicWishlist from '../pages/PublicWishlist';
 import { useAuth } from '../auth/AuthProvider';
+import CheckProfileCompletion from '../auth/CheckProfileCompletion';
+import Onboarding from '../pages/Onboarding';
 
 export default function AppRoutes() {
   const { session, loading } = useAuth();
@@ -22,15 +24,22 @@ export default function AppRoutes() {
       <Route path="/auth" element={session ? <Navigate to="/dashboard" /> : <Auth />} />
       
       {/* Public routes available to everyone */}
-      <Route path="/wishlist/:creatorId" element={<PublicWishlist />} />
+      <Route path="/wishlist/:username" element={<PublicWishlist />} />
       <Route path="/cart" element={<CartPage />} />
-      
+      <Route path="/onboarding" element={
+        <RequireAuth>
+          <Onboarding />
+        </RequireAuth>
+        } 
+      />
       {/* Private routes */}
       <Route
         path="/dashboard"
         element={
           <RequireAuth>
-            <WishlistPage />
+            <CheckProfileCompletion>
+              <WishlistPage />
+            </CheckProfileCompletion>
           </RequireAuth>
         }
       />

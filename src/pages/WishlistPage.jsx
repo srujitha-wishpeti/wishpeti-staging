@@ -11,6 +11,7 @@ import {
 import { addToCart } from '../services/cart';
 import WishlistItemCard from '../components/wishlist/WishlistItemCard';
 import './WishlistPage.css';
+import { supabase } from '../services/supabaseClient';
 
 export default function WishlistPage() {
   const { session } = useAuth();
@@ -77,12 +78,33 @@ export default function WishlistPage() {
         alert('Failed to delete item');
         }
     };
-  const handleShare = () => {
-    // Public URL for fans
-    const shareUrl = `${window.location.origin}/wishlist/${session.user.id}`;
-    navigator.clipboard.writeText(shareUrl);
-    alert("Link copied! Share this with your fans. 🔗");
-  };
+  // inside handleShare function
+    const handleShare = async () => {
+        try {
+            // Fetch the username from creator_profiles
+            const { data } = await supabase
+            .from('creator_profiles')
+            .select('username')
+            .eq('id', session.user.id)
+            .single();
+
+            const username = data?.username || session.user.id;
+            const shareUrl = `${window.location.origin}/wishlist/${username}`; // Clean URL
+            
+            // Use Web Share API if on mobile
+            if (navigator.share) {
+            await navigator.share({
+                title: 'My Wishlist',
+                url: shareUrl
+            });
+            } else {
+            navigator.clipboard.writeText(shareUrl);
+            alert("Link copied! 🔗");
+            }
+        } catch (error) {
+            console.error('Error sharing:', error);
+        }
+    };
 
   const handleAddToCart = async (item) => {
     if (!session?.user?.id) return alert('Please login');
