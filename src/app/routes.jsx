@@ -9,7 +9,7 @@ import CartPage from '../pages/CartPage';
 import PublicWishlist from '../pages/PublicWishlist';
 import { useAuth } from '../auth/AuthProvider';
 import CheckProfileCompletion from '../auth/CheckProfileCompletion';
-import Onboarding from '../pages/Onboarding';
+import Onboarding from '../pages/OnBoarding';
 
 export default function AppRoutes() {
   const { session, loading } = useAuth();
