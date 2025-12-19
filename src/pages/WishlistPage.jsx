@@ -15,6 +15,8 @@ import {
   getWishlistStats 
 } from '../services/wishlist';
 import './WishlistPage.css'; // Import the CSS
+import { addToCart } from '../services/cart';
+import WishlistItemCard from '../components/wishlist/WishlistItemCard';
 
 export default function WishlistPage() {
   const { session } = useAuth();
@@ -105,6 +107,38 @@ export default function WishlistPage() {
       console.error('Error updating variant:', error);
     }
   };
+
+  const handleAddToCart = async (item) => {
+    const userId = session?.user?.id;
+
+    if (!userId) {
+        alert('Please login to add items to cart');
+        return;
+    }
+
+    try {
+        const payload = {
+        user_id: userId,
+        product_id: item.id,
+        quantity: 1,
+        price: Number(String(item.price).replace(/[^\d]/g, '')),
+        image_url: item.image_url || null,
+        title: item.title,
+        variants: item.variants || {}
+        };
+
+        console.log('ADD TO CART:', payload);
+
+        await addToCart(payload);
+
+        alert('Added to cart ✅');
+    } catch (err) {
+        console.error('ADD TO CART ERROR:', err);
+        alert(err.message || 'Failed to add item');
+    }
+  };
+
+
 
   const getCategoryCount = (categoryId) => {
     if (categoryId === 'all') return wishlist.length;
@@ -339,15 +373,25 @@ export default function WishlistPage() {
                         </span>
                       </div>
 
-                      <a
-                        href={item.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="wishlist-item-buy-btn"
-                      >
-                        <ShoppingBag size={14} />
-                        Buy Now
-                      </a>
+                      <div className="wishlist-item-actions">
+                        <button
+                            className="wishlist-item-cart-btn"
+                            onClick={() => handleAddToCart(item)}
+                        >
+                            <ShoppingBag size={14} />
+                            Add to Cart
+                        </button>
+
+                        <a
+                            href={item.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="wishlist-item-buy-btn"
+                        >
+                            Buy
+                        </a>
+                      </div>
+
                     </div>
                   </div>
                 ))}
