@@ -1,12 +1,6 @@
-// WishlistPage.jsx - Import the CSS file
-// Add: import './WishlistPage.css' at the top
-
 import React, { useEffect, useState } from 'react';
-import { 
-  Heart, Search, Grid, List, Trash2, ShoppingBag, Share2
-} from 'lucide-react';
+import { Search, Grid, List, Share2 } from 'lucide-react';
 import AddWishlistItem from '../components/AddWishlistItem';
-import { supabase } from '../services/supabaseClient';
 import { useAuth } from '../auth/AuthProvider';
 import { 
   getWishlistItems, 
@@ -14,9 +8,9 @@ import {
   updateItemVariants,
   getWishlistStats 
 } from '../services/wishlist';
-import './WishlistPage.css'; // Import the CSS
 import { addToCart } from '../services/cart';
 import WishlistItemCard from '../components/wishlist/WishlistItemCard';
+import './WishlistPage.css';
 
 export default function WishlistPage() {
   const { session } = useAuth();
@@ -40,14 +34,14 @@ export default function WishlistPage() {
 
   const loadWishlist = async () => {
     if (!session?.user?.id) return;
-    
     setLoading(true);
     try {
-      const items = await getWishlistItems(session.user.id);
+      const [items, statistics] = await Promise.all([
+        getWishlistItems(session.user.id),
+        getWishlistStats(session.user.id)
+      ]);
       setWishlist(items);
       setFilteredWishlist(items);
-
-      const statistics = await getWishlistStats(session.user.id);
       setStats(statistics);
     } catch (error) {
       console.error('Error loading wishlist:', error);
@@ -57,359 +51,138 @@ export default function WishlistPage() {
   };
 
   useEffect(() => {
-    if (session) {
-      loadWishlist();
-    }
+    if (session) loadWishlist();
   }, [session]);
 
   useEffect(() => {
     let filtered = wishlist;
-
     if (activeCategory !== 'all') {
       filtered = filtered.filter(item => item.category === activeCategory);
     }
-
     if (searchQuery) {
       filtered = filtered.filter(item =>
         item.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         item.brand?.toLowerCase().includes(searchQuery.toLowerCase())
       );
     }
-
     setFilteredWishlist(filtered);
   }, [wishlist, activeCategory, searchQuery]);
 
   const handleDelete = async (itemId) => {
-    if (!confirm('Remove this item from your wishlist?')) return;
-
+    if (!confirm('Remove this item?')) return;
     try {
       await deleteWishlistItem(itemId);
       await loadWishlist();
     } catch (error) {
-      console.error('Error deleting item:', error);
       alert('Failed to delete item');
     }
   };
 
-  const handleVariantChange = async (itemId, type, value) => {
-    const item = wishlist.find(i => i.id === itemId);
-    if (!item) return;
-
-    const updatedVariants = {
-      ...item.variants,
-      [type === 'size' ? 'selectedSize' : 'selectedColor']: value
-    };
-
-    try {
-      await updateItemVariants(itemId, updatedVariants);
-      await loadWishlist();
-    } catch (error) {
-      console.error('Error updating variant:', error);
-    }
-  };
-
   const handleAddToCart = async (item) => {
-    const userId = session?.user?.id;
-
-    if (!userId) {
-        alert('Please login to add items to cart');
-        return;
-    }
-
+    if (!session?.user?.id) return alert('Please login');
     try {
-        const payload = {
-        user_id: userId,
+      const priceVal = typeof item.price === 'string' 
+        ? Number(item.price.replace(/[^\d]/g, '')) 
+        : item.price;
+
+      await addToCart({
+        user_id: session.user.id,
         product_id: item.id,
         quantity: 1,
-        price: Number(String(item.price).replace(/[^\d]/g, '')),
-        image_url: item.image_url || null,
+        price: priceVal,
+        image_url: item.image_url,
         title: item.title,
         variants: item.variants || {}
-        };
-
-        console.log('ADD TO CART:', payload);
-
-        await addToCart(payload);
-
-        alert('Added to cart ✅');
+      });
+      alert('Added to cart ✅');
     } catch (err) {
-        console.error('ADD TO CART ERROR:', err);
-        alert(err.message || 'Failed to add item');
+      alert('Failed to add to cart');
     }
   };
 
-
-
-  const getCategoryCount = (categoryId) => {
-    if (categoryId === 'all') return wishlist.length;
-    return wishlist.filter(item => item.category === categoryId).length;
-  };
-
-  if (!session) {
-    return (
-      <div className="wishlist-empty" style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <div>
-          <div className="wishlist-empty-icon">🔒</div>
-          <h2 className="wishlist-empty-title">Login Required</h2>
-          <p className="wishlist-empty-text">Please login to view your wishlist</p>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="wishlist-page">
-      {/* Header */}
-      <div className="wishlist-header">
-
-        {/* Profile Section */}
-        <div className="wishlist-profile-section">
-          <div className="wishlist-profile-card">
-            <div className="wishlist-profile-inner">
-              <div className="wishlist-profile-header">
-                <div>
-                  <h1 className="wishlist-title">My Wishlist</h1>
-                  <p className="wishlist-subtitle">
-                    {stats?.totalItems || 0} items • 
-                    {stats?.totalValue ? ` ₹${stats.totalValue.toLocaleString()}` : ' --'}
-                  </p>
-                </div>
-                <button className="wishlist-share-btn">
-                  <Share2 size={20} style={{ color: '#4b5563' }} />
-                  <span>Share</span>
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Main Content */}
-      <div className="wishlist-main">
-        <div className="wishlist-container">
-          {/* Categories */}
-          <div className="wishlist-section">
-            <div className="wishlist-categories">
-              {categories.map((cat) => (
-                <button
-                  key={cat.id}
-                  onClick={() => setActiveCategory(cat.id)}
-                  className={`wishlist-category-btn ${activeCategory === cat.id ? 'active' : ''}`}
-                  style={activeCategory === cat.id ? { backgroundColor: cat.color } : {}}
-                >
-                  <div className="wishlist-category-icon">{cat.icon}</div>
-                  <div className="wishlist-category-name">{cat.name}</div>
-                  <div className="wishlist-category-count">{getCategoryCount(cat.id)}</div>
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Controls */}
-          <div className="wishlist-controls">
-            <div className="wishlist-search-wrapper">
-              <Search className="wishlist-search-icon" size={20} />
-              <input
-                type="text"
-                placeholder="Search wishlist..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="wishlist-search-input"
-              />
-            </div>
-
-            <div className="wishlist-view-toggle">
-              <button
-                onClick={() => setViewMode('grid')}
-                className={`wishlist-view-btn ${viewMode === 'grid' ? 'active' : ''}`}
-              >
-                <Grid size={20} />
-              </button>
-              <button
-                onClick={() => setViewMode('list')}
-                className={`wishlist-view-btn ${viewMode === 'list' ? 'active' : ''}`}
-              >
-                <List size={20} />
-              </button>
-            </div>
-
-            <AddWishlistItem 
-              session={session} 
-              onItemAdded={loadWishlist}
-              categories={categories.filter(c => c.id !== 'all')}
-            />
-          </div>
-
-          {/* Items */}
-          <div>
-            <div className="wishlist-items-header">
-              <h3 className="wishlist-items-title">
-                {activeCategory === 'all' 
-                  ? 'All Wishes' 
-                  : categories.find(c => c.id === activeCategory)?.name}
-              </h3>
-              <span className="wishlist-items-count">
-                {filteredWishlist.length} {filteredWishlist.length === 1 ? 'item' : 'items'}
-              </span>
-            </div>
-
-            {loading ? (
-              <div className="wishlist-empty">
-                <div className="wishlist-empty-icon" style={{ animation: 'spin 1s linear infinite' }}>⏳</div>
-                <p className="wishlist-empty-text">Loading your wishlist...</p>
-              </div>
-            ) : filteredWishlist.length === 0 ? (
-              <div className="wishlist-empty">
-                <div className="wishlist-empty-icon">📦</div>
-                <h3 className="wishlist-empty-title">
-                  {searchQuery ? 'No items found' : 'Your wishlist is empty'}
-                </h3>
-                <p className="wishlist-empty-text">
-                  {searchQuery 
-                    ? 'Try a different search term'
-                    : 'Start adding items from your favorite stores!'}
-                </p>
-              </div>
-            ) : (
-              <div className={viewMode === 'grid' ? 'wishlist-grid' : 'wishlist-list'}>
-                {filteredWishlist.map((item) => (
-                  <div key={item.id} className="wishlist-item-card">
-                    <div className="wishlist-item-image">
-                      {item.image_url ? (
-                        <img
-                          src={item.image_url}
-                          alt={item.title}
-                          className="wishlist-item-img"
-                          loading="lazy"
-                        />
-                      ) : (
-                        <span className="wishlist-item-placeholder">🎁</span>
-                      )}
-                    
-                      {item.discount && (
-                        <div className="wishlist-item-discount">
-                          {item.discount}
-                        </div>
-                      )}
-                    </div>
-
-                    <div className="wishlist-item-content">
-                      <div className="wishlist-item-header">
-                        <div className="wishlist-item-info">
-                          {item.brand && (
-                            <p className="wishlist-item-brand">{item.brand}</p>
-                          )}
-                          <h3 className="wishlist-item-title">{item.title}</h3>
-                        </div>
-                        <button
-                          onClick={() => handleDelete(item.id)}
-                          className="wishlist-item-delete"
-                        >
-                          <Trash2 size={16} style={{ color: '#9ca3af' }} />
-                        </button>
-                      </div>
-
-                      {item.rating && (
-                        <div className="wishlist-item-rating">
-                          <span style={{ color: '#eab308' }}>⭐</span>
-                          <span style={{ fontWeight: 600 }}>{item.rating}</span>
-                          {item.reviews && (
-                            <span style={{ color: '#9ca3af' }}>({item.reviews})</span>
-                          )}
-                        </div>
-                      )}
-
-                      <div className="wishlist-item-price">
-                        <span className="wishlist-item-current-price">
-                          {item.price || 'Price N/A'}
-                        </span>
-                        {item.original_price && (
-                          <span className="wishlist-item-original-price">
-                            {item.original_price}
-                          </span>
-                        )}
-                      </div>
-
-                      {item.variants && (
-                        <div className="wishlist-item-variants">
-                          {item.variants.colors && item.variants.colors.length > 0 && (
-                            <div style={{ marginBottom: '0.5rem' }}>
-                              <label className="wishlist-item-variant-label">Color:</label>
-                              <select
-                                value={item.variants.selectedColor || ''}
-                                onChange={(e) => handleVariantChange(item.id, 'color', e.target.value)}
-                                className="wishlist-item-variant-select"
-                              >
-                                {item.variants.colors.map(color => (
-                                  <option key={color} value={color}>{color}</option>
-                                ))}
-                              </select>
-                            </div>
-                          )}
-
-                          {item.variants.sizes && item.variants.sizes.length > 0 && (
-                            <div>
-                              <label className="wishlist-item-variant-label">Size:</label>
-                              <select
-                                value={item.variants.selectedSize || ''}
-                                onChange={(e) => handleVariantChange(item.id, 'size', e.target.value)}
-                                className="wishlist-item-variant-select"
-                              >
-                                {item.variants.sizes.map(size => (
-                                  <option key={size} value={size}>{size}</option>
-                                ))}
-                              </select>
-                            </div>
-                          )}
-                        </div>
-                      )}
-
-                      <div className="wishlist-item-footer">
-                        <span>{item.store}</span>
-                        <span className={`wishlist-item-availability ${
-                          item.availability?.includes('Stock') ? 'in-stock' : 'out-of-stock'
-                        }`}>
-                          {item.availability || 'Check availability'}
-                        </span>
-                      </div>
-
-                      <div className="wishlist-item-actions">
-                        <button
-                            className="wishlist-item-cart-btn"
-                            onClick={() => handleAddToCart(item)}
-                        >
-                            <ShoppingBag size={14} />
-                            Add to Cart
-                        </button>
-
-                        <a
-                            href={item.url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="wishlist-item-buy-btn"
-                        >
-                            Buy
-                        </a>
-                      </div>
-
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
+  if (!session) return (
+    <div className="wishlist-empty-state">
+      <div className="wishlist-empty-card">
+        <div className="wishlist-empty-icon">🔒</div>
+        <h2>Login Required</h2>
+        <p>Please login to view your wishlist</p>
       </div>
     </div>
   );
-}
 
-// Add this to enable spinning animation
-const style = document.createElement('style');
-style.textContent = `
-  @keyframes spin {
-    from { transform: rotate(0deg); }
-    to { transform: rotate(360deg); }
-  }
-`;
-document.head.appendChild(style);
+  return (
+    <div className="wishlist-page">
+      <div className="wishlist-hero-header">
+        <div className="wishlist-profile-container">
+          <div className="wishlist-profile-card">
+            <div className="wishlist-profile-info">
+              <h1 className="wishlist-title">My Wishlist</h1>
+              <p className="wishlist-subtitle">
+                {stats?.totalItems || 0} items • {stats?.totalValue ? `₹${stats.totalValue.toLocaleString()}` : '₹0'}
+              </p>
+            </div>
+            <button className="wishlist-share-btn">
+              <Share2 size={18} /> <span>Share List</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <main className="wishlist-main-content">
+        <div className="wishlist-section">
+          <div className="wishlist-categories-scroller">
+            {categories.map((cat) => (
+              <button
+                key={cat.id}
+                onClick={() => setActiveCategory(cat.id)}
+                className={`wishlist-cat-card ${activeCategory === cat.id ? 'active' : ''}`}
+                style={activeCategory === cat.id ? { '--cat-color': cat.color } : {}}
+              >
+                <span className="cat-icon">{cat.icon}</span>
+                <span className="cat-name">{cat.name}</span>
+                <span className="cat-count">{wishlist.filter(i => cat.id === 'all' || i.category === cat.id).length}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="wishlist-toolbar">
+          <div className="wishlist-search-box">
+            <Search className="search-icon" size={18} />
+            <input
+              type="text"
+              placeholder="Search your wishes..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          </div>
+
+          <div className="wishlist-actions-group">
+            <div className="view-toggle">
+              <button onClick={() => setViewMode('grid')} className={viewMode === 'grid' ? 'active' : ''}><Grid size={20}/></button>
+              <button onClick={() => setViewMode('list')} className={viewMode === 'list' ? 'active' : ''}><List size={20}/></button>
+            </div>
+            <AddWishlistItem session={session} onItemAdded={loadWishlist} categories={categories.filter(c => c.id !== 'all')} />
+          </div>
+        </div>
+
+        <div className={viewMode === 'grid' ? 'wishlist-grid' : 'wishlist-list-view'}>
+          {loading ? (
+            <div className="loading-spinner">Loading...</div>
+          ) : filteredWishlist.length > 0 ? (
+            filteredWishlist.map(item => (
+              <WishlistItemCard 
+                key={item.id} 
+                item={item} 
+                onDelete={handleDelete} 
+                onAddToCart={handleAddToCart} 
+              />
+            ))
+          ) : (
+            <div className="wishlist-empty-msg">No items found in this category.</div>
+          )}
+        </div>
+      </main>
+    </div>
+  );
+}
