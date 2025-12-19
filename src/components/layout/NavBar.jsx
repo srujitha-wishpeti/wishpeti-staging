@@ -6,8 +6,20 @@ export default function Navbar() {
   const { session } = useAuth()
 
   const logout = async () => {
-    await supabase.auth.signOut()
-  }
+    try {
+      // Attempt standard sign out
+      await supabase.auth.signOut();
+    } catch (error) {
+      console.warn("Sign out error caught:", error.message);
+    } finally {
+      // 🔑 FORCE local cleanup even if the server call (403) fails
+      // This clears the 'session' state in your AuthProvider
+      localStorage.removeItem('supabase.auth.token'); // Adjust key name if custom
+      
+      // Redirect to landing
+      window.location.href = '/'; 
+    }
+  };
 
   return (
     <header style={styles.header}>
