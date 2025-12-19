@@ -23,6 +23,7 @@ export default function Footer() {
           <Link to="/terms">Terms & Conditions</Link>
           <Link to="/privacy">Privacy Policy</Link>
           <Link to="/refund">Refund Policy</Link>
+          <Link to="/shipping">Shipping Policy</Link>
           <Link to="/contact">Contact Us</Link>
         </nav>
 

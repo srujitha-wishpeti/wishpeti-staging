@@ -165,9 +165,42 @@ export default function AppRoutes() {
 </div>`} />} 
       />
       <Route 
+        path="/shipping" 
+        element={<PolicyPage title="Shipping Policy" content={`<div class="policy-text">
+    <p>Last updated on <strong>December 20, 2025</strong></p>
+    <p>At <strong>WishGifts</strong>, we facilitate the delivery of gifts from third-party merchants directly to your favorite creators.</p>
+
+    <h3>1. Shipping Timelines</h3>
+    <ul>
+        <li>Orders are typically processed by our partner merchants within <strong>2-3 working days</strong>.</li>
+        <li>Estimated delivery time for gifts is <strong>7-10 working days</strong> across India.</li>
+        <li>Please note that delivery times may vary depending on the merchant's location and the creator's delivery address.</li>
+    </ul>
+
+    <h3>2. Shipping Charges</h3>
+    <ul>
+        <li>We charge a consolidated <strong>8% Service & Shipping Fee</strong> at checkout.</li>
+        <li>This fee covers the cost of standard shipping from the merchant to the creator, as well as platform handling.</li>
+    </ul>
+
+    <h3>3. Tracking Your Gift</h3>
+    <p>Once the merchant dispatches the item, a tracking link (if provided by the merchant) will be sent to your registered email address so you can follow the journey of your gift.</p>
+
+    <h3>4. Delivery Locations</h3>
+    <p>We currently facilitate shipping within <strong>India</strong>. If a merchant is unable to deliver to a specific location, we will contact you and initiate a full refund.</p>
+
+    <h3>5. Contact Information</h3>
+    <p>For any queries regarding the delivery of your gift, please contact us at:</p>
+    <p>Email: <strong>msrujitha@gmail.com</strong><br>
+    Phone: <strong>+919972769491</strong><br>
+    Address: <strong>Vidya Nagar 1st cross, Bellary, Karntaka - 583104</strong></p>
+</div>`} />} 
+      />
+      <Route 
         path="/contact" 
         element={<PolicyPage title="Contact Us" content="<p>Email: msrujitha@gmail.com</p><p>Phone: +919972769491</p>" />} 
       />
+
     </Routes>
   );
 }
