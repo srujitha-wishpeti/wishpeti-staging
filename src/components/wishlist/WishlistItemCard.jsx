@@ -1,58 +1,37 @@
 import React from 'react';
 import { ShoppingBag, Trash2, ExternalLink } from 'lucide-react';
 
-export default function WishlistItemCard({ 
-  item, 
-  onDelete, 
-  onAddToCart, 
-  isPublicView = false // New prop: defaults to false for the creator dashboard
-}) {
+export default function WishlistItemCard({ item, onDelete, onAddToCart, isPublicView = false }) {
   return (
-    <div className="wishlist-item-card">
-      <div className="wishlist-item-image-wrapper">
+    <div className="unified-wishlist-card">
+      <div className="card-media-box">
         {item.image_url ? (
-          <img src={item.image_url} alt={item.title} className="wishlist-card-img" />
+          <img src={item.image_url} alt={item.title} />
         ) : (
-          <div className="wishlist-card-placeholder">🎁</div>
+          <div className="placeholder-box">🎁</div>
         )}
-        {item.discount && <span className="wishlist-discount-badge">{item.discount}</span>}
+        {!isPublicView && (
+          <button className="card-delete-trigger" onClick={() => onDelete(item.id)}>
+            <Trash2 size={16} />
+          </button>
+        )}
       </div>
 
-      <div className="wishlist-card-body">
-        <div className="wishlist-card-header">
-          <div className="wishlist-brand-info">
-            {item.brand && <span className="wishlist-brand-name">{item.brand}</span>}
-            <h3 className="wishlist-item-title">{item.title}</h3>
-          </div>
-          
-          {/* Only show the delete button if NOT in public view */}
-          {!isPublicView && (
-            <button className="delete-btn" onClick={() => onDelete(item.id)}>
-              <Trash2 size={16} />
-            </button>
-          )}
+      <div className="card-info-box">
+        <div className="card-meta-top">
+          <span className="brand-tag">{item.brand || 'Store'}</span>
+          <span className="price-tag">{item.price?.toLocaleString()}</span>
         </div>
-
-        <div className="wishlist-price-row">
-          <span className="current-price">{item.price || 'N/A'}</span>
-          {item.original_price && <span className="old-price">{item.original_price}</span>}
-        </div>
-
-        <div className="wishlist-store-tag">
-          <span className="store-name">{item.store || 'Store'}</span>
-          <span className={`stock-status ${item.availability?.toLowerCase().includes('in stock') ? 'in' : 'out'}`}>
-            {item.availability || 'Check Store'}
-          </span>
-        </div>
-
-        <div className="wishlist-card-actions">
-          <button className="add-to-cart-btn" onClick={() => onAddToCart(item)}>
-            <ShoppingBag size={16} /> 
-            {/* Context-aware button text */}
-            {isPublicView ? 'Gift this Item' : 'Add to Cart'}
+        
+        <h3 className="card-product-title">{item.title}</h3>
+        
+        <div className="card-footer-actions">
+          <button className="btn-main-action" onClick={() => onAddToCart(item)}>
+            <ShoppingBag size={16} />
+            <span>{isPublicView ? 'Gift' : 'Add to Cart'}</span>
           </button>
-          <a href={item.url} target="_blank" rel="noopener noreferrer" className="buy-now-btn">
-             View <ExternalLink size={14} />
+          <a href={item.url} target="_blank" rel="noopener noreferrer" className="btn-icon-link">
+            <ExternalLink size={16} />
           </a>
         </div>
       </div>
