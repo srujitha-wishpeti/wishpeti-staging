@@ -90,3 +90,29 @@
 @media (max-width: 850px) {
   .cart-content { grid-template-columns: 1fr; }
 }
+
+.cart-footer {
+  margin-top: 60px; /* Space it away from the content */
+  padding: 40px 0;
+  border-top: 1px solid #f1f5f9;
+  text-align: center; /* Center the links and copyright */
+}
+
+.policy-links {
+  display: flex;
+  justify-content: center;
+  gap: 20px;
+  margin-bottom: 10px;
+}
+
+.policy-links a {
+  color: #6366f1; /* Match your theme color */
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.cart-footer p {
+  color: #94a3b8;
+  font-size: 13px;
+}
