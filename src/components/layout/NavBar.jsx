@@ -30,7 +30,7 @@ export default function Navbar() {
   return (
     <header style={styles.header}>
       <Link to={session ? "/wishlist" : "/"} style={styles.logo}>
-        🎁 WishGifts
+        🎁 WishPeti
       </Link>
 
       <nav style={styles.nav}>

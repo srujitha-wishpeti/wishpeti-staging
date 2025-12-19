@@ -10,7 +10,7 @@ export default function Footer() {
       <div className="footer-container">
         {/* Brand Section */}
         <div className="footer-brand">
-          <h3 className="footer-logo">🎁 WishGifts</h3>
+          <h3 className="footer-logo">🎁 WishPeti</h3>
           <p className="footer-tagline">The easiest way to gift your favorite creators.</p>
           <div className="social-links">
             <a href="https://instagram.com" target="_blank" rel="noreferrer"><Instagram size={18} /></a>
@@ -29,7 +29,7 @@ export default function Footer() {
 
         {/* Bottom Copyright */}
         <div className="footer-bottom">
-          <p>© {currentYear} WishGifts - Secure Payments by Razorpay</p>
+          <p>© {currentYear} WishPeti - Secure Payments by Razorpay</p>
           <p className="made-with">
             Made with <Heart size={12} fill="#ef4444" color="#ef4444" /> in India
           </p>

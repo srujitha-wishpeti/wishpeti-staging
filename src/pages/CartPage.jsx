@@ -69,7 +69,7 @@ export default function CartPage() {
       key: "YOUR_RAZORPAY_KEY_ID", // 🔑 Replace with your actual Key ID
       amount: amountInSmallestUnit,
       currency: currency,
-      name: "WishGifts",
+      name: "WishPeti",
       description: `Gifting ${cartItems.length} items`,
       image: "https://yourwebsite.com/logo.png", 
       handler: function (response) {

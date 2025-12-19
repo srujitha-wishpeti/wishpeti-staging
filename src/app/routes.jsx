@@ -51,10 +51,10 @@ export default function AppRoutes() {
         path="/terms" 
         element={<PolicyPage title="Terms & Conditions" content={`<div class="policy-text">
     <p>Last updated on <strong>December 20, 2025</strong></p>
-    <p>Welcome to <strong>WishGifts</strong>. By using our website and services, you agree to comply with and be bound by the following terms and conditions.</p>
+    <p>Welcome to <strong>WishPeti</strong>. By using our website and services, you agree to comply with and be bound by the following terms and conditions.</p>
 
     <h3>1. Service Overview</h3>
-    <p><strong>WishGifts</strong> provides a platform that allows users ("Fans") to purchase gifts for third-party individuals ("Creators"). We act as a facilitator between the Fan and third-party merchants who fulfill and ship the items.</p>
+    <p><strong>WishPeti</strong> provides a platform that allows users ("Fans") to purchase gifts for third-party individuals ("Creators"). We act as a facilitator between the Fan and third-party merchants who fulfill and ship the items.</p>
 
     <h3>2. Payments and Fees</h3>
     <ul>
@@ -74,7 +74,7 @@ export default function AppRoutes() {
     <p>You agree to provide accurate and current information during the checkout process, including your name and email address. You are responsible for ensuring that the gift selected is appropriate for the recipient.</p>
 
     <h3>5. Limitation of Liability</h3>
-    <p><strong>WishGifts</strong> shall not be liable for any indirect, incidental, or consequential damages arising out of the use of our service or the purchase of any gifts. Our total liability is limited to the amount paid for the specific transaction in question.</p>
+    <p><strong>WishPeti</strong> shall not be liable for any indirect, incidental, or consequential damages arising out of the use of our service or the purchase of any gifts. Our total liability is limited to the amount paid for the specific transaction in question.</p>
 
     <h3>6. Governing Law</h3>
     <p>These terms are governed by the laws of India. Any disputes arising out of or in connection with these terms shall be subject to the exclusive jurisdiction of the courts in <strong>[Your City, State]</strong>.</p>
@@ -92,7 +92,7 @@ export default function AppRoutes() {
     <p>Last updated on <strong>December 20, 2025</strong></p>
     
     <h3>1. Information We Collect</h3>
-    <p>At <strong>WishGifts</strong>, we collect information to provide a better gifting experience. This includes:</p>
+    <p>At <strong>WishPeti</strong>, we collect information to provide a better gifting experience. This includes:</p>
     <ul>
         <li><strong>Personal Information:</strong> Name, email address, and contact details provided during checkout.</li>
         <li><strong>Transaction Data:</strong> Details of the gifts purchased, though we do not store your full card details (these are handled securely by Razorpay).</li>
@@ -134,7 +134,7 @@ export default function AppRoutes() {
     <p>Last updated on [Date]</p>
     
     <h3>1. Cancellation Policy</h3>
-    <p>Gifts on <strong>WishGifts</strong> are often processed immediately to ensure timely delivery to creators. Therefore:</p>
+    <p>Gifts on <strong>WishPeti</strong> are often processed immediately to ensure timely delivery to creators. Therefore:</p>
     <ul>
         <li>Cancellations are only accepted within <strong>24 hours</strong> of placing the order, provided the order has not yet been processed or shipped by our third-party merchants.</li>
         <li>To request a cancellation, please email us at <strong>[Your Support Email]</strong> with your Order ID.</li>
@@ -168,7 +168,7 @@ export default function AppRoutes() {
         path="/shipping" 
         element={<PolicyPage title="Shipping Policy" content={`<div class="policy-text">
     <p>Last updated on <strong>December 20, 2025</strong></p>
-    <p>At <strong>WishGifts</strong>, we facilitate the delivery of gifts from third-party merchants directly to your favorite creators.</p>
+    <p>At <strong>WishPeti</strong>, we facilitate the delivery of gifts from third-party merchants directly to your favorite creators.</p>
 
     <h3>1. Shipping Timelines</h3>
     <ul>
