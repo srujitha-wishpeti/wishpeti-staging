@@ -136,3 +136,18 @@ body {
   from { transform: translateX(100%); opacity: 0; }
   to { transform: translateX(0); opacity: 1; }
 }
+
+/* Fix for iOS invisible text */
+input, select, textarea {
+  color: #111827 !important; /* Force dark text */
+  -webkit-text-fill-color: #111827 !important; /* Force dark text for iOS */
+  opacity: 1; /* Fix for older iOS versions */
+}
+
+/* Fix for Safari Autocomplete turning text white */
+input:-webkit-autofill,
+input:-webkit-autofill:hover, 
+input:-webkit-autofill:focus {
+  -webkit-text-fill-color: #111827 !important;
+  transition: background-color 5000s ease-in-out 0s;
+}
