@@ -280,7 +280,18 @@ export default function OnBoarding() {
 const containerStyle = { paddingTop: '80px', paddingBottom: '50px', backgroundColor: '#f3f4f6', minHeight: '100vh' };
 const cardStyle = { maxWidth: '500px', margin: '0 auto', background: 'white', padding: '40px', borderRadius: '16px', boxShadow: '0 4px 20px rgba(0,0,0,0.08)' };
 const labelStyle = { display: 'block', fontSize: '0.85rem', fontWeight: '600', marginBottom: '5px', color: '#374151' };
-const inputStyle = { width: '100%', padding: '12px', marginBottom: '15px', borderRadius: '8px', border: '1px solid #ddd', boxSizing: 'border-box', fontSize: '0.95rem' };
+const inputStyle = { 
+  width: '100%', 
+  padding: '12px', 
+  marginBottom: '15px', 
+  borderRadius: '8px', 
+  border: '1px solid #ddd', 
+  boxSizing: 'border-box', 
+  fontSize: '16px', // 💡 IMPORTANT: 16px prevents iOS auto-zoom
+  backgroundColor: 'white', // 💡 Force white background
+  color: '#111827', // 💡 Explicitly set dark text color
+  WebkitTextFillColor: '#111827', // 💡 Specific fix for iOS
+};
 const btnStyle = { width: '100%', padding: '14px', background: '#4f46e5', color: 'white', border: 'none', borderRadius: '8px', fontWeight: '700', cursor: 'pointer', marginTop: '10px' };
 const dividerStyle = { margin: '24px 0', border: '0', borderTop: '1px solid #f3f4f6' };
 const dangerZoneStyle = { marginTop: '32px', padding: '20px', border: '1px solid #fee2e2', borderRadius: '12px', backgroundColor: '#fef2f2' };
