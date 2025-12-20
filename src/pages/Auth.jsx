@@ -97,18 +97,20 @@ export default function Auth() {
     justifyContent: 'center',
   };
 
-  const inputStyle = {
-    width: '100%',
-    padding: '12px 16px',
-    borderRadius: '10px',
-    border: '1px solid #d1d5db',
-    fontSize: '1rem',
-    boxSizing: 'border-box',
-    outline: 'none',
-    transition: 'border-color 0.2s',
-    backgroundColor: loading ? '#f9fafb' : 'white', // Fade inputs when loading
-    pointerEvents: loading ? 'none' : 'auto',
-  };
+const inputStyle = {
+  width: '100%',
+  padding: '12px 16px',
+  borderRadius: '10px',
+  border: '1px solid #d1d5db',
+  fontSize: '16px', // 💡 Change to 16px to prevent iOS auto-zoom
+  boxSizing: 'border-box',
+  outline: 'none',
+  transition: 'border-color 0.2s',
+  backgroundColor: 'white', // 💡 Force white background
+  color: '#111827', // 💡 Explicitly set dark text color
+  WebkitTextFillColor: '#111827', // 💡 Fix for invisible text on iOS
+  pointerEvents: loading ? 'none' : 'auto',
+};
 
 
   const [isSignup, setIsSignup] = useState(mode === 'signup');
