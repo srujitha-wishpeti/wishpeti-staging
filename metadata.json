@@ -1,8 +1,0 @@
-
-{
-  "name": "WishPeti",
-  "description": "Safe & Secure Gifting for India's Top Creators. Curate your wishlist, accept secure payments, and receive gifts with total privacy.",
-  "requestFramePermissions": [
-    "camera"
-  ]
-}
