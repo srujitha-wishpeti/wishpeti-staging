@@ -267,19 +267,23 @@ const styles = {
     background: '#f1f5f9',
     borderRadius: '12px',
     border: '1px solid #e2e8f0',
-    marginBottom: '20px'
+    marginBottom: '20px',
+    color: '#111827',           
+    WebkitTextFillColor: '#111827',
+    fontSize: '16px',           
+    appearance: 'none' 
   },
-  inputStyle: {
+  inputStyle : {
     width: '100%',
     padding: '12px',
-    marginBottom: '12px',
+    marginBottom: '10px',
     borderRadius: '8px',
-    border: '1px solid #cbd5e1',
-    fontSize: '14px',
-    boxSizing: 'border-box',
-    color: '#111827',
-    backgroundColor: 'white',
-    WebkitTextFillColor: '#111827'
+    border: '1px solid #ddd',
+    backgroundColor: '#ffffff', 
+    color: '#111827',           
+    WebkitTextFillColor: '#111827',
+    fontSize: '16px',           
+    appearance: 'none'       
   },
   privacyNote: {
     fontSize: '11px',

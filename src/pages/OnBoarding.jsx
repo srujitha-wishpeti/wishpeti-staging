@@ -122,7 +122,31 @@ export default function OnBoarding() {
         setLoading(false);
     }
   };
+  
+  const handlePincodeChange = async (e) => {
+    const pin = e.target.value;
+    setFormData({ ...formData, postal_code: pin });
 
+    if (pin.length === 6) {
+        try {
+        const response = await fetch(`https://api.postalpincode.in/pincode/${pin}`);
+        const data = await response.json();
+        
+        if (data[0].Status === "Success") {
+            const postOffice = data[0].PostOffice[0];
+            setFormData(prev => ({
+            ...prev,
+            postal_code: pin,
+            city: postOffice.District,
+            state: postOffice.State
+            }));
+            showToast("City & State detected! ✨");
+        }
+        } catch (err) {
+        console.error("Pincode lookup failed");
+        }
+    }
+  };
   const handleDeleteAccount = async () => {
     const confirm = window.confirm("This will PERMANENTLY delete your account. Continue?");
     if (confirm) {
@@ -236,12 +260,13 @@ export default function OnBoarding() {
 
           <div style={{ display: 'flex', gap: '10px' }}>
             <input
-              type="text"
-              placeholder="Pincode"
-              required
-              value={formData.postal_code}
-              onChange={(e) => setFormData({ ...formData, postal_code: e.target.value })}
-              style={inputStyle}
+                type="text"
+                placeholder="Pincode (6 digits)"
+                required
+                maxLength="6"
+                value={formData.postal_code}
+                onChange={handlePincodeChange}
+                style={inputStyle}
             />
             <select
               required
