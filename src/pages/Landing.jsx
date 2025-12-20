@@ -9,8 +9,8 @@ export default function Landing() {
 
   return (
     <div style={{ padding: 32 }}>
-      <h1>🎁 Privacy-based Gifting Platform</h1>
-      <p>Create wishlists. Let your audience gift meaningfully without revealing your details.</p>
+      <h1>Safe & Secure Gifting for India's Top Creators. 🎁</h1>
+      <p>Bridge the gap between you and your fans. Curate your WishPeti, accept secure payments via Razorpay, and receive gifts at your doorstep with total privacy.</p>
     </div>
   )
 }
