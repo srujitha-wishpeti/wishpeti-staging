@@ -115,40 +115,51 @@ const styles = {
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: '0 24px',
+    padding: '0 5%', // Responsive padding
     height: '70px',
     borderBottom: '1px solid #eee',
     position: 'fixed',
-    top: 0, left: 0, right: 0,
-    backgroundColor: 'white',
+    top: 0, 
+    left: 0, 
+    right: 0,
+    backgroundColor: 'rgba(255, 255, 255, 0.95)', // Slight transparency for modern look
+    backdropFilter: 'blur(8px)', // Blurs content behind header
     zIndex: 2000,
+    boxSizing: 'border-box' // 🚀 Crucial to prevent horizontal overflow
   },
   logo: { textDecoration: 'none', fontWeight: 'bold', fontSize: 20, color: 'black' },
-  nav: { display: 'flex', gap: 15, alignItems: 'center' },
+  nav: { display: 'flex', gap: 20, alignItems: 'center' },
   cartLink: {
-    padding: '8px',
-    borderRadius: '50%',
+    padding: '10px',
+    borderRadius: '12px',
     background: '#f8fafc',
     display: 'flex',
     position: 'relative',
-    color: '#1e293b'
+    color: '#1e293b',
+    transition: 'all 0.2s ease'
   },
-  cartIconWrapper: { position: 'relative', display: 'flex' },
+  cartIconWrapper: { 
+    position: 'relative', 
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center'
+  },
   cartBadge: {
     position: 'absolute',
-    top: '-5px',
-    right: '-5px',
+    top: '-12px', // 🚀 Adjusted for better centering
+    right: '-12px',
     background: '#ef4444',
     color: 'white',
-    fontSize: '10px',
+    fontSize: '11px',
     borderRadius: '50%',
-    width: '18px',
-    height: '18px',
+    minWidth: '20px', // Using minWidth instead of width for double digits
+    height: '20px',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
     border: '2px solid white',
-    fontWeight: 'bold'
+    fontWeight: 'bold',
+    boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
   },
   menuTrigger: {
     display: 'flex',

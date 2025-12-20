@@ -211,3 +211,33 @@
   .cart-summary-card { position: static; }
   .cart-page-container { margin: 60px auto; }
 }
+
+.cart-page-container {
+  max-width: 1100px;
+  margin: 0 auto;
+  /* 🚀 Push the entire page down so it doesn't start UNDER the header */
+  padding-top: 100px; 
+  padding-left: 20px;
+  padding-right: 20px;
+}
+
+.cart-summary-card {
+  position: sticky;
+  /* 🚀 Increase this! If your header is 70px, this should be at least 90px */
+  top: 90px; 
+  z-index: 10; /* Lower than the header's 1000 */
+  background: white;
+  padding: 24px;
+  border-radius: 20px;
+  border: 1px solid #e2e8f0;
+}
+
+/* Ensure the header row doesn't get hidden */
+.cart-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+  position: relative;
+  z-index: 5;
+}
