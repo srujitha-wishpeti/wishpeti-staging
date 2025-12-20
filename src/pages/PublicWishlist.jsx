@@ -1,8 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useLocation } from 'react-router-dom';
+import { Share2, Grid, List } from 'lucide-react'; // 🚀 Added for UI Icons
 import { supabase } from '../services/supabaseClient'; 
 import { getWishlistItems } from '../services/wishlist';
 import WishlistItemCard from '../components/wishlist/WishlistItemCard';
+import { fetchExchangeRate } from '../utils/currency'; 
+import { getCurrencyPreference, saveCurrencyPreference } from '../utils/currency';
 import Toast from '../components/ui/Toast';
 import './WishlistPage.css'; 
 import './PublicWishlist.css'; 
@@ -14,9 +17,39 @@ export default function PublicWishlist() {
   const [items, setItems] = useState([]);
   const [creator, setCreator] = useState(null); 
   const [loading, setLoading] = useState(true);
+  const [viewMode, setViewMode] = useState('grid'); // 🚀 State for Grid/List toggle
   const location = useLocation();
 
-  // Handle URL item highlighting/scrolling
+  const [currency, setCurrency] = useState({ code: 'INR', rate: 1 });
+
+  const handleCurrencyChange = async (newCode) => {
+    try {
+      const rate = await fetchExchangeRate(newCode);
+      setCurrency({ code: newCode, rate });
+      saveCurrencyPreference(newCode, rate);
+      window.dispatchEvent(new Event('currencyChanged'));
+    } catch (err) {
+      console.error("Failed to update currency:", err);
+    }
+  };
+
+  const handleShare = async () => {
+    const shareUrl = window.location.href;
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: `${creator?.display_name}'s Wishlist`,
+          url: shareUrl,
+        });
+      } catch (err) { console.log('Share failed', err); }
+    } else {
+      navigator.clipboard.writeText(shareUrl);
+      setToastMsg("Link copied to clipboard! 📋");
+      setShowToast(true);
+    }
+  };
+
+  // ... (Keep existing UseEffects for item highlighting and data loading)
   useEffect(() => {
     const queryParams = new URLSearchParams(location.search);
     const itemId = queryParams.get('item');
@@ -34,12 +67,10 @@ export default function PublicWishlist() {
     }
   }, [location.search, loading, items]);
 
-  // Load Creator and Items
   useEffect(() => {
     const loadPublicWishes = async () => {
       if (!username) return;
       setLoading(true);
-      
       try {
         const { data: profile, error: profileError } = await supabase
           .from('creator_profiles')
@@ -64,47 +95,37 @@ export default function PublicWishlist() {
     loadPublicWishes();
   }, [username]);
 
-  /**
-   * CONSOLIDATED ADD TO CART
-   * 1. Prevents Duplicates
-   * 2. Cleans price strings to prevent NaN
-   * 3. Syncs recipient info correctly
-   */
   const handleAddToCart = (item) => {
     try {
       const existingCart = JSON.parse(localStorage.getItem('wishlist_cart') || '[]');
-      
-      // 1. Duplicate check
       const isDuplicate = existingCart.some(cartItem => cartItem.id === item.id);
+      
       if (isDuplicate) {
         setToastMsg("Item is already in your gift cart!");
         setShowToast(true);
         return;
       }
 
-      // 2. 🚀 FIX NaN: Numeric sanitizer
       let cleanPrice = item.price;
       if (typeof cleanPrice === 'string') {
-        // Removes anything that isn't a digit or decimal point
         cleanPrice = parseFloat(cleanPrice.replace(/[^\d.]/g, ''));
       }
       
-      // Fallback if the price is still invalid
       const finalPrice = isNaN(cleanPrice) ? 0 : cleanPrice;
 
-      // 3. Construct clean object
       const itemToAdd = {
         ...item,
         price: finalPrice, 
         recipient_id: creator?.id || item.user_id, 
         recipient_name: creator?.display_name || 'Verified Creator',
+        added_currency: currency.code,
+        added_rate: currency.rate,
         addedAt: new Date().getTime()
       };
 
       const updatedCart = [...existingCart, itemToAdd];
       localStorage.setItem('wishlist_cart', JSON.stringify(updatedCart));
 
-      // 4. Update UI
       window.dispatchEvent(new Event('cartUpdated'));
       setToastMsg(`Added to your gift cart for ${creator?.display_name}! 🎁`);
       setShowToast(true);
@@ -116,56 +137,86 @@ export default function PublicWishlist() {
     }
   };
 
-  const joinedDate = creator?.created_at 
-    ? new Date(creator.created_at).toLocaleDateString('en-IN', { month: 'short', year: 'numeric' })
-    : 'Dec 2025';
-
   if (loading) return <div className="loading-state">Finding the wishlist...</div>;
-  
-  if (!creator) return (
-    <div style={{ textAlign: 'center', marginTop: '100px' }}>
-      <h2>Oops! Wishlist not found.</h2>
-      <p>The username "@{username}" doesn't seem to exist.</p>
-    </div>
-  );
+  if (!creator) return <div className="error-state"><h2>Oops! Wishlist not found.</h2></div>;
 
   return (
     <div className="wishlist-page">
-      <div className="public-profile-header">
-        <div className="profile-inner">
-          <div className="profile-text">
-            <h1>{creator.display_name}'s Wishlist</h1>
-            <p>@{creator.username} • {items.length} items • Joined {joinedDate}</p>
+      <header className="wishlist-hero-card">
+        <div className="hero-flex">
+          <div className="user-branding">
+            <h1 className="user-name-title">
+              {creator.display_name}'s Wishlist
+              <span className="handle">@{creator.username}</span>
+            </h1>
+            <div className="hero-stats">
+              <span>{items.length} items</span>
+            </div>
+          </div>
+          
+          <div className="header-actions-group">
+            {/* 🚀 Currency Selector matching your image style */}
+            <select 
+              className="currency-dropdown-minimal"
+              value={currency.code} 
+              onChange={(e) => handleCurrencyChange(e.target.value)}
+            >
+              <option value="INR">IN INR (₹)</option>
+              <option value="USD">US USD ($)</option>
+              <option value="GBP">GB GBP (£)</option>
+              <option value="EUR">EU EUR (€)</option>
+            </select>
+
+            {/* 🚀 Share List Button */}
+            <button className="modern-share-btn" onClick={handleShare}>
+              <Share2 size={18} />
+              <span>Share List</span>
+            </button>
           </div>
         </div>
-      </div>
+      </header>
 
-      <main className="wishlist-main-content">
+      {/* 🚀 Grid/List View Toggle Group */}
+      <section className="modern-controls-container" style={{ justifyContent: 'center' }}>
+        <div className="view-toggle-pills">
+          <button 
+            onClick={() => setViewMode('grid')} 
+            className={viewMode === 'grid' ? 'active' : ''}
+          >
+            <Grid size={18} />
+          </button>
+          <button 
+            onClick={() => setViewMode('list')} 
+            className={viewMode === 'list' ? 'active' : ''}
+          >
+            <List size={18} />
+          </button>
+        </div>
+      </section>
+
+      <main className="wishlist-display-area">
         {items.length > 0 ? (
-          <div className="public-wishlist-grid">
+          <div className={`wishlist-container-${viewMode}`}>
             {items.map(item => (
               <WishlistItemCard 
                 key={item.id} 
                 item={item} 
-                onAddToCart={() => handleAddToCart(item)} // 🚀 Updated to use consolidated function
+                onAddToCart={() => handleAddToCart(item)}
                 isPublicView={true} 
                 username={username}
+                currencySettings={currency} 
               />
             ))}
           </div>
         ) : (
-          <div className="empty-wishlist-state">
-            <h3>No wishes found yet.</h3>
-            <p>Check back soon to see what {creator.display_name} is wishing for!</p>
+          <div className="empty-state">
+            <p>No wishes found yet. ✨</p>
           </div>
         )}
       </main>
 
       {showToast && (
-        <Toast 
-          message={toastMsg} 
-          onClose={() => setShowToast(false)} 
-        />
+        <Toast message={toastMsg} onClose={() => setShowToast(false)} />
       )}
     </div>
   );

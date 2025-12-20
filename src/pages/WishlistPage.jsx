@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useLocation } from 'react-router-dom';
-import { Search, Grid, List, Share2, Plus } from 'lucide-react';
+import { Search, Grid, List, Share2 } from 'lucide-react';
 import AddWishlistItem from '../components/AddWishlistItem';
 import { useAuth } from '../auth/AuthProvider';
 
@@ -14,6 +14,8 @@ import WishlistItemCard from '../components/wishlist/WishlistItemCard';
 import { supabase } from '../services/supabaseClient';
 import './WishlistPage.css';
 import Toast from '../components/ui/Toast';
+import { saveCurrencyPreference, fetchExchangeRate, getCurrencyPreference } from '../utils/currency';
+import { useCurrency } from '../context/CurrencyContext';
 
 export default function WishlistPage() {
   const { session } = useAuth();
@@ -30,13 +32,24 @@ export default function WishlistPage() {
   const [profile, setProfile] = useState(null);
   const [showToast, setShowToast] = useState(false);
   const [toastMsg, setToastMsg] = useState('');
-  const [selectedCurrency, setSelectedCurrency] = useState('INR');
+  
+  // 🚀 Live Currency State
+  const { currency, updateCurrency } = useCurrency();
   const [editingItem, setEditingItem] = useState(null);
 
   // --- Functions ---
 
+  // 🚀 Update Currency and Rate
+  const handleCurrencyChange = async (newCode) => {
+    try {
+      // updateCurrency in the context handles saving & fetching automatically
+      await updateCurrency(newCode); 
+    } catch (err) {
+      console.error("Failed to update currency:", err);
+    }
+  };
+
   const handleUpdateSubmit = async (updatedItemData) => {
-    // 🚀 FIX: If updatedItemData is null (User clicked Cancel/X), just close and exit
     if (!updatedItemData) {
         setEditingItem(null);
         return;
@@ -48,11 +61,11 @@ export default function WishlistPage() {
         .update({
             title: updatedItemData.title,
             price: updatedItemData.price,
-            notes: updatedItemData.description, // Match your state key
+            notes: updatedItemData.description,
             url: updatedItemData.url,
             brand: updatedItemData.brand,
             category: updatedItemData.category,
-            image: updatedItemData.image, // Match your state key
+            image: updatedItemData.image,
             variants: {
             selectedSize: updatedItemData.selectedSize,
             selectedColor: updatedItemData.selectedColor
@@ -73,24 +86,6 @@ export default function WishlistPage() {
     }
   };
 
-  const handleDeepLink = (items) => {
-    const params = new URLSearchParams(location.search);
-    const itemId = params.get('item');
-
-    if (itemId && items.length > 0) {
-      setTimeout(() => {
-        const element = document.getElementById(`item-${itemId}`);
-        if (element) {
-          element.scrollIntoView({ behavior: 'smooth', block: 'center' });
-          element.classList.add('highlight-focus');
-          setTimeout(() => {
-            element.classList.remove('highlight-focus');
-          }, 3000);
-        }
-      }, 500);
-    }
-  };
-
   const loadData = async () => {
     if (!session?.user?.id) return;
     setLoading(true);
@@ -104,8 +99,6 @@ export default function WishlistPage() {
       setFilteredWishlist(items);
       setStats(statistics);
       setProfile(profileData.data);
-
-      handleDeepLink(items);
     } catch (error) {
       console.error('Error loading data:', error);
     } finally {
@@ -113,71 +106,39 @@ export default function WishlistPage() {
     }
   };
 
-  const handleShare = async () => {
-    const shareUrl = `${window.location.origin}/wishlist/${profile?.username || session.user.id}`;
-    if (navigator.share) {
-      await navigator.share({ title: `${profile?.display_name}'s Wishlist`, url: shareUrl });
-    } else {
-      navigator.clipboard.writeText(shareUrl);
-      setToastMsg("Link copied! 🔗");
-      setShowToast(true);
-    }
-  };
-
-  const handleDelete = async (itemId) => {
-    if (!confirm('Remove this item?')) return;
-    await deleteWishlistItem(itemId);
-    loadData();
-  };
-
   const handleAddToCart = async (item) => {
     try {
-      const priceVal = typeof item.price === 'string' ? Number(item.price.replace(/[^\d.]/g, '')) : item.price;
+      // 🚀 Clean Price Sanitizer
+      let cleanPrice = item.price;
+      if (typeof cleanPrice === 'string') {
+        cleanPrice = parseFloat(cleanPrice.replace(/[^\d.]/g, ''));
+      }
+      const finalPrice = isNaN(cleanPrice) ? 0 : cleanPrice;
       
       const itemWithCurrency = {
-        user_id: session.user.id,
-        product_id: item.id,
-        quantity: 1,
-        price: priceVal,
-        currency: selectedCurrency,
-        image: item.image_url || item.image,
-        title: item.title,
+        ...item,
+        price: finalPrice,
+        added_currency: currency.code,
+        added_rate: currency.rate,
         recipient_id: session.user.id,
-        variants: item.variants || {}
+        addedAt: new Date().getTime()
       };
 
       const existingCart = JSON.parse(localStorage.getItem('wishlist_cart') || '[]');
       localStorage.setItem('wishlist_cart', JSON.stringify([...existingCart, itemWithCurrency]));
-      await addToCart(itemWithCurrency);
+      
       window.dispatchEvent(new Event('cartUpdated'));
-
-      setToastMsg(`Added to your cart in ${selectedCurrency}! 🎁`);
+      setToastMsg(`Added to cart in ${currency.code}! 🎁`);
       setShowToast(true);
     } catch (err) {
-      setToastMsg("Failed to add gift to cart.");
+      setToastMsg("Failed to add to cart.");
       setShowToast(true);
     }
   };
 
-  // --- Effects ---
-
   useEffect(() => {
     if (session) loadData();
   }, [session]);
-
-  useEffect(() => {
-    let filtered = wishlist;
-    if (activeCategory !== 'all') {
-      filtered = filtered.filter(item => item.category === activeCategory);
-    }
-    if (searchQuery) {
-      filtered = filtered.filter(item =>
-        item.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        item.brand?.toLowerCase().includes(searchQuery.toLowerCase())
-      );
-    }
-    setFilteredWishlist(filtered);
-  }, [wishlist, activeCategory, searchQuery]);
 
   return (
     <div className="wishlist-modern-page">
@@ -191,21 +152,33 @@ export default function WishlistPage() {
             <div className="hero-stats">
               <span>{stats?.totalItems || 0} items</span>
               <span className="dot"></span>
-              <span>₹{stats?.totalValue?.toLocaleString() || 0} total</span>
+              {/* 🚀 Dynamic Total Value Display */}
+              <span>
+                {currency.code === 'INR' ? '₹' : currency.code + ' '}
+                {((stats?.totalValue || 0) * currency.rate).toLocaleString(undefined, { minimumFractionDigits: currency.code === 'INR' ? 0 : 2 })}
+              </span>
             </div>
           </div>
           
           <div className="header-actions-group">
+            {/* 🚀 Updated Currency Dropdown */}
             <select 
               className="currency-dropdown-minimal"
-              value={selectedCurrency}
-              onChange={(e) => setSelectedCurrency(e.target.value)}
+              value={currency.code}
+              onChange={(e) => handleCurrencyChange(e.target.value)}
             >
-              <option value="INR">₹ INR</option>
-              <option value="USD">$ USD</option>
+              <option value="INR">INR (₹)</option>
+              <option value="USD">USD ($)</option>
+              <option value="GBP">GBP (£)</option>
+              <option value="EUR">EUR (€)</option>
             </select>
 
-            <button className="modern-share-btn" onClick={handleShare}>
+            <button className="modern-share-btn" onClick={() => {
+                const shareUrl = `${window.location.origin}/wishlist/${profile?.username}`;
+                navigator.clipboard.writeText(shareUrl);
+                setToastMsg("Link copied! 🔗");
+                setShowToast(true);
+            }}>
               <Share2 size={18} /> Share List
             </button>
           </div>
@@ -229,7 +202,7 @@ export default function WishlistPage() {
             <button onClick={() => setViewMode('grid')} className={viewMode === 'grid' ? 'active' : ''}><Grid size={18}/></button>
             <button onClick={() => setViewMode('list')} className={viewMode === 'list' ? 'active' : ''}><List size={18}/></button>
           </div>
-          <AddWishlistItem session={session} onItemAdded={loadData} categories={[]} />
+          <AddWishlistItem session={session} onItemAdded={loadData} categories={[]} currency={currency} />
         </div>
       </section>
 
@@ -238,23 +211,20 @@ export default function WishlistPage() {
           <div className="loading-state">Loading your wishes...</div>
         ) : (
           <div className={`wishlist-container-${viewMode}`}>
-            {filteredWishlist.length > 0 ? (
-              filteredWishlist.map(item => (
-                <WishlistItemCard 
-                  key={item.id} 
-                  item={item} 
-                  onDelete={handleDelete} 
-                  onAddToCart={handleAddToCart}
-                  onEdit={(item) => setEditingItem(item)}
-                  forcedCurrency={selectedCurrency}
-                  username={profile?.username || session?.user?.id}
-                />
-              ))
-            ) : (
-              <div className="empty-state">
-                <p>No items found. Time to add some wishes! ✨</p>
-              </div>
-            )}
+            {wishlist.map(item => (
+              <WishlistItemCard 
+                key={item.id} 
+                item={item} 
+                onDelete={(id) => {
+                    deleteWishlistItem(id).then(loadData);
+                }} 
+                onAddToCart={handleAddToCart}
+                onEdit={(item) => setEditingItem(item)}
+                // 🚀 Pass the dynamic currency settings
+                currencySettings={currency}
+                isOwner={true}
+              />
+            ))}
           </div>
         )}
       </main>
@@ -266,12 +236,12 @@ export default function WishlistPage() {
               <h3>Edit Your Wish</h3>
               <button onClick={() => setEditingItem(null)} className="close-btn">×</button>
             </div>
-            
             <AddWishlistItem 
                 session={session} 
                 onItemAdded={handleUpdateSubmit} 
                 initialData={editingItem} 
                 isEditing={true}
+                currency={currency}
             />
           </div>
         </div>

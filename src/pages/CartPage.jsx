@@ -4,26 +4,36 @@ import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '../services/supabaseClient';
 import './CartPage.css';
 import { useToast } from '../context/ToastContext';
+import { useCurrency } from '../context/CurrencyContext';
 
 export default function CartPage() {
   const navigate = useNavigate();
   const [cartItems, setCartItems] = useState([]);
   const [loading, setLoading] = useState(false);
-  
   const [senderName, setSenderName] = useState('');
   const [senderEmail, setSenderEmail] = useState('');
   const showToast = useToast();
+  
+  // 🚀 Use global context only (removed local useState for currency)
+  const { currency, updateCurrency } = useCurrency();
 
   const loadCart = () => {
-    // 💡 Added console log to help you debug what's inside localStorage
     const savedCart = JSON.parse(localStorage.getItem('wishlist_cart') || '[]');
-    console.log("Cart loaded from storage:", savedCart);
     setCartItems(savedCart);
   };
 
   useEffect(() => {
     loadCart();
   }, []);
+
+  const handleCurrencyChange = async (newCode) => {
+    try {
+      // updateCurrency handles fetching rate, saving to localStorage, and global state
+      await updateCurrency(newCode);
+    } catch (err) {
+      console.error("Failed to update currency:", err);
+    }
+  };
 
   const removeItem = (index) => {
     const updatedCart = cartItems.filter((_, i) => i !== index);
@@ -34,131 +44,83 @@ export default function CartPage() {
 
   const calculateSubtotal = () => {
     return cartItems.reduce((sum, item) => {
-      // 1. If it's already a number, use it. 
-      // 2. If it's a string, remove everything EXCEPT digits and the decimal point.
       let priceValue = item.price;
-
       if (typeof priceValue === 'string') {
-        // This regex removes currency symbols, commas, and spaces
         const cleaned = priceValue.replace(/[^\d.]/g, '');
         priceValue = parseFloat(cleaned);
       }
-
-      // 3. Final safety check: if it's still NaN, treat it as 0
-      const finalPrice = isNaN(priceValue) ? 0 : priceValue;
-      
-      return sum + finalPrice;
+      return sum + (isNaN(priceValue) ? 0 : priceValue);
     }, 0);
   };
+
   const subtotal = calculateSubtotal();
   const platformFee = subtotal * 0.08; 
   const finalPayable = subtotal + platformFee;
 
   const formatPrice = (amount) => {
-    return new Intl.NumberFormat('en-IN', {
+    const convertedAmount = amount * (currency.rate || 1);
+    return new Intl.NumberFormat(currency.code === 'INR' ? 'en-IN' : 'en-US', {
       style: 'currency',
-      currency: 'INR',
-      maximumFractionDigits: 0
-    }).format(amount || 0);
+      currency: currency.code || 'INR',
+      maximumFractionDigits: currency.code === 'INR' ? 0 : 2
+    }).format(convertedAmount || 0);
   };
 
   const isFormIncomplete = !senderName.trim() || !senderEmail.trim() || !senderEmail.includes('@');
 
   const handleCheckout = async () => {
-    if (isFormIncomplete) return;
-    setLoading(true);
+    const amountInPaise = Math.round(finalPayable * 100);
 
     const options = {
-      key: "rzp_test_RtgvVK9ZMU6pKm", 
-      amount: Math.round(finalPayable * 100),
+      key: "rzp_test_xxxxxx", 
+      amount: amountInPaise,
       currency: "INR",
+      display_currency: currency.code, 
+      display_amount: (finalPayable * currency.rate).toFixed(2), 
       name: "WishPeti",
       description: `Gifting ${cartItems.length} items`,
       handler: async function (response) {
         await handlePaymentSuccess(response);
       },
-      prefill: {
-        name: senderName,
-        email: senderEmail,
-      },
-      theme: { color: "#6366f1" },
-      modal: {
-        ondismiss: function() { setLoading(false); }
-      }
+      prefill: { name: senderName, email: senderEmail },
+      theme: { color: "#6366f1" }
     };
 
-    if (window.Razorpay) {
-      const rzp = new window.Razorpay(options);
-      rzp.open();
-    } else {
-      alert("Razorpay SDK failed to load.");
-      setLoading(false);
-    }
+    const rzp = new window.Razorpay(options);
+    rzp.open();
   };
 
   const handlePaymentSuccess = async (response) => {
     setLoading(true);
     try {
-        // 1. Determine Creator ID
-        const creatorId = cartItems[0]?.recipient_id || cartItems[0]?.user_id || cartItems[0]?.creator_id; 
-
-        if (!creatorId) {
-            console.error("Critical Error: No Creator ID found in cart items!");
-        }
-
-        // 2. Insert into Orders
-        const { data: orderData, error: orderError } = await supabase
-          .from('orders')
-          .insert([{
-              razorpay_payment_id: response.razorpay_payment_id,
-              buyer_name: senderName,
-              buyer_email: senderEmail,
-              creator_id: creatorId,
-              total_amount: finalPayable,
-              items: cartItems, 
-              payment_status: 'paid',
-              gift_status: 'pending'
+      const creatorId = cartItems[0]?.recipient_id || cartItems[0]?.user_id || cartItems[0]?.creator_id; 
+      const { data: orderData, error: orderError } = await supabase
+        .from('orders')
+        .insert([{
+            razorpay_payment_id: response.razorpay_payment_id,
+            buyer_name: senderName,
+            buyer_email: senderEmail,
+            creator_id: creatorId,
+            total_amount: finalPayable,
+            items: cartItems, 
+            payment_status: 'paid',
+            gift_status: 'pending'
         }])
         .select();
 
-        if (orderError) throw orderError;
+      if (orderError) throw orderError;
 
-        // 3. 🚀 FIXED: Robust Item Deletion logic
-        // We log itemIds to the console so you can debug the UUIDs
-        const itemIds = cartItems
-            .map(item => item.id) 
-            .filter(id => id && id !== 'undefined' && id !== null);
+      const itemIds = cartItems.map(item => item.id).filter(id => id && id !== 'undefined');
+      if (itemIds.length > 0) {
+          await supabase.from('wishlist_items').delete().in('id', itemIds);
+      }
 
-        console.log("Attempting to delete these wishlist IDs:", itemIds);
-
-        if (itemIds.length > 0) {
-            // Note: If this still fails, it is 100% a Supabase RLS Policy issue.
-            const { error: deleteError } = await supabase
-                .from('wishlist_items')
-                .delete()
-                .in('id', itemIds);
-
-            if (deleteError) {
-                console.error("Wishlist cleanup failed:", deleteError.message);
-                // Tip: If error message is 'policy violation', see the SQL fix below.
-            } else {
-                console.log("Wishlist items successfully removed.");
-            }
-        }
-
-        // 4. Cleanup & Redirect
-        localStorage.removeItem('wishlist_cart');
-        setCartItems([]);
-        window.dispatchEvent(new Event('cartUpdated'));
-
-        const orderId = orderData?.[0]?.id; 
-
-        // 🚀 Redirect to the Success Page instead of Dashboard
-        navigate(`/success/${orderId}`);
-        
+      localStorage.removeItem('wishlist_cart');
+      setCartItems([]);
+      window.dispatchEvent(new Event('cartUpdated'));
+      navigate(`/success/${orderData?.[0]?.id}`);
     } catch (err) {
-        console.error("Post-Payment Error:", err.message);
-        showToast("Payment successful, but we had trouble updating the record: " + err.message);
+        showToast("Payment successful, but record update failed: " + err.message);
     } finally {
         setLoading(false);
     }
@@ -178,18 +140,27 @@ export default function CartPage() {
     <div className="cart-page-container">
       <div className="cart-content">
         <div className="cart-items-list">
-          <h1>Your Gift Cart ({cartItems.length})</h1>
+          <div className="cart-header-row">
+            <h1>Your Gift Cart ({cartItems.length})</h1>
+            
+            <select 
+              className="currency-dropdown-minimal"
+              value={currency.code}
+              onChange={(e) => handleCurrencyChange(e.target.value)}
+            >
+              <option value="INR">INR (₹)</option>
+              <option value="USD">USD ($)</option>
+              <option value="GBP">GBP (£)</option>
+              <option value="EUR">EUR (€)</option>
+            </select>
+          </div>
+
           {cartItems.map((item, index) => (
             <div key={index} className="cart-item-row">
-              {/* Added a fallback for broken images to prevent net::ERR_FAILED console noise */}
               <img 
                 src={item.image_url || 'https://placehold.co/150x150?text=Gift'} 
                 alt={item.title} 
                 className="cart-item-img" 
-                onError={(e) => { 
-                    e.target.onerror = null; // Prevent infinite loops
-                    e.target.src = 'https://images.unsplash.com/photo-1549465220-1a8b9238cd48?w=150&h=150&fit=crop'; 
-                }}
               />
               <div className="cart-item-info">
                 <h4>{item.title}</h4>
@@ -219,36 +190,29 @@ export default function CartPage() {
             <span>{formatPrice(finalPayable)}</span>
           </div>
           
-          <div style={styles.formContainer}>
-            <h4 style={{marginBottom: '10px', fontSize: '16px'}}>Sender Details ✍️</h4>
+          <div className="sender-form-container">
+            <h4>Sender Details ✍️</h4>
             <input 
               type="text" 
               placeholder="Your Name" 
-              style={styles.inputStyle} 
+              className="form-input" 
               value={senderName}
               onChange={(e) => setSenderName(e.target.value)}
             />
             <input 
               type="email" 
               placeholder="Email Address" 
-              style={styles.inputStyle} 
+              className="form-input" 
               value={senderEmail}
               onChange={(e) => setSenderEmail(e.target.value)}
             />
-            <div style={styles.privacyNote}>🔒 Private & Secure Checkout</div>
+            <div className="privacy-note">🔒 Private & Secure Checkout</div>
           </div>
 
           <button 
             className="checkout-btn" 
             onClick={handleCheckout}
             disabled={isFormIncomplete || loading}
-            style={{ 
-                opacity: (isFormIncomplete || loading) ? 0.6 : 1,
-                cursor: (isFormIncomplete || loading) ? 'not-allowed' : 'pointer',
-                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
-                width: '100%', padding: '15px', backgroundColor: '#1e293b', color: 'white',
-                border: 'none', borderRadius: '10px', fontWeight: '600', fontSize: '16px'
-            }}
           >
             <CreditCard size={18} /> 
             {loading ? 'Processing...' : `Pay ${formatPrice(finalPayable)}`}
@@ -256,47 +220,15 @@ export default function CartPage() {
         </div>
       </div>
       
-      <footer className="cart-footer" style={{marginTop: '40px', textAlign: 'center', padding: '20px', borderTop: '1px solid #e2e8f0'}}>
-        <div style={{display: 'flex', justifyContent: 'center', gap: '20px', marginBottom: '10px', fontSize: '13px'}}>
+      <footer className="cart-footer">
+        <div className="policy-links">
             <Link to="/terms">Terms</Link>
             <Link to="/privacy">Privacy</Link>
             <Link to="/refund">Refunds</Link>
             <Link to="/contact">Contact Us</Link>
         </div>
-        <p style={{fontSize: '12px', color: '#94a3b8'}}>© 2025 WishPeti - Bellary, Karnataka</p>
+        <p>© 2025 WishPeti - Bellary, Karnataka</p>
       </footer>
     </div>
   );
 }
-
-const styles = {
-  formContainer: {
-    marginTop: '20px',
-    padding: '15px',
-    background: '#f1f5f9',
-    borderRadius: '12px',
-    border: '1px solid #e2e8f0',
-    marginBottom: '20px',
-    color: '#111827',           
-    WebkitTextFillColor: '#111827',
-    fontSize: '16px',           
-    appearance: 'none' 
-  },
-  inputStyle : {
-    width: '100%',
-    padding: '12px',
-    marginBottom: '10px',
-    borderRadius: '8px',
-    border: '1px solid #ddd',
-    backgroundColor: '#ffffff', 
-    color: '#111827',           
-    WebkitTextFillColor: '#111827',
-    fontSize: '16px',           
-    appearance: 'none'       
-  },
-  privacyNote: {
-    fontSize: '11px',
-    color: '#64748b',
-    textAlign: 'center'
-  }
-};

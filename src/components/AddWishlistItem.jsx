@@ -8,7 +8,8 @@ export default function AddWishlistItem({
   onItemAdded, 
   categories, 
   initialData = null, 
-  isEditing = false 
+  isEditing = false,
+  currency = { code: 'INR', rate: 1 }
 }) {
   const [url, setUrl] = useState(initialData?.url || '');
   const [loading, setLoading] = useState(false);
@@ -89,8 +90,22 @@ const handleFinalAdd = async () => {
   setError(null);
 
   try {
+    // 1. 🚀 DE-CONVERSION LOGIC
+    // We remove any non-numeric characters and convert back to the base INR
+    let inputPrice = editableData.price;
+    if (typeof inputPrice === 'string') {
+        inputPrice = parseFloat(inputPrice.replace(/[^\d.]/g, ''));
+    }
+
+    // If rate is 0.012 (USD), dividing by 0.012 brings it back to INR.
+    // Use Math.round to avoid the long decimals (e.g., 95.91558...)
+    const priceInINR = currency.code !== 'INR' 
+      ? Math.round(inputPrice / currency.rate) 
+      : Math.round(inputPrice);
+
     const updatedData = {
       ...editableData,
+      price: priceInINR, // 🚀 Save the cleaned INR value
       url: url,
       category: selectedCategory,
       brand: scrapedData?.brand || '',
@@ -98,19 +113,17 @@ const handleFinalAdd = async () => {
     };
 
     if (isEditing) {
-      // 🚀 Pass the data back to WishlistPage's handleUpdateSubmit
       if (onItemAdded) await onItemAdded(updatedData);
     } else {
-      // Normal Insert Logic
       const { error: insertError } = await supabase
         .from('wishlist_items')
         .insert([{
           creator_id: session.user.id,
           url: url,
           title: editableData.title,
-          price: editableData.price,
-          image: editableData.image, // Fixed key
-          notes: editableData.description, // Fixed key
+          price: priceInINR, // 🚀 Save as INR
+          image: editableData.image,
+          notes: editableData.description,
           brand: scrapedData?.brand,
           store: scrapedData?.store,
           category: selectedCategory || scrapedData?.category,

@@ -1,8 +1,25 @@
 import React from 'react';
 import { ShoppingBag, Trash2, ExternalLink, Share2, Edit3 } from 'lucide-react';
+import { formatPrice } from '../../utils/currency'; 
 
-export default function WishlistItemCard({ item, onDelete, onAddToCart, onEdit, username, isPublicView = false }) {
+export default function WishlistItemCard({ 
+  item, 
+  onDelete, 
+  onAddToCart, 
+  onEdit, 
+  username, 
+  isPublicView = false,
+  currencySettings = { code: 'INR', rate: 1 } 
+}) {
   
+  // 🚀 The helper now handles the "₹" symbol stripping internally 
+  // to prevent the NaN error you saw in the images.
+  const displayPrice = formatPrice(
+    item.price, 
+    currencySettings.code, 
+    currencySettings.rate
+  );
+
   const handleShare = async (e) => {
     e.preventDefault();
     e.stopPropagation();
@@ -22,20 +39,13 @@ export default function WishlistItemCard({ item, onDelete, onAddToCart, onEdit, 
     }
   };
 
-  const formatPrice = (price, currency = 'INR') => {
-    if (price === undefined || price === null || price === '') return 'Price TBD';
-    const cleanPrice = typeof price === 'string' ? price.replace(/[^\d.]/g, '') : price;
-    const numericPrice = parseFloat(cleanPrice);
-    if (isNaN(numericPrice)) return 'Price TBD';
-    return new Intl.NumberFormat('en-IN', {
-      style: 'currency', currency: currency || 'INR', maximumFractionDigits: 0
-    }).format(numericPrice);
-  };
-
   const displayImage = item.image_url || item.image;
 
   return (
     <div className="unified-wishlist-card" id={`item-${item.id}`}>
+      {/* 🚀 This tag will now show the converted price correctly (no more NaN) */}
+      <span className="price-tag">{displayPrice}</span>
+      
       <div className="card-media-box">
         {displayImage ? (
           <img src={displayImage} alt={item.title} loading="lazy" />
@@ -43,7 +53,6 @@ export default function WishlistItemCard({ item, onDelete, onAddToCart, onEdit, 
           <div className="placeholder-box">🎁</div>
         )}
         
-        {/* 🚀 THE NEW FLOATING PILL */}
         <div className="item-actions-pill">
           {!isPublicView && (
             <button onClick={() => onEdit(item)} title="Edit">
@@ -51,7 +60,6 @@ export default function WishlistItemCard({ item, onDelete, onAddToCart, onEdit, 
             </button>
           )}
 
-          {/* Up Arrow (External Link) moved here for a cleaner look */}
           <a href={item.url} target="_blank" rel="noopener noreferrer" title="View Store">
             <ExternalLink size={16} />
           </a>
@@ -71,7 +79,7 @@ export default function WishlistItemCard({ item, onDelete, onAddToCart, onEdit, 
       <div className="card-info-box">
         <div className="card-meta-top">
           <span className="brand-tag">{item.brand || item.store || 'Store'}</span>
-          <span className="price-tag">{formatPrice(item.price, item.currency)}</span>
+          <span className="category-tag">{item.category}</span>
         </div>
         
         <h3 className="card-product-title">{item.title}</h3>
