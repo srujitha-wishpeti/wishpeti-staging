@@ -101,18 +101,19 @@ export default function CartPage() {
         }
 
         // 2. Insert into Orders
-        const { error: orderError } = await supabase
-            .from('orders')
-            .insert([{
-                razorpay_payment_id: response.razorpay_payment_id,
-                buyer_name: senderName,
-                buyer_email: senderEmail,
-                creator_id: creatorId,
-                total_amount: finalPayable,
-                items: cartItems, 
-                payment_status: 'paid',
-                gift_status: 'pending'
-            }]);
+        const { data: orderData, error: orderError } = await supabase
+          .from('orders')
+          .insert([{
+              razorpay_payment_id: response.razorpay_payment_id,
+              buyer_name: senderName,
+              buyer_email: senderEmail,
+              creator_id: creatorId,
+              total_amount: finalPayable,
+              items: cartItems, 
+              payment_status: 'paid',
+              gift_status: 'pending'
+        }])
+        .select();
 
         if (orderError) throw orderError;
 

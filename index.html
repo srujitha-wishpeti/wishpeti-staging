@@ -1,26 +1,31 @@
-<!doctype html>
+
+<!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📦</text></svg>">
-    
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    
-    <title>WishPeti | The Creator's Treasure Chest</title>
-    <meta name="description" content="The easiest way to gift your favorite creators in India. Secure, fast, and heartfelt." />
-
-    <meta property="og:title" content="WishPeti" />
-    <meta property="og:description" content="Send gifts to your favorite creators safely and easily." />
-    <meta property="og:type" content="website" />
-    <meta property="og:site_name" content="WishPeti" />
-
-    <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="WishPeti" />
-    <meta name="twitter:description" content="Your creator's treasure chest of wishes." />
-  </head>
-  <body>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WishPeti - Creator Gifting Platform</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+    </style>
+<script type="importmap">
+{
+  "imports": {
+    "react": "https://esm.sh/react@^19.2.3",
+    "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
+    "react/": "https://esm.sh/react@^19.2.3/",
+    "@google/genai": "https://esm.sh/@google/genai@^1.34.0",
+    "recharts": "https://esm.sh/recharts@^3.6.0",
+    "@supabase/supabase-js": "https://esm.sh/@supabase/supabase-js@^2.45.4"
+  }
+}
+</script>
+<link rel="stylesheet" href="/index.css">
+</head>
+<body class="bg-slate-50 text-slate-900">
     <div id="root"></div>
-    <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
-    <script type="module" src="/src/main.jsx"></script>
-  </body>
+<script type="module" src="/index.tsx"></script>
+</body>
 </html>
