@@ -198,7 +198,35 @@ export default function AppRoutes() {
       />
       <Route 
         path="/contact" 
-        element={<PolicyPage title="Contact Us" content="<p>Email: msrujitha@gmail.com</p><p>Phone: +919972769491</p>" />} 
+        element={<PolicyPage title="Contact Us" content={`<div className="contact-container">
+  <h2>Contact WishPeti</h2>
+  <p>We're here to support your gifting journey.</p>
+  
+  <div className="contact-details">
+    <div className="contact-item">
+      <h3>Customer Support</h3>
+      <p><strong>Email:</strong> msrujitha@gmail.com</p>
+      <p><strong>Phone:</strong> +91 9972769491</p>
+    </div>
+
+    <div className="contact-item">
+      <h3>Registered Office Address</h3>
+      <p>
+        <strong>WishPeti</strong><br>
+        Attn: Srujitha M (or your registered business name)<br>
+        Email: <strong>msrujitha@gmail.com</strong><br>
+        Phone: <strong>+919972769491</strong><br>
+        Address: <strong>Vidya Nagar 1st cross, Bellary, Karnataka - 583104</strong>
+      </p>
+      </address>
+    </div>
+
+    <div className="contact-item">
+      <h3>Operating Hours</h3>
+      <p>Monday to Friday: 10:00 AM – 6:00 PM IST</p>
+    </div>
+  </div>
+</div>`} />} 
       />
 
     </Routes>
