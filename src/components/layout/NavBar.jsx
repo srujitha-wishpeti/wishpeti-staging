@@ -125,31 +125,6 @@ const styles = {
   },
   logo: { textDecoration: 'none', fontWeight: 'bold', fontSize: 20, color: 'black' },
   nav: { display: 'flex', gap: 15, alignItems: 'center' },
-  cartLink: {
-    padding: '8px',
-    borderRadius: '50%',
-    background: '#f8fafc',
-    display: 'flex',
-    position: 'relative',
-    color: '#1e293b'
-  },
-  cartIconWrapper: { position: 'relative', display: 'flex' },
-  cartBadge: {
-    position: 'absolute',
-    top: '-5px',
-    right: '-5px',
-    background: '#ef4444',
-    color: 'white',
-    fontSize: '10px',
-    borderRadius: '50%',
-    width: '18px',
-    height: '18px',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    border: '2px solid white',
-    fontWeight: 'bold'
-  },
   menuTrigger: {
     display: 'flex',
     alignItems: 'center',
@@ -200,6 +175,43 @@ const styles = {
     cursor: 'pointer',
     fontSize: '14px',
     fontWeight: '600',
+  },
+  // ... (header and logo stay the same)
+  cartLink: {
+    padding: '8px',
+    borderRadius: '50%',
+    background: '#f8fafc',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    color: '#1e293b',
+    textDecoration: 'none',
+    transition: 'transform 0.2s ease',
+  },
+  cartIconWrapper: { 
+    position: 'relative', // 🚀 This is the only relative parent we need
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  cartBadge: {
+    position: 'absolute',
+    top: '-8px',      // 🚀 Move up slightly
+    right: '-10px',   // 🚀 Move right slightly
+    backgroundColor: '#ef4444',
+    color: 'white',
+    fontSize: '10px',
+    borderRadius: '50%',
+    minWidth: '18px',
+    height: '18px',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    border: '2px solid white', // 💡 High-end look: separates badge from icon
+    fontWeight: 'bold',
+    padding: '0 2px',
+    boxSizing: 'border-box',
+    lineHeight: 1
   },
   divider: { margin: '4px 0', border: 'none', borderTop: '1px solid #f1f5f9' },
   userInfo: { padding: '4px 0' },
