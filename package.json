@@ -13,6 +13,7 @@
     "@supabase/supabase-js": "^2.89.0",
     "axios": "^1.13.2",
     "lucide-react": "^0.562.0",
+    "posthog-js": "^1.309.1",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "react-google-autocomplete": "^2.7.5",
