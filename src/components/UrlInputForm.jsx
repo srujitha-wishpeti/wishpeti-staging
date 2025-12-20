@@ -228,7 +228,18 @@ const modalOverlayStyle = { position: 'fixed', inset: 0, backgroundColor: 'rgba(
 const modalContentStyle = { backgroundColor: 'white', borderRadius: '1rem', width: '100%', maxWidth: '500px', maxHeight: '90vh', overflowY: 'auto' };
 const headerStyle = { padding: '1.25rem', borderBottom: '1px solid #eee', display: 'flex', justifyContent: 'space-between', alignItems: 'center' };
 const labelStyle = { display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '5px', color: '#4b5563' };
-const inputStyle = { width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #d1d5db', outline: 'none' };
+const inputStyle = { 
+  width: '100%', 
+  padding: '12px', 
+  marginBottom: '15px', 
+  borderRadius: '8px', 
+  border: '1px solid #ddd', 
+  boxSizing: 'border-box', 
+  fontSize: '16px', // 💡 IMPORTANT: 16px prevents iOS auto-zoom
+  backgroundColor: 'white', // 💡 Force white background
+  color: '#111827', // 💡 Explicitly set dark text color
+  WebkitTextFillColor: '#111827', // 💡 Specific fix for iOS
+};
 const footerStyle = { padding: '1.25rem', borderTop: '1px solid #eee', display: 'flex', gap: '10px' };
 const submitButtonStyle = { flex: 1, padding: '12px', borderRadius: '8px', color: 'white', border: 'none', fontWeight: '600', cursor: 'pointer' };
 const closeButtonStyle = { background: 'none', border: 'none', cursor: 'pointer', color: '#9ca3af' };
