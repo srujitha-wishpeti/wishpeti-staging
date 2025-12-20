@@ -269,18 +269,18 @@ const styles = {
     border: '1px solid #e2e8f0',
     marginBottom: '20px'
   },
-  inputStyle: {
+  inputStyle = {
     width: '100%',
     padding: '12px',
-    marginBottom: '12px',
+    marginBottom: '10px',
     borderRadius: '8px',
-    border: '1px solid #cbd5e1',
-    fontSize: '14px',
-    boxSizing: 'border-box',
-    color: '#1e293b',
-    backgroundColor: 'white',
-    WebkitTextFillColor: '#1e293b'
-  },
+    border: '1px solid #ddd',
+    backgroundColor: '#ffffff', // Explicit white
+    color: '#111827',           // Explicit dark grey/black
+    WebkitTextFillColor: '#111827', // The "Magic" iOS fix
+    fontSize: '16px',           // Professional standard to avoid zoom
+    appearance: 'none',         // Removes default iOS inner shadows
+  };,
   privacyNote: {
     fontSize: '11px',
     color: '#64748b',
