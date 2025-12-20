@@ -34,13 +34,10 @@ export default function CartPage() {
 
   const calculateSubtotal = () => {
     return cartItems.reduce((sum, item) => {
-      // 💡 Regex: Remove everything except digits and decimal points
-      const rawPrice = item.price ? item.price.toString() : '0';
-      const cleanPrice = rawPrice.replace(/[^0-9.-]+/g, "");
-      
-      const numericPrice = parseFloat(cleanPrice);
-      // 💡 Final check: If parsing still fails, default to 0
-      return sum + (isNaN(numericPrice) ? 0 : numericPrice);
+      const cleanPrice = typeof item.price === 'string' 
+        ? item.price.replace(/[^\d.]/g, '') 
+        : item.price;
+      return sum + (parseFloat(cleanPrice) || 0);
     }, 0);
   };
 
