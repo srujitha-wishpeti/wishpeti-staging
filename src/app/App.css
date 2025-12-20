@@ -40,3 +40,30 @@
 .read-the-docs {
   color: #888;
 }
+/* UNIVERSAL iOS INPUT FIX */
+input, 
+textarea, 
+select, 
+input:focus {
+  color: #111827 !important; /* Force near-black text */
+  -webkit-text-fill-color: #111827 !important; /* Critical fix for Safari/iOS */
+  background-color: #ffffff !important; /* Ensure background is white */
+  opacity: 1 !important;
+  font-size: 16px !important; /* Prevents auto-zoom on click */
+}
+
+/* Fix for when the browser auto-fills the field */
+input:-webkit-autofill,
+input:-webkit-autofill:hover, 
+input:-webkit-autofill:focus {
+  -webkit-text-fill-color: #111827 !important;
+  -webkit-box-shadow: 0 0 0px 1000px white inset !important;
+  transition: background-color 5000s ease-in-out 0s;
+}
+
+/* Optional: Placeholder color */
+::placeholder {
+  color: #9ca3af !important;
+  -webkit-text-fill-color: #9ca3af !important;
+  opacity: 1;
+}
