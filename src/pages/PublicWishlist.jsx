@@ -161,10 +161,10 @@ export default function PublicWishlist() {
               value={currency.code} 
               onChange={(e) => handleCurrencyChange(e.target.value)}
             >
-              <option value="INR">IN INR (₹)</option>
-              <option value="USD">US USD ($)</option>
-              <option value="GBP">GB GBP (£)</option>
-              <option value="EUR">EU EUR (€)</option>
+              <option value="INR">INR (₹)</option>
+              <option value="USD">USD ($)</option>
+              <option value="GBP">GBP (£)</option>
+              <option value="EUR">EUR (€)</option>
             </select>
 
             {/* 🚀 Share List Button */}
