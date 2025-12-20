@@ -1,34 +1,39 @@
+/* index.css */
 :root {
-  font-family: 'Inter', system-ui, Avenir, Helvetica, Arial, sans-serif;
-  line-height: 1.5;
-  font-weight: 400;
-
-  /* 💡 The Fixes */
-  color-scheme: light; /* Force light mode for the audit */
-  color: #111827;      /* Default text to near-black */
-  background-color: #f9fafb; /* Light grey background */
+  /* Force light mode and clean fonts */
+  color-scheme: light;
+  --bg-color: #f9fafb;
+  --text-main: #111827;
+  
+  background-color: var(--bg-color);
+  color: var(--text-main);
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
 }
 
 body {
   margin: 0;
-  display: flex;
-  place-items: baseline; /* Prevents Vite from forcing center-everything */
-  min-width: 320px;
+  padding: 0;
   min-height: 100vh;
+  width: 100vw;
 }
 
 #root {
-  width: 100%; /* 🚀 Allows your layout to fill the laptop screen */
-  margin: 0;
-  padding: 0;
+  width: 100%;
+  height: 100%;
 }
 
-/* 📱 Universal iOS Fix */
-input, textarea, select {
-  color: #111827 !important;
-  -webkit-text-fill-color: #111827 !important;
+/* 📱 The iOS Fix for "White on White" inputs */
+input, select, textarea {
+  color: #111827 !important; 
+  -webkit-text-fill-color: #111827 !important; /* Forces iOS Safari to comply */
   background-color: #ffffff !important;
-  font-size: 16px !important; /* Prevents iOS zoom */
+  font-size: 16px !important; /* Prevents auto-zoom on iPhone */
+}
+
+/* Fix for Auto-fill turning text white */
+input:-webkit-autofill {
+  -webkit-text-fill-color: #111827 !important;
+  transition: background-color 5000s ease-in-out 0s;
 }
 
 a {
@@ -146,6 +151,19 @@ body {
 @keyframes slideIn {
   from { transform: translateX(100%); opacity: 0; }
   to { transform: translateX(0); opacity: 1; }
+}
+
+/* Update your universal input rule */
+input, select, textarea {
+  color: #111827 !important; 
+  -webkit-text-fill-color: #111827 !important;
+  background-color: #ffffff !important;
+  font-size: 16px !important;
+  
+  /* 🚀 THE FIX FOR OVERFLOW */
+  width: 100% !important;
+  box-sizing: border-box !important; 
+  display: block; /* Ensures it behaves like a full-width block */
 }
 
 /* Fix for iOS invisible text */
