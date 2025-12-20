@@ -208,6 +208,23 @@ export default function Auth() {
           </p>
         </div>
 
+        {/* 🚀 Google Login moved to the TOP */}
+        <button onClick={handleGoogleLogin} style={googleBtnStyle}>
+          <img 
+            src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" 
+            alt="Google" 
+            style={{ width: '18px', marginRight: '10px' }} 
+          />
+          Continue with Google
+        </button>
+
+        <div style={dividerContainer}>
+          <div style={lineStyle}></div>
+          <span style={{ padding: '0 12px', color: '#9ca3af', fontSize: '0.85rem' }}>OR</span>
+          <div style={lineStyle}></div>
+        </div>
+
+        {/* Email/Password Form */}
         <form onSubmit={handleSubmit}>
           {isSignup && (
             <div style={{ marginBottom: '16px' }}>
@@ -265,21 +282,6 @@ export default function Auth() {
             )}
           </button>
         </form>
-
-        <div style={dividerContainer}>
-          <div style={lineStyle}></div>
-          <span style={{ padding: '0 12px', color: '#9ca3af', fontSize: '0.85rem' }}>OR</span>
-          <div style={lineStyle}></div>
-        </div>
-
-        <button onClick={handleGoogleLogin} style={googleBtnStyle}>
-          <img 
-            src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" 
-            alt="Google" 
-            style={{ width: '18px', marginRight: '10px' }} 
-          />
-          Continue with Google
-        </button>
 
         <p style={{ textAlign: 'center', marginTop: '24px', fontSize: '0.9rem', color: '#4b5563' }}>
           {isSignup ? 'Already have an account? ' : 'New here? '}
