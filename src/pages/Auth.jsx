@@ -210,7 +210,7 @@ const inputStyle = {
                 />
               </div>
               <p style={{ fontSize: '0.75rem', color: '#6b7280', marginTop: '6px' }}>
-                People will visit your list at: <strong>htt://wishpeti.vercel.app/{username || 'username'}</strong>
+                People will visit your list at: <strong>https://wishpeti.vercel.app/{username || 'username'}</strong>
               </p>
             </div>
           )}
