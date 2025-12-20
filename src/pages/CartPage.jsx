@@ -4,14 +4,28 @@ import { Link } from 'react-router-dom';
 import './CartPage.css';
 
 export default function CartPage() {
+  const displayRecipient = (item) => {
+    if (item.recipient_name) return item.recipient_name;
+    
+    // Try to find it in the URL if it's a shared wishlist link
+    const urlParams = new URLSearchParams(window.location.search);
+    const nameFromUrl = urlParams.get('creator');
+    
+    return nameFromUrl || "Verified Creator"; 
+  };
   const [cartItems, setCartItems] = useState([]);
-
+  const [usdRate, setUsdRate] = useState(0.012);
+  const [currency, setCurrency] = useState('INR'); // 'INR' or 'USD'
   // 1. Load cart from LocalStorage
   const loadCart = () => {
     const savedCart = JSON.parse(localStorage.getItem('wishlist_cart') || '[]');
     setCartItems(savedCart);
   };
 
+  useEffect(() => {
+    getExchangeRate().then(rate => setUsdRate(rate));
+    }, []);
+    
   useEffect(() => {
     loadCart();
   }, []);
@@ -45,18 +59,19 @@ export default function CartPage() {
 
   // 4. Formatting Helper
   const formatPrice = (amount) => {
-    // 1. Clean the input: Remove ₹, commas, and spaces
+    // 1. Always clean the NaN-causing string first!
     const cleanAmount = typeof amount === 'string' 
         ? parseFloat(amount.replace(/[^\d.]/g, '')) 
         : amount;
 
-    // 2. Format it
-    return new Intl.NumberFormat('en-IN', {
+    const value = currency === 'USD' ? cleanAmount * usdRate : cleanAmount;
+
+    return new Intl.NumberFormat(currency === 'USD' ? 'en-US' : 'en-IN', {
         style: 'currency',
-        currency: 'INR',
-        maximumFractionDigits: 0
-    }).format(cleanAmount || 0);
-  };
+        currency: currency,
+        maximumFractionDigits: currency === 'USD' ? 2 : 0
+    }).format(value || 0);
+    };
 
   // 5. Razorpay Logic
   const handleCheckout = async () => {
@@ -117,19 +132,30 @@ export default function CartPage() {
       <div className="cart-content">
         <div className="cart-items-list">
           <h1>Your Gift Cart ({cartItems.length})</h1>
-          {cartItems.map((item, index) => (
+          {/* Inside your CartPage.jsx .map() function */}
+            {cartItems.map((item, index) => (
             <div key={index} className="cart-item-row">
-              <img src={item.image_url || item.image} alt={item.title} className="cart-item-img" />
-              <div className="cart-item-info">
+                <img src={item.image_url} alt={item.title} className="cart-item-img" />
+                
+                <div className="cart-item-info">
                 <h4>{item.title}</h4>
-                <p className="cart-item-recipient">For: {item.recipient_name || 'Name not found'}</p>
-                <span className="cart-item-price">{formatPrice(item.price)}</span>
-              </div>
-              <button onClick={() => removeItem(index)} className="cart-remove-btn">
+                
+                {/* 🚀 FIXED: Displays actual Creator Name */}
+                <p className="cart-item-recipient">
+                    For: <strong>{item.recipient_name}</strong>
+                </p>
+
+                {/* 🚀 FIXED: Prevents ₹NaN by cleaning the string */}
+                <span className="cart-item-price">
+                    {formatPrice(item.price)}
+                </span>
+                </div>
+
+                <button onClick={() => removeItem(index)} className="cart-remove-btn">
                 <Trash2 size={18} />
-              </button>
+                </button>
             </div>
-          ))}
+            ))}
         </div>
 
         {/* --- Summary Sidebar --- */}

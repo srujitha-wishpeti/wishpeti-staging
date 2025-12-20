@@ -55,7 +55,32 @@ export default function PublicWishlist() {
   const joinedDate = creator?.created_at 
     ? new Date(creator.created_at).toLocaleDateString('en-IN', { month: 'short', year: 'numeric' })
     : 'Dec 2025';
+  // --- Inside your Wishlist or Product component ---
+  const handleAddToCart = (item, creatorName) => {
+    const existingCart = JSON.parse(localStorage.getItem('wishlist_cart') || '[]');
+    
+    const newItem = {
+        ...item,
+        // 🚀 This is the key fix:
+        recipient_name: creatorName || 'Verified Creator', 
+        addedAt: new Date().getTime()
+    };
 
+    const updatedCart = [...existingCart, newItem];
+    localStorage.setItem('wishlist_cart', JSON.stringify(updatedCart));
+    
+    // Trigger event so the Navbar/Cart updates immediately
+    window.dispatchEvent(new Event('cartUpdated'));
+  };
+  const displayRecipient = (item) => {
+    if (item.recipient_name) return item.recipient_name;
+    
+    // Try to find it in the URL if it's a shared wishlist link
+    const urlParams = new URLSearchParams(window.location.search);
+    const nameFromUrl = urlParams.get('creator');
+    
+    return nameFromUrl || "Verified Creator"; 
+  };
   const handleFanAddToCart = async (item) => {
     try {
       let guestId = localStorage.getItem('guest_cart_id');
