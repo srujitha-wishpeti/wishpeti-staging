@@ -454,44 +454,46 @@
   border-radius: 6px;
   cursor: pointer;
 }
-.edit-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.6);
-  backdrop-filter: blur(4px);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 2000;
-  padding: 20px;
+
+/* 1. Center the Public Wishlist Grid */
+.public-wishlist-container {
+  max-width: 1200px;
+  margin: 0 auto; /* Centers the whole container */
+  padding: 100px 24px;
 }
 
-.edit-modal {
-  background: white;
-  width: 100%;
-  max-width: 500px;
-  border-radius: 20px;
-  padding: 24px;
-  position: relative;
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+.items-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 24px;
+  justify-content: center; /* Centers cards if there are fewer than a full row */
 }
 
-.modal-header {
+/* 2. Style the Price at the Bottom */
+.card-meta-top {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 20px;
+  margin-bottom: 8px;
 }
 
-.close-btn {
-  background: #f1f5f9;
-  border: none;
-  font-size: 24px;
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  cursor: pointer;
+.item-price-footer {
+  font-weight: 700;
+  color: #4f46e5; /* Adjust to your brand purple/blue */
+  font-size: 1.1rem;
+}
+
+.brand-group {
   display: flex;
-  align-items: center;
-  justify-content: center;
+  flex-direction: column;
+  gap: 2px;
+}
+
+/* 3. Ensure cards are consistent */
+.unified-wishlist-card {
+  background: white;
+  border-radius: 16px;
+  border: 1px solid #f1f5f9;
+  overflow: hidden;
+  transition: transform 0.2s ease;
 }

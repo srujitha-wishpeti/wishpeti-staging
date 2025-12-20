@@ -12,8 +12,6 @@ export default function WishlistItemCard({
   currencySettings = { code: 'INR', rate: 1 } 
 }) {
   
-  // 🚀 The helper now handles the "₹" symbol stripping internally 
-  // to prevent the NaN error you saw in the images.
   const displayPrice = formatPrice(
     item.price, 
     currencySettings.code, 
@@ -43,8 +41,7 @@ export default function WishlistItemCard({
 
   return (
     <div className="unified-wishlist-card" id={`item-${item.id}`}>
-      {/* 🚀 This tag will now show the converted price correctly (no more NaN) */}
-      <span className="price-tag">{displayPrice}</span>
+      {/* 🚀 Price removed from here (Top) */}
       
       <div className="card-media-box">
         {displayImage ? (
@@ -77,9 +74,13 @@ export default function WishlistItemCard({
       </div>
 
       <div className="card-info-box">
+        {/* 🚀 Price is now here at the bottom */}
         <div className="card-meta-top">
-          <span className="brand-tag">{item.brand || item.store || 'Store'}</span>
-          <span className="category-tag">{item.category}</span>
+          <div className="brand-group">
+            <span className="brand-tag">{item.brand || item.store || 'Store'}</span>
+            <span className="category-tag">{item.category}</span>
+          </div>
+          <span className="item-price-footer">{displayPrice}</span>
         </div>
         
         <h3 className="card-product-title">{item.title}</h3>

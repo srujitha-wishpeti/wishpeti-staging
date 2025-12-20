@@ -34,6 +34,57 @@
   color: #ffffff;
 }
 
+.public-wishlist-container {
+  max-width: 1200px;
+  margin: 0 auto; /* 🚀 Centers the entire content */
+  padding: 120px 24px 40px;
+  display: flex;
+  flex-direction: column;
+  align-items: center; /* 🚀 Centers the header text */
+}
+
+.items-grid {
+  display: grid;
+  /* 🚀 Creates a responsive grid that fills space evenly */
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 30px;
+  width: 100%;
+  margin-top: 40px;
+  justify-content: center; /* 🚀 Centers cards if there are only a few */
+}
+
+/* 1. The main page wrapper */
+.public-wishlist-page {
+  max-width: 1100px; /* 🚀 Constrains width */
+  margin: 0 auto;    /* 🚀 Centers the container */
+  padding: 120px 20px 40px;
+  display: flex;
+  flex-direction: column;
+  align-items: center; /* 🚀 Centers header and search bar */
+}
+
+/* 2. The Hero Header */
+.public-hero-section {
+  text-align: center;
+  margin-bottom: 40px;
+}
+
+/* 3. The Grid */
+.public-items-grid {
+  display: grid;
+  /* 🚀 Auto-fill + justify-center handles centering even with 1 or 2 items */
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 24px;
+  width: 100%;
+  justify-content: center; 
+}
+
+/* 4. Ensure Search bar takes full width of its container */
+.modern-controls-container {
+  width: 100%;
+  max-width: 800px; /* Optional: keeps search bar from getting too wide */
+  margin-bottom: 30px;
+}
 /* Animation for the entrance */
 @keyframes slideInUp {
   from {
