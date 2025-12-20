@@ -127,7 +127,7 @@ export default function Auth() {
 
     try {
       if (isSignup) {
-        // 1. Check for duplicate username first
+        // 1. Check for duplicate username
         const { data: existingUser } = await supabase
           .from('creator_profiles')
           .select('username')
@@ -148,7 +148,7 @@ export default function Auth() {
 
         if (signUpError) throw signUpError;
 
-        // 3. Create Profile
+        // 3. Create Profile and Navigate to Onboarding
         if (data.user) {
           const { error: profileError } = await supabase
             .from('creator_profiles')
@@ -161,8 +161,12 @@ export default function Auth() {
           
           if (profileError) throw profileError;
           
-          showToast("Account created! Welcome to WishPeti. 🎁");
-          navigate('/dashboard'); 
+          showToast("Account created! Let's set up your profile. 🎁");
+          
+          // Small delay to ensure AuthProvider picks up the session
+          setTimeout(() => {
+            navigate('/onboarding'); 
+          }, 500);
         }
       } else {
         // Login logic
@@ -174,7 +178,7 @@ export default function Auth() {
       }
     } catch (err) {
       if (err.message.includes("unique constraint")) {
-        setError("This account or username is already registered. Try logging in.");
+        setError("Account already registered. Try logging in.");
       } else {
         setError(err.message);
       }
@@ -219,7 +223,7 @@ export default function Auth() {
                 />
               </div>
               <p style={{ fontSize: '0.75rem', color: '#6b7280', marginTop: '6px' }}>
-                People will visit your list at: <strong>https://wishpeti.vercel.app/{username || 'username'}</strong>
+                Your link: <strong>https://wishpeti.vercel.app/{username || 'username'}</strong>
               </p>
             </div>
           )}
