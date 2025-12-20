@@ -39,7 +39,7 @@ export async function getWishlistItems(creatorId, filters = {}) {
 }
 
 // Update a wishlist item
-export async function updateWishlistItem(itemId, updates) {
+export const updateWishlistItem = async (itemId, updates) => {
   const { data, error } = await supabase
     .from('wishlist_items')
     .update(updates)
@@ -49,7 +49,7 @@ export async function updateWishlistItem(itemId, updates) {
 
   if (error) throw error;
   return data;
-}
+};
 
 // Delete a wishlist item
 export async function deleteWishlistItem(itemId) {

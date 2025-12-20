@@ -7,6 +7,7 @@ import WishlistItemCard from '../components/wishlist/WishlistItemCard';
 import './WishlistPage.css'; 
 import './PublicWishlist.css'; 
 import Toast from '../components/ui/Toast';
+import { useLocation } from 'react-router-dom';
 
 export default function PublicWishlist() {
   const [showToast, setShowToast] = useState(false);
@@ -16,7 +17,31 @@ export default function PublicWishlist() {
   const [creator, setCreator] = useState(null); 
   const [loading, setLoading] = useState(true);
   const [selectedCurrency, setSelectedCurrency] = useState('INR');
+  const location = useLocation(); // 2. Initialize
   
+  useEffect(() => {
+    // 3. Check if there's an ?item= in the URL
+    const queryParams = new URLSearchParams(location.search);
+    const itemId = queryParams.get('item');
+
+    // 4. Only run if we have an itemId and the wishlist has finished loading
+    if (itemId && !loading && items.length > 0) {
+      // Small delay to ensure the browser has finished painting the cards
+      const timer = setTimeout(() => {
+        const element = document.getElementById(`item-${itemId}`);
+        if (element) {
+          element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          
+          // 5. Optional: Add a temporary highlight class
+          element.classList.add('highlight-focus');
+          setTimeout(() => element.classList.remove('highlight-focus'), 3000);
+        }
+      }, 500);
+
+      return () => clearTimeout(timer);
+    }
+  }, [location.search, loading, items]); // Run when these change
+
   useEffect(() => {
     const loadPublicWishes = async () => {
       if (!username) return;
@@ -55,8 +80,8 @@ export default function PublicWishlist() {
   const joinedDate = creator?.created_at 
     ? new Date(creator.created_at).toLocaleDateString('en-IN', { month: 'short', year: 'numeric' })
     : 'Dec 2025';
-  // --- Inside your Wishlist or Product component ---
-  const handleAddToCart = (item, creatorName) => {
+
+const handleAddToCart = (item, creatorName) => {
     const existingCart = JSON.parse(localStorage.getItem('wishlist_cart') || '[]');
     
     const newItem = {
@@ -81,53 +106,38 @@ export default function PublicWishlist() {
     
     return nameFromUrl || "Verified Creator"; 
   };
-  const handleFanAddToCart = async (item) => {
-    try {
-      let guestId = localStorage.getItem('guest_cart_id');
-      if (!guestId) {
-        guestId = 'guest_' + Math.random().toString(36).substr(2, 9);
-        localStorage.setItem('guest_cart_id', guestId);
-      }
-      
-      // Update local storage cart directly for the Navbar to see
-      const existingCart = JSON.parse(localStorage.getItem('wishlist_cart') || '[]');
-      const updatedCart = [...existingCart, item];
-      localStorage.setItem('wishlist_cart', JSON.stringify(updatedCart));
-
-      const addToCart = (product, creatorName) => {
-        console.log("Adding to cart:", product); // 🔍 Check if 'id' is here!
-
-        if (!product.id) {
-            console.error("Error: Product is missing its Supabase ID!");
-            return;
-        }
-
-        const cart = JSON.parse(localStorage.getItem('wishlist_cart') || '[]');
-        
-        const itemToAdd = {
-            ...product,
-            // Ensure we explicitly map the recipient_id if it's named differently
-            recipient_id: product.user_id || product.recipient_id, 
-            recipient_name: creatorName,
-        };
-        
-        cart.push(itemToAdd);
-        localStorage.setItem('wishlist_cart', JSON.stringify(cart));
-        window.dispatchEvent(new Event('cartUpdated'));
-        alert("Added to cart!");
-      };
-
-      // 🔥 Trigger the Navbar update
-      window.dispatchEvent(new Event('cartUpdated'));
-      
-      setToastMsg(`Added to your gift cart for ${creator.display_name}! 🎁`);
+  
+  const handleFanAddToCart = (item) => {
+  try {
+    const existingCart = JSON.parse(localStorage.getItem('wishlist_cart') || '[]');
+    
+    // Check if item already exists to avoid duplicates
+    const isDuplicate = existingCart.some(cartItem => cartItem.id === item.id);
+    if (isDuplicate) {
+      setToastMsg("Item is already in your gift cart!");
       setShowToast(true);
-    } catch (err) {
-      console.error(err);
-      setToastMsg("Failed to add gift to cart.");
-      setShowToast(true);
+      return;
     }
-  };
+
+    const itemToAdd = {
+      ...item,
+      recipient_id: item.user_id || creator.id, 
+      recipient_name: creator.display_name,
+      addedAt: new Date().getTime()
+    };
+
+    localStorage.setItem('wishlist_cart', JSON.stringify([...existingCart, itemToAdd]));
+
+    // Notify Navbar
+    window.dispatchEvent(new Event('cartUpdated'));
+    
+    setToastMsg(`Added to your gift cart for ${creator.display_name}! 🎁`);
+    setShowToast(true);
+  } catch (err) {
+    setToastMsg("Failed to add gift to cart.");
+    setShowToast(true);
+  }
+};
 
   if (loading) return <div className="loading-state">Finding the wishlist...</div>;
   
@@ -159,6 +169,7 @@ export default function PublicWishlist() {
                 item={item} 
                 onAddToCart={handleFanAddToCart}
                 isPublicView={true} 
+                username={username}
               />
             ))}
           </div>

@@ -415,3 +415,83 @@
 .currency-dropdown-minimal:focus {
   border-color: #6366f1;
 }
+@keyframes itemGlow {
+  0% { transform: scale(1); box-shadow: 0 0 0 rgba(99, 102, 241, 0); }
+  50% { transform: scale(1.03); box-shadow: 0 0 20px rgba(99, 102, 241, 0.5); border-color: #6366f1; }
+  100% { transform: scale(1); box-shadow: 0 0 0 rgba(99, 102, 241, 0); }
+}
+
+.highlight-focus {
+  animation: itemGlow 1.5s ease-in-out 2; /* Glows twice */
+  border: 2px solid #6366f1 !important;
+  z-index: 10;
+}
+
+.edit-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+.edit-modal-content {
+  background: white;
+  padding: 24px;
+  border-radius: 12px;
+  width: 100%;
+  max-width: 400px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.save-btn {
+  background: #6366f1;
+  color: white;
+  border: none;
+  padding: 10px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.edit-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+  padding: 20px;
+}
+
+.edit-modal {
+  background: white;
+  width: 100%;
+  max-width: 500px;
+  border-radius: 20px;
+  padding: 24px;
+  position: relative;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.close-btn {
+  background: #f1f5f9;
+  border: none;
+  font-size: 24px;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}

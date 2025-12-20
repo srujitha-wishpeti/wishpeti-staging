@@ -1,39 +1,52 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '../services/supabaseClient';
 import AddItemButton from './AddItemButton';
 import UrlInputForm from './UrlInputForm';
-import OptionsSelectionPopup from './OptionsSelectionPopup';
 
-export default function AddWishlistItem({ session, onItemAdded, categories }) {
-  const [url, setUrl] = useState('');
+export default function AddWishlistItem({ 
+  session, 
+  onItemAdded, 
+  categories, 
+  initialData = null, 
+  isEditing = false 
+}) {
+  const [url, setUrl] = useState(initialData?.url || '');
   const [loading, setLoading] = useState(false);
   const [scraping, setScraping] = useState(false);
-  const [showForm, setShowForm] = useState(false);
-  const [showOptionsPopup, setShowOptionsPopup] = useState(false);
+  const [showForm, setShowForm] = useState(isEditing); 
   const [error, setError] = useState(null);
-  const [scrapedData, setScrapedData] = useState(null);
-  const [selectedCategory, setSelectedCategory] = useState('');
+  const [scrapedData, setScrapedData] = useState(initialData || null);
+  const [selectedCategory, setSelectedCategory] = useState(initialData?.category || '');
   
-  // NEW: Initialize editable state to prevent "undefined" errors
   const [editableData, setEditableData] = useState({
-    title: '',
-    price: '',
-    image: '',
-    quantity: 1,
-    description: '',
-    selectedSize: '',
-    selectedColor: ''
+    title: initialData?.title || '',
+    price: initialData?.price || '',
+    image: initialData?.image || initialData?.image_url || '',
+    quantity: initialData?.quantity || 1,
+    description: initialData?.notes || '',
+    selectedSize: initialData?.variants?.selectedSize || '',
+    selectedColor: initialData?.variants?.selectedColor || ''
   });
 
-  const [userSelections, setUserSelections] = useState({
-    size: '',
-    color: '',
-    material: '',
-    style: '',
-    customOptions: {}
-  });
+  useEffect(() => {
+    if (initialData && isEditing) {
+      setUrl(initialData.url || '');
+      setScrapedData(initialData);
+      setSelectedCategory(initialData.category || '');
+      setEditableData({
+        title: initialData.title || '',
+        price: initialData.price || '',
+        image: initialData.image || initialData.image_url || '',
+        quantity: initialData.quantity || 1,
+        description: initialData.notes || '',
+        selectedSize: initialData.variants?.selectedSize || '',
+        selectedColor: initialData.variants?.selectedColor || ''
+      });
+    }
+  }, [initialData, isEditing]);
 
   const scrapeProduct = async (productUrl) => {
+    if (isEditing) return; 
     setScraping(true);
     setError(null);
 
@@ -45,8 +58,6 @@ export default function AddWishlistItem({ session, onItemAdded, categories }) {
       if (functionError) throw functionError;
 
       setScrapedData(data);
-      
-      // NEW: Fill the editable state with scraped values
       setEditableData({
         title: data.title || '',
         price: data.price || '',
@@ -55,14 +66,6 @@ export default function AddWishlistItem({ session, onItemAdded, categories }) {
         description: '',
         selectedSize: data.variants?.sizes?.[0] || '',
         selectedColor: data.variants?.colors?.[0] || ''
-      });
-
-      setUserSelections({
-        size: data.variants?.selectedSize || data.variants?.sizes?.[0] || '',
-        color: data.variants?.selectedColor || data.variants?.colors?.[0] || '',
-        material: data.variants?.selectedMaterial || data.variants?.materials?.[0] || '',
-        style: data.variants?.selectedStyle || data.variants?.styles?.[0] || '',
-        customOptions: {}
       });
     } catch (err) {
       console.error('Scraping error:', err);
@@ -75,67 +78,88 @@ export default function AddWishlistItem({ session, onItemAdded, categories }) {
   const handleUrlChange = async (newUrl) => {
     setUrl(newUrl);
     setError(null);
-    if (newUrl.length > 10 && newUrl.startsWith('http')) {
+    if (!isEditing && newUrl.length > 10 && newUrl.startsWith('http')) {
       await scrapeProduct(newUrl);
-    } else {
-      setScrapedData(null);
     }
   };
 
-  const handleFinalAdd = async () => {
-    setLoading(true);
-    setError(null);
+  // Inside AddWishlistItem.jsx
+const handleFinalAdd = async () => {
+  setLoading(true);
+  setError(null);
 
-    try {
+  try {
+    const updatedData = {
+      ...editableData,
+      url: url,
+      category: selectedCategory,
+      brand: scrapedData?.brand || '',
+      store: scrapedData?.store || '',
+    };
+
+    if (isEditing) {
+      // 🚀 Pass the data back to WishlistPage's handleUpdateSubmit
+      if (onItemAdded) await onItemAdded(updatedData);
+    } else {
+      // Normal Insert Logic
       const { error: insertError } = await supabase
         .from('wishlist_items')
         .insert([{
           creator_id: session.user.id,
           url: url,
-          // Save the EDITED values, not the raw scraped ones
           title: editableData.title,
           price: editableData.price,
-          image: editableData.image,
-          brand: scrapedData.brand,
-          store: scrapedData.store,
-          category: selectedCategory || scrapedData.category,
+          image: editableData.image, // Fixed key
+          notes: editableData.description, // Fixed key
+          brand: scrapedData?.brand,
+          store: scrapedData?.store,
+          category: selectedCategory || scrapedData?.category,
           variants: {
-            ...scrapedData.variants,
             selectedSize: editableData.selectedSize,
             selectedColor: editableData.selectedColor
-          },
-          availability: scrapedData.availability
-        }]);
+          }
+      }]);
 
       if (insertError) throw insertError;
+      if (onItemAdded) onItemAdded(); 
       resetForm();
-      onItemAdded && onItemAdded();
-    } catch (err) {
-      setError(err.message || 'Failed to add item');
-    } finally {
-      setLoading(false);
     }
-  };
+  } catch (err) {
+    setError(err.message || 'Failed to save item');
+  } finally {
+    setLoading(false);
+  }
+};
 
-  const resetForm = () => {
+const resetForm = () => {
+  if (isEditing) {
+    // 🚀 This triggers setEditingItem(null) in the parent
+    if (onItemAdded) onItemAdded(null); 
+  } else {
     setUrl('');
     setScrapedData(null);
     setShowForm(false);
     setError(null);
-    setEditableData({ title: '', price: '', image: '', quantity: 1, description: '', selectedSize: '', selectedColor: '' });
-  };
+    setEditableData({ 
+      title: '', price: '', image: '', quantity: 1, 
+      description: '', selectedSize: '', selectedColor: '' 
+    });
+  }
+};
 
   return (
     <>
-      {!showForm && <AddItemButton onClick={() => setShowForm(true)} />}
+      {!showForm && !isEditing && (
+        <AddItemButton onClick={() => setShowForm(true)} />
+      )}
 
       {showForm && (
         <UrlInputForm
           url={url}
           onUrlChange={handleUrlChange}
           scrapedData={scrapedData}
-          editableData={editableData} // Passed correctly
-          setEditableData={setEditableData} // Passed correctly
+          editableData={editableData}
+          setEditableData={setEditableData}
           scraping={scraping}
           error={error}
           categories={categories}
@@ -144,6 +168,7 @@ export default function AddWishlistItem({ session, onItemAdded, categories }) {
           onContinue={handleFinalAdd}
           onCancel={resetForm}
           loading={loading}
+          isEditing={isEditing}
         />
       )}
     </>

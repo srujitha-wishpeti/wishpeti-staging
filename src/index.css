@@ -180,5 +180,103 @@ input:-webkit-autofill:focus {
   -webkit-text-fill-color: #111827 !important;
   transition: background-color 5000s ease-in-out 0s;
 }
+.card-controls-overlay {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  display: flex;
+  flex-direction: column; /* Stacks buttons vertically */
+  gap: 8px;
+}
 
+.card-edit-trigger, .card-delete-trigger, .card-share-trigger {
+  background: white;
+  border: none;
+  border-radius: 50%;
+  width: 34px;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+  transition: all 0.2s ease;
+}
 
+.card-edit-trigger { color: #6366f1; } /* Blue/Purple */
+.card-delete-trigger { color: #ef4444; } /* Red */
+.card-share-trigger { color: #10b981; } /* Green */
+
+.card-edit-trigger:hover, .card-delete-trigger:hover, .card-share-trigger:hover {
+  transform: scale(1.1);
+  background: #f8fafc;
+}
+
+/* The specific pulse/glow effect when someone arrives via a share link */
+.highlight-item-active {
+  animation: highlightPulse 1s ease-in-out infinite alternate;
+  z-index: 10;
+  position: relative;
+}
+
+@keyframes highlightPulse {
+  from {
+    box-shadow: 0 0 0px rgba(99, 102, 241, 0);
+    transform: scale(1);
+  }
+  to {
+    box-shadow: 0 0 20px rgba(99, 102, 241, 0.4);
+    transform: scale(1.02);
+    border-color: #6366f1;
+  }
+}
+
+/* Container for the floating pill */
+.item-actions-pill {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 8px 16px;
+  background: rgba(0, 0, 0, 0.7); /* Dark background */
+  backdrop-filter: blur(10px);    /* Glass effect */
+  -webkit-backdrop-filter: blur(10px);
+  border-radius: 50px;           /* Perfect pill shape */
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  z-index: 10;
+  transition: opacity 0.3s ease;
+}
+
+/* Base button/link styles inside the pill */
+.item-actions-pill button, 
+.item-actions-pill a {
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.9);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  transition: transform 0.2s ease, color 0.2s ease;
+}
+
+/* Hover effects */
+.item-actions-pill button:hover, 
+.item-actions-pill a:hover {
+  transform: scale(1.15);
+  color: #ffffff;
+}
+
+/* Delete button hover (special red highlight) */
+.item-actions-pill .delete-btn:hover {
+  color: #ff4d4d;
+}
+
+/* Hide card-controls-overlay if it's still in your CSS to avoid conflicts */
+.card-controls-overlay {
+  display: none;
+}
