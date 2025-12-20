@@ -1,13 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useLocation } from 'react-router-dom';
 import { supabase } from '../services/supabaseClient'; 
 import { getWishlistItems } from '../services/wishlist';
-import { addToCart } from '../services/cart';
 import WishlistItemCard from '../components/wishlist/WishlistItemCard';
+import Toast from '../components/ui/Toast';
 import './WishlistPage.css'; 
 import './PublicWishlist.css'; 
-import Toast from '../components/ui/Toast';
-import { useLocation } from 'react-router-dom';
 
 export default function PublicWishlist() {
   const [showToast, setShowToast] = useState(false);
@@ -16,39 +14,33 @@ export default function PublicWishlist() {
   const [items, setItems] = useState([]);
   const [creator, setCreator] = useState(null); 
   const [loading, setLoading] = useState(true);
-  const [selectedCurrency, setSelectedCurrency] = useState('INR');
-  const location = useLocation(); // 2. Initialize
-  
+  const location = useLocation();
+
+  // Handle URL item highlighting/scrolling
   useEffect(() => {
-    // 3. Check if there's an ?item= in the URL
     const queryParams = new URLSearchParams(location.search);
     const itemId = queryParams.get('item');
 
-    // 4. Only run if we have an itemId and the wishlist has finished loading
     if (itemId && !loading && items.length > 0) {
-      // Small delay to ensure the browser has finished painting the cards
       const timer = setTimeout(() => {
         const element = document.getElementById(`item-${itemId}`);
         if (element) {
           element.scrollIntoView({ behavior: 'smooth', block: 'center' });
-          
-          // 5. Optional: Add a temporary highlight class
           element.classList.add('highlight-focus');
           setTimeout(() => element.classList.remove('highlight-focus'), 3000);
         }
       }, 500);
-
       return () => clearTimeout(timer);
     }
-  }, [location.search, loading, items]); // Run when these change
+  }, [location.search, loading, items]);
 
+  // Load Creator and Items
   useEffect(() => {
     const loadPublicWishes = async () => {
       if (!username) return;
       setLoading(true);
       
       try {
-        // 1. Fetch creator profile using the username from the URL
         const { data: profile, error: profileError } = await supabase
           .from('creator_profiles')
           .select('id, display_name, username, created_at')
@@ -56,14 +48,11 @@ export default function PublicWishlist() {
           .single();
 
         if (profileError || !profile) {
-          console.error("Creator not found");
           setLoading(false);
           return;
         }
 
         setCreator(profile);
-
-        // 2. Fetch wishlist items using the ID we just found
         const data = await getWishlistItems(profile.id);
         setItems(data || []);
       } catch (err) {
@@ -75,69 +64,61 @@ export default function PublicWishlist() {
     loadPublicWishes();
   }, [username]);
 
-  // --- LOGIC FOR JOINED DATE ---
-  // We put this here so it's accessible to the return statement
+  /**
+   * CONSOLIDATED ADD TO CART
+   * 1. Prevents Duplicates
+   * 2. Cleans price strings to prevent NaN
+   * 3. Syncs recipient info correctly
+   */
+  const handleAddToCart = (item) => {
+    try {
+      const existingCart = JSON.parse(localStorage.getItem('wishlist_cart') || '[]');
+      
+      // 1. Duplicate check
+      const isDuplicate = existingCart.some(cartItem => cartItem.id === item.id);
+      if (isDuplicate) {
+        setToastMsg("Item is already in your gift cart!");
+        setShowToast(true);
+        return;
+      }
+
+      // 2. 🚀 FIX NaN: Numeric sanitizer
+      let cleanPrice = item.price;
+      if (typeof cleanPrice === 'string') {
+        // Removes anything that isn't a digit or decimal point
+        cleanPrice = parseFloat(cleanPrice.replace(/[^\d.]/g, ''));
+      }
+      
+      // Fallback if the price is still invalid
+      const finalPrice = isNaN(cleanPrice) ? 0 : cleanPrice;
+
+      // 3. Construct clean object
+      const itemToAdd = {
+        ...item,
+        price: finalPrice, 
+        recipient_id: creator?.id || item.user_id, 
+        recipient_name: creator?.display_name || 'Verified Creator',
+        addedAt: new Date().getTime()
+      };
+
+      const updatedCart = [...existingCart, itemToAdd];
+      localStorage.setItem('wishlist_cart', JSON.stringify(updatedCart));
+
+      // 4. Update UI
+      window.dispatchEvent(new Event('cartUpdated'));
+      setToastMsg(`Added to your gift cart for ${creator?.display_name}! 🎁`);
+      setShowToast(true);
+
+    } catch (err) {
+      console.error("Cart error:", err);
+      setToastMsg("Failed to add gift to cart.");
+      setShowToast(true);
+    }
+  };
+
   const joinedDate = creator?.created_at 
     ? new Date(creator.created_at).toLocaleDateString('en-IN', { month: 'short', year: 'numeric' })
     : 'Dec 2025';
-
-const handleAddToCart = (item, creatorName) => {
-    const existingCart = JSON.parse(localStorage.getItem('wishlist_cart') || '[]');
-    
-    const newItem = {
-        ...item,
-        // 🚀 This is the key fix:
-        recipient_name: creatorName || 'Verified Creator', 
-        addedAt: new Date().getTime()
-    };
-
-    const updatedCart = [...existingCart, newItem];
-    localStorage.setItem('wishlist_cart', JSON.stringify(updatedCart));
-    
-    // Trigger event so the Navbar/Cart updates immediately
-    window.dispatchEvent(new Event('cartUpdated'));
-  };
-  const displayRecipient = (item) => {
-    if (item.recipient_name) return item.recipient_name;
-    
-    // Try to find it in the URL if it's a shared wishlist link
-    const urlParams = new URLSearchParams(window.location.search);
-    const nameFromUrl = urlParams.get('creator');
-    
-    return nameFromUrl || "Verified Creator"; 
-  };
-  
-  const handleFanAddToCart = (item) => {
-  try {
-    const existingCart = JSON.parse(localStorage.getItem('wishlist_cart') || '[]');
-    
-    // Check if item already exists to avoid duplicates
-    const isDuplicate = existingCart.some(cartItem => cartItem.id === item.id);
-    if (isDuplicate) {
-      setToastMsg("Item is already in your gift cart!");
-      setShowToast(true);
-      return;
-    }
-
-    const itemToAdd = {
-      ...item,
-      recipient_id: item.user_id || creator.id, 
-      recipient_name: creator.display_name,
-      addedAt: new Date().getTime()
-    };
-
-    localStorage.setItem('wishlist_cart', JSON.stringify([...existingCart, itemToAdd]));
-
-    // Notify Navbar
-    window.dispatchEvent(new Event('cartUpdated'));
-    
-    setToastMsg(`Added to your gift cart for ${creator.display_name}! 🎁`);
-    setShowToast(true);
-  } catch (err) {
-    setToastMsg("Failed to add gift to cart.");
-    setShowToast(true);
-  }
-};
 
   if (loading) return <div className="loading-state">Finding the wishlist...</div>;
   
@@ -152,7 +133,6 @@ const handleAddToCart = (item, creatorName) => {
     <div className="wishlist-page">
       <div className="public-profile-header">
         <div className="profile-inner">
-          {/* Added the initials avatar back with styling */}
           <div className="profile-text">
             <h1>{creator.display_name}'s Wishlist</h1>
             <p>@{creator.username} • {items.length} items • Joined {joinedDate}</p>
@@ -167,14 +147,14 @@ const handleAddToCart = (item, creatorName) => {
               <WishlistItemCard 
                 key={item.id} 
                 item={item} 
-                onAddToCart={handleFanAddToCart}
+                onAddToCart={() => handleAddToCart(item)} // 🚀 Updated to use consolidated function
                 isPublicView={true} 
                 username={username}
               />
             ))}
           </div>
         ) : (
-          <div style={{ textAlign: 'center', padding: '100px 20px', background: 'white', borderRadius: '16px' }}>
+          <div className="empty-wishlist-state">
             <h3>No wishes found yet.</h3>
             <p>Check back soon to see what {creator.display_name} is wishing for!</p>
           </div>

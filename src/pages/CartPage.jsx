@@ -34,13 +34,22 @@ export default function CartPage() {
 
   const calculateSubtotal = () => {
     return cartItems.reduce((sum, item) => {
-      const cleanPrice = typeof item.price === 'string' 
-        ? item.price.replace(/[^\d.]/g, '') 
-        : item.price;
-      return sum + (parseFloat(cleanPrice) || 0);
+      // 1. If it's already a number, use it. 
+      // 2. If it's a string, remove everything EXCEPT digits and the decimal point.
+      let priceValue = item.price;
+
+      if (typeof priceValue === 'string') {
+        // This regex removes currency symbols, commas, and spaces
+        const cleaned = priceValue.replace(/[^\d.]/g, '');
+        priceValue = parseFloat(cleaned);
+      }
+
+      // 3. Final safety check: if it's still NaN, treat it as 0
+      const finalPrice = isNaN(priceValue) ? 0 : priceValue;
+      
+      return sum + finalPrice;
     }, 0);
   };
-
   const subtotal = calculateSubtotal();
   const platformFee = subtotal * 0.08; 
   const finalPayable = subtotal + platformFee;
