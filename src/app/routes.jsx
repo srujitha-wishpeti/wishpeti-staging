@@ -13,6 +13,7 @@ import Onboarding from '../pages/OnBoarding';
 import PolicyPage from '../pages/PolicyPage'; // Adjust path
 import ManageGifts from '../components/ManageGifts';
 import TrackOrder from '../pages/TrackOrder';
+import SuccessPage from '../pages/SuccessPage';
 
 export default function AppRoutes() {
   const { session, loading } = useAuth();
@@ -30,6 +31,7 @@ export default function AppRoutes() {
       <Route path="/wishlist/:username" element={<PublicWishlist />} />
       <Route path="/track/:orderId" element={<TrackOrder />} />
       <Route path="/cart" element={<CartPage />} />
+      <Route path="/success/:orderId" element={<SuccessPage />} />
       <Route path="/onboarding" element={
         <RequireAuth>
           <Onboarding />

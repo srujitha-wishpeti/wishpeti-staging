@@ -141,12 +141,11 @@ export default function CartPage() {
         localStorage.removeItem('wishlist_cart');
         setCartItems([]);
         window.dispatchEvent(new Event('cartUpdated'));
-        
-        // Inside handlePaymentSuccess in CartPage.jsx after order is created
-        const orderId = orderData?.[0]?.id; // Get the ID of the order you just inserted
 
-        showToast(`Payment Successful! You can track your gift status here: \n${window.location.origin}/track/${orderId}`);
-        navigate('/dashboard'); 
+        const orderId = orderData?.[0]?.id; 
+
+        // 🚀 Redirect to the Success Page instead of Dashboard
+        navigate(`/success/${orderId}`);
         
     } catch (err) {
         console.error("Post-Payment Error:", err.message);
