@@ -280,7 +280,7 @@ const styles = {
     WebkitTextFillColor: '#111827', // The "Magic" iOS fix
     fontSize: '16px',           // Professional standard to avoid zoom
     appearance: 'none',         // Removes default iOS inner shadows
-  };,
+  },
   privacyNote: {
     fontSize: '11px',
     color: '#64748b',
