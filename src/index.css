@@ -109,3 +109,30 @@ button:focus-visible {
 body {
   padding-top: 80px; /* This pushes the whole app down so the Navbar doesn't cover it */
 }
+
+.toast-notification {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: white;
+  color: #1e293b;
+  padding: 12px 20px;
+  border-radius: 8px;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  border-left: 4px solid #10b981;
+  animation: slideIn 0.3s ease-out;
+}
+
+.toast-close {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #94a3b8;
+  display: flex;
+  padding: 0;
+}
+
+@keyframes slideIn {
+  from { transform: translateX(100%); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}

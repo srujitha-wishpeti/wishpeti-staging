@@ -95,16 +95,26 @@ export default function PublicWishlist() {
       localStorage.setItem('wishlist_cart', JSON.stringify(updatedCart));
 
       const addToCart = (product, creatorName) => {
+        console.log("Adding to cart:", product); // 🔍 Check if 'id' is here!
+
+        if (!product.id) {
+            console.error("Error: Product is missing its Supabase ID!");
+            return;
+        }
+
         const cart = JSON.parse(localStorage.getItem('wishlist_cart') || '[]');
         
         const itemToAdd = {
             ...product,
-            recipient_name: creatorName, // 🚀 Make sure this variable is passed here!
+            // Ensure we explicitly map the recipient_id if it's named differently
+            recipient_id: product.user_id || product.recipient_id, 
+            recipient_name: creatorName,
         };
         
         cart.push(itemToAdd);
         localStorage.setItem('wishlist_cart', JSON.stringify(cart));
         window.dispatchEvent(new Event('cartUpdated'));
+        alert("Added to cart!");
       };
 
       // 🔥 Trigger the Navbar update

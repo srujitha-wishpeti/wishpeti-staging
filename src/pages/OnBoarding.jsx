@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '../services/supabaseClient';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthProvider';
+import { useToast } from '../context/ToastContext';
 
 export default function OnBoarding() {
   const { session, loading: authLoading } = useAuth();
@@ -9,6 +10,7 @@ export default function OnBoarding() {
   const [loading, setLoading] = useState(false);
   const [fetching, setFetching] = useState(true);
   const [isExistingUser, setIsExistingUser] = useState(false); // 🔑 Track if username is already in DB
+  const showToast = useToast();
 
   const [formData, setFormData] = useState({
     username: '',
