@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../services/supabaseClient';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { useToast } from '../context/ToastContext'; 
 import './Auth.css';
 
 export default function Auth() {
@@ -9,13 +10,14 @@ export default function Auth() {
   const [username, setUsername] = useState('');
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
+  const showToast = useToast(); 
 
   const location = useLocation();
   const navigate = useNavigate();
   const params = new URLSearchParams(location.search);
   const mode = params.get('mode') || 'signup';
-  // --- Styles ---
 
+  // --- Styles ---
   const containerStyle = {
     minHeight: '100vh',
     display: 'flex',
@@ -84,7 +86,7 @@ export default function Auth() {
   const primaryBtnStyle = {
     width: '100%',
     padding: '14px',
-    backgroundColor: loading ? '#9ca3af' : '#4f46e5', // Gray out when loading
+    backgroundColor: loading ? '#9ca3af' : '#4f46e5',
     color: 'white',
     border: 'none',
     borderRadius: '10px',
@@ -97,21 +99,20 @@ export default function Auth() {
     justifyContent: 'center',
   };
 
-const inputStyle = {
-  width: '100%',
-  padding: '12px 16px',
-  borderRadius: '10px',
-  border: '1px solid #d1d5db',
-  fontSize: '16px', // 💡 Change to 16px to prevent iOS auto-zoom
-  boxSizing: 'border-box',
-  outline: 'none',
-  transition: 'border-color 0.2s',
-  backgroundColor: 'white', // 💡 Force white background
-  color: '#111827', // 💡 Explicitly set dark text color
-  WebkitTextFillColor: '#111827', // 💡 Fix for invisible text on iOS
-  pointerEvents: loading ? 'none' : 'auto',
-};
-
+  const inputStyle = {
+    width: '100%',
+    padding: '12px 16px',
+    borderRadius: '10px',
+    border: '1px solid #d1d5db',
+    fontSize: '16px',
+    boxSizing: 'border-box',
+    outline: 'none',
+    transition: 'border-color 0.2s',
+    backgroundColor: 'white',
+    color: '#111827',
+    WebkitTextFillColor: '#111827',
+    pointerEvents: loading ? 'none' : 'auto',
+  };
 
   const [isSignup, setIsSignup] = useState(mode === 'signup');
   
@@ -135,7 +136,7 @@ const inputStyle = {
 
         if (existingUser) {
           setError("This username is already taken.");
-          setLoading(false); // Manually stop loading here
+          setLoading(false);
           return;
         }
         
@@ -151,26 +152,34 @@ const inputStyle = {
         if (data.user) {
           const { error: profileError } = await supabase
             .from('creator_profiles')
-            .insert([{ id: data.user.id, email, display_name: username, username: username.toLowerCase() }]);
+            .insert([{ 
+                id: data.user.id, 
+                email, 
+                display_name: username, 
+                username: username.toLowerCase() 
+            }]);
           
           if (profileError) throw profileError;
-          setIsSuccess(true);
+          
+          showToast("Account created! Welcome to WishPeti. 🎁");
+          navigate('/dashboard'); 
         }
       } else {
         // Login logic
         const { error: loginError } = await supabase.auth.signInWithPassword({ email, password });
         if (loginError) throw loginError;
+        
+        showToast("Welcome back!");
         navigate('/dashboard');
       }
     } catch (err) {
-      // Check if it's the specific duplicate error to show a friendly message
       if (err.message.includes("unique constraint")) {
-        setError("This account or username is already partially registered. Try logging in instead.");
+        setError("This account or username is already registered. Try logging in.");
       } else {
         setError(err.message);
       }
     } finally {
-      setLoading(false); // 🔑 This stops the "Processing" spinner
+      setLoading(false);
     }
   };
 
@@ -243,7 +252,7 @@ const inputStyle = {
 
           <button type="submit" disabled={loading} style={primaryBtnStyle}>
             {loading ? (
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
                 <div className="spinner"></div>
                 <span>Processing...</span>
               </div>
@@ -281,4 +290,3 @@ const inputStyle = {
     </div>
   );
 }
-
