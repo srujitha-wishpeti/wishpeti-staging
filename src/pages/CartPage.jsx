@@ -22,9 +22,7 @@ export default function CartPage() {
     setCartItems(savedCart);
   };
 
-  useEffect(() => {
-    getExchangeRate().then(rate => setUsdRate(rate));
-    }, []);
+  const getExchangeRate = () => 83.5;
     
   useEffect(() => {
     loadCart();
@@ -178,7 +176,18 @@ export default function CartPage() {
             <span>Total Payable</span>
             <span>{formatPrice(finalPayable)}</span>
           </div>
-
+          
+          <div style={styles.formContainer}>
+            <h3>Sender Details ✍️</h3>
+            <p style={{fontSize: '12px', color: '#64748b'}}>We'll send your receipt and gift confirmation here.</p>
+            
+            <input type="text" placeholder="Your Name" style={styles.inputStyle} required />
+            <input type="email" placeholder="Email Address" style={styles.inputStyle} required />
+            
+            <div style={styles.privacyNote}>
+                🔒 Your contact details are never shared with the creator.
+            </div>
+          </div>
           <button className="checkout-btn" onClick={handleCheckout}>
             <CreditCard size={18} /> Pay {formatPrice(finalPayable)}
           </button>
@@ -198,3 +207,31 @@ export default function CartPage() {
     </div>
   );
 }
+
+// Add this at the bottom of your CartPage.jsx file
+const styles = {
+  formContainer: {
+    marginTop: '30px',
+    padding: '24px',
+    background: '#f8fafc',
+    borderRadius: '16px',
+    border: '1px solid #e2e8f0'
+  },
+  inputStyle: {
+    width: '100%',
+    padding: '12px',
+    marginBottom: '12px',
+    borderRadius: '8px',
+    border: '1px solid #cbd5e1',
+    fontSize: '14px',
+    boxSizing: 'border-box' // Essential for full-width inputs
+  },
+  privacyNote: {
+    fontSize: '11px',
+    color: '#64748b',
+    marginTop: '8px',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '4px'
+  }
+};

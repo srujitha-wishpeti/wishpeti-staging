@@ -11,6 +11,7 @@ import { useAuth } from '../auth/AuthProvider';
 import CheckProfileCompletion from '../auth/CheckProfileCompletion';
 import Onboarding from '../pages/OnBoarding';
 import PolicyPage from '../pages/PolicyPage'; // Adjust path
+import ManageGifts from '../components/ManageGifts';
 
 export default function AppRoutes() {
   const { session, loading } = useAuth();
@@ -23,7 +24,7 @@ export default function AppRoutes() {
       {/* If logged in, send them to dashboard instead of Landing or Auth */}
       <Route path="/" element={session ? <Navigate to="/dashboard" /> : <Landing />} />
       <Route path="/auth" element={session ? <Navigate to="/dashboard" /> : <Auth />} />
-      
+      <Route path="/manage-gifts" element={<ManageGifts />} />
       {/* Public routes available to everyone */}
       <Route path="/wishlist/:username" element={<PublicWishlist />} />
       <Route path="/cart" element={<CartPage />} />
