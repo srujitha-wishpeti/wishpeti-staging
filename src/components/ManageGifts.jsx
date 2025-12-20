@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../services/supabaseClient';
 import { Package, Truck, CheckCircle, ExternalLink } from 'lucide-react'; // Added icons for better UI
+import { useToast } from '../context/ToastContext';
 
 export default function ManageGifts() {
   const [gifts, setGifts] = useState([]);
   const [loading, setLoading] = useState(true);
-
+  const showToast = useToast();
+  
   // 1. Fetch orders linked to this creator
   const fetchGifts = async () => {
     setLoading(true);
@@ -48,7 +50,7 @@ export default function ManageGifts() {
 
       // Update local state
       setGifts(prev => prev.map(g => g.id === id ? { ...g, gift_status: newStatus } : g));
-      alert(`Gift marked as ${newStatus}!`);
+      showToast(`Gift marked as ${newStatus}!`);
     } catch (err) {
       alert("Update failed: " + err.message);
     }

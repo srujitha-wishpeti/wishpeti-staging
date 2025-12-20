@@ -82,7 +82,7 @@ export default function CartPage() {
       const rzp = new window.Razorpay(options);
       rzp.open();
     } else {
-      showToast("Razorpay SDK failed to load.");
+      alert("Razorpay SDK failed to load.");
       setLoading(false);
     }
   };
