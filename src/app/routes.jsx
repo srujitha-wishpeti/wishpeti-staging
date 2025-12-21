@@ -28,7 +28,7 @@ export default function AppRoutes() {
       <Route path="/auth" element={session ? <Navigate to="/dashboard" /> : <Auth />} />
       <Route path="/manage-gifts" element={<ManageGifts />} />
       {/* Public routes available to everyone */}
-      <Route path="/wishlist/:username" element={<PublicWishlist />} />
+      <Route path="/wishlist/:username" element={<WishlistPage />} />
       <Route path="/track/:orderId" element={<TrackOrder />} />
       <Route path="/cart" element={<CartPage />} />
       <Route path="/success/:orderId" element={<SuccessPage />} />

@@ -72,7 +72,7 @@ export default function CartPage() {
     const amountInPaise = Math.round(finalPayable * 100);
 
     const options = {
-      key: "rzp_test_xxxxxx", 
+      key: "rzp_test_RtgvVK9ZMU6pKm", 
       amount: amountInPaise,
       currency: "INR",
       display_currency: currency.code, 

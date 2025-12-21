@@ -99,11 +99,23 @@ export default function PublicWishlist() {
     <div className="wishlist-modern-page"> {/* 🚀 Changed to modern-page for centering */}
       <header className="wishlist-hero-card">
         <div className="hero-flex">
+          {creator.avatar_url && (
+                <img 
+                src={creator.avatar_url} 
+                alt={creator.display_name} 
+                style={{ width: '80px', height: '80px', borderRadius: '50%', marginRight: '20px' }} 
+                />
+           )}
           <div className="user-branding">
             <h1 className="user-name-title">
               {creator.display_name}'s Wishlist
               <span className="handle">@{creator.username}</span>
             </h1>
+            {creator.bio ? (
+                <p className="creator-bio-text">{creator.bio}</p>
+            ) : (
+                <p className="creator-bio-placeholder">Welcome to my wishlist! ✨</p>
+            )}
             <div className="hero-stats">
               <span>{items.length} items</span>
             </div>

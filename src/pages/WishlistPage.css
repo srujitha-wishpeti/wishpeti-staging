@@ -16,15 +16,48 @@
 
 .hero-flex {
   display: flex;
-  justify-content: space-between;
+  flex-direction: row;
+  align-items: flex-start; /* Keeps text aligned to the top of the photo */
+  justify-content: flex-start;
+  gap: 32px; /* Increased gap for the bigger photo */
+}
+.profile-avatar-wrapper {
+  position: relative; /* This is the most important line */
+  width: 160px;
+  height: 160px;
+}
+
+.avatar-edit-pencil {
+  position: absolute; /* Keeps it inside the circle corner */
+  bottom: 5px;
+  right: 5px;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: #4f46e5;
+  border: 3px solid white;
+  display: flex;
   align-items: center;
+  justify-content: center;
+  padding: 0;
+  cursor: pointer;
+  z-index: 10;
+}
+
+.user-branding {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  text-align: left;
+  flex: 1;
+  padding-top: 8px; /* Slight offset so name aligns with top of circle */
 }
 
 .user-name-title {
-  font-size: 1.8rem;
+  font-size: 2.2rem; /* Slightly larger text to match big photo */
   font-weight: 800;
-  color: #1a1a1a;
   margin: 0;
+  line-height: 1.1;
 }
 
 .user-name-title .handle {
@@ -399,6 +432,8 @@
   display: flex;
   align-items: center;
   gap: 12px;
+  margin-left: auto; /* This pushes the buttons to the far right */
+  align-self: flex-start; /* Keeps buttons aligned with the top of the name */
 }
 
 .currency-dropdown-minimal {
@@ -496,4 +531,220 @@
   border: 1px solid #f1f5f9;
   overflow: hidden;
   transition: transform 0.2s ease;
+}
+
+.creator-bio-text {
+  font-size: 1rem;
+  color: #475569;
+  line-height: 1.5;
+  margin: 8px 0; /* Vertical margin only */
+  max-width: 550px;
+  text-align: left;
+}
+
+.creator-bio-placeholder {
+  font-size: 0.95rem;
+  color: #94a3b8;
+  font-style: italic;
+  margin: 8px 0;
+}
+
+.bio-container {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.edit-bio-btn {
+  width: fit-content;
+  background: #f1f5f9;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #6366f1;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.edit-bio-btn:hover {
+  background: #e2e8f0;
+}
+
+/* Modal Input Styling */
+.profile-edit-input {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  margin-bottom: 12px;
+  font-family: inherit;
+}
+
+.profile-avatar-wrapper {
+  position: relative;
+  width: 160px;  /* Make sure this matches your desired size */
+  height: 160px;
+  flex-shrink: 0;
+}
+
+.profile-avatar-img {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 4px solid #6366f1;
+  display: block; /* Removes bottom whitespace */
+}
+
+.avatar-edit-pencil {
+  position: absolute;
+  bottom: 8px;
+  right: 8px;
+  width: 40px;
+  height: 40px;
+  background: #4f46e5;
+  border: 3px solid #fff;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 10;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+}
+
+/* Hover State */
+.profile-avatar-wrapper:hover .avatar-edit-pencil {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.profile-avatar-wrapper:hover .profile-avatar-img {
+  filter: brightness(0.8); /* Dim image slightly on hover */
+}
+
+.avatar-edit-pencil:hover {
+  background: #4338ca;
+  transform: scale(1.1) !important;
+}
+
+.avatar-edit-pencil:hover {
+  background: #4338ca;
+  transform: scale(1.1);
+}
+
+/* Optional: Make the button only appear on hover of the whole wrapper */
+.profile-avatar-wrapper .avatar-edit-pencil {
+  opacity: 0;
+  transform: translateY(5px);
+}
+
+.profile-avatar-wrapper:hover .avatar-edit-pencil {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.edit-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000; /* Higher than header */
+  padding: 20px;
+}
+
+.edit-modal {
+  background: white;
+  width: 100%;
+  max-width: 440px;
+  border-radius: 24px;
+  box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+  overflow: hidden;
+  animation: modalPop 0.3s ease-out;
+}
+
+@keyframes modalPop {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.modal-header {
+  padding: 20px 24px;
+  border-bottom: 1px solid #f1f5f9;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.modal-header h3 {
+  margin: 0;
+  font-size: 1.2rem;
+  font-weight: 700;
+}
+
+.profile-upload-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.modal-avatar-preview {
+  position: relative;
+  width: 100px;
+  height: 100px;
+}
+
+.modal-avatar-preview img {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 3px solid #6366f1;
+}
+
+.custom-file-upload {
+  color: #6366f1;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  padding: 6px 12px;
+  border-radius: 8px;
+  background: #f5f3ff;
+  transition: 0.2s;
+}
+
+.custom-file-upload:hover {
+  background: #ede9fe;
+}
+
+.loading-avatar {
+  opacity: 0.5;
+  filter: grayscale(1);
+}
+
+@media (max-width: 600px) {
+  .hero-flex {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 16px;
+  }
+
+  .user-branding {
+    align-items: center;
+    text-align: center;
+  }
+
+  .header-actions-group {
+    margin-left: 0;
+    justify-content: center;
+    width: 100%;
+  }
 }

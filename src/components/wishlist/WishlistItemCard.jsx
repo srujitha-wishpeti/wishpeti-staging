@@ -4,11 +4,11 @@ import { formatPrice } from '../../utils/currency';
 
 export default function WishlistItemCard({ 
   item, 
+  isOwner,
   onDelete, 
   onAddToCart, 
   onEdit, 
   username, 
-  isPublicView = false,
   currencySettings = { code: 'INR', rate: 1 } 
 }) {
   
@@ -51,7 +51,7 @@ export default function WishlistItemCard({
         )}
         
         <div className="item-actions-pill">
-          {!isPublicView && (
+          {isOwner && (
             <button onClick={() => onEdit(item)} title="Edit">
               <Edit3 size={16} />
             </button>
@@ -65,7 +65,7 @@ export default function WishlistItemCard({
             <Share2 size={16} />
           </button>
 
-          {!isPublicView && (
+          {isOwner && (
             <button className="delete-btn" onClick={() => onDelete(item.id)} title="Delete">
               <Trash2 size={16} />
             </button>
@@ -88,7 +88,7 @@ export default function WishlistItemCard({
         <div className="card-footer-actions">
           <button className="btn-main-action" onClick={() => onAddToCart(item)}>
             <ShoppingBag size={16} />
-            <span>{isPublicView ? 'Gift This' : 'Add to Cart'}</span>
+            <span>{!isOwner ? 'Gift This' : 'Add to Cart'}</span>
           </button>
         </div>
       </div>

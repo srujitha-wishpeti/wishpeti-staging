@@ -3,6 +3,7 @@ import { supabase } from '../services/supabaseClient';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthProvider';
 import { useToast } from '../context/ToastContext';
+import AvatarUpload from '../pages/AvatarUpload';
 
 export default function OnBoarding() {
   const { session, loading: authLoading } = useAuth();
@@ -16,6 +17,8 @@ export default function OnBoarding() {
     username: '',
     display_name: '',
     full_name: '',
+    bio: '',
+    avatar_url: '',
     address_line1: '',
     city: '',
     state: '',
@@ -41,6 +44,8 @@ export default function OnBoarding() {
           setFormData({
             username: data.username || '',
             display_name: data.display_name || '',
+            avatar_url: data.avatar_url || '',
+            bio: data.bio || '',
             full_name: data.full_name || '',
             address_line1: data.address_line1 || '',
             city: data.city || '',
@@ -99,8 +104,10 @@ export default function OnBoarding() {
         .from('creator_profiles')
         .upsert({
             id: session.user.id,
+            avatar_url: formData.avatar_url,
             username: cleanUsername,
             display_name: formData.display_name,
+            bio: formData.bio,
             full_name: formData.full_name,
             address_line1: formData.address_line1,
             city: formData.city,
@@ -176,7 +183,10 @@ export default function OnBoarding() {
         <p style={{ color: '#666', marginBottom: '24px', fontSize: '0.95rem' }}>
           Update your identity and shipping details.
         </p>
-
+        <AvatarUpload 
+            url={formData.avatar_url} 
+            onUpload={(url) => setFormData({ ...formData, avatar_url: url })} 
+        />
         <form onSubmit={handleSubmit}>
           <label style={labelStyle}>Public Display Name</label>
           <input
@@ -217,7 +227,27 @@ export default function OnBoarding() {
               Username is locked to protect your public link.
             </p>
           )}
-
+          <div className="form-group">
+            <label style={labelStyle}>About You (Bio)</label>
+            <textarea
+                placeholder="Tell your fans a little bit about yourself or why you're collecting gifts..."
+                /* 🚀 FIX: Use formData.bio instead of bio */
+                value={formData.bio} 
+                /* 🚀 FIX: Use setFormData to update the bio key */
+                onChange={(e) => setFormData({ ...formData, bio: e.target.value })} 
+                maxLength={160}
+                style={{
+                ...inputStyle,
+                height: '100px',
+                resize: 'none',
+                padding: '12px'
+                }}
+            />
+            <p style={{ fontSize: '0.75rem', textAlign: 'right', color: '#94a3b8' }}>
+                {/* 🚀 FIX: Use formData.bio.length */}
+                {(formData.bio || '').length}/160
+            </p>
+          </div>
           <hr style={dividerStyle} />
           <h3 style={{ fontSize: '1rem', marginBottom: '15px' }}>🚚 Private Shipping Details</h3>
 

@@ -14,7 +14,9 @@ export default function UrlInputForm({
   onContinue,
   onCancel,
   loading,
-  isEditing // 🚀 Receive isEditing prop
+  isEditing,
+  currencySymbol, // 🚀 Passed from parent
+  currencyCode    // 🚀 Passed from parent
 }) {
 
   const handleEdit = (field, value) => {
@@ -42,8 +44,8 @@ export default function UrlInputForm({
             <button 
                 type="button" 
                 onClick={(e) => {
-                e.preventDefault();
-                onCancel(); // 🚀 This triggers the resetForm -> onItemAdded(null) chain
+                  e.preventDefault();
+                  onCancel(); 
                 }} 
                 style={closeButtonStyle}
             >
@@ -52,7 +54,7 @@ export default function UrlInputForm({
         </div>
 
         <div style={{ padding: '1.5rem' }}>
-          {/* URL Input Area - Hidden or Disabled during Edit for better UX */}
+          {/* URL Input Area */}
           <div style={{ marginBottom: '1.5rem' }}>
             <label style={labelStyle}>Product URL</label>
             <input
@@ -60,14 +62,13 @@ export default function UrlInputForm({
               value={url}
               onChange={(e) => onUrlChange(e.target.value)}
               placeholder="Paste product link here..."
-              disabled={isEditing} // 🚀 Prevent link changes during edit
+              disabled={isEditing} 
               style={{ ...inputStyle, backgroundColor: isEditing ? '#f9fafb' : '#ffffff' }}
             />
             {scraping && <div style={statusTextStyle}><Loader2 size={16} className="spin" /> Fetching details...</div>}
             {error && <div style={{ color: 'red', fontSize: '12px', marginTop: '5px' }}>{error}</div>}
           </div>
 
-          {/* ONLY show the editable form once we have scrapedData or are in Edit Mode */}
           {(scrapedData || isEditing) && (
             <div className="editable-section">
               <div style={{ marginBottom: '1rem' }}>
@@ -91,44 +92,96 @@ export default function UrlInputForm({
                 </div>
               )}
 
-              <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem' }}>
-                <div style={{ flex: 2 }}>
+              {/* Price and Quantity Group */}
+              {/* Price and Quantity Group */}
+              <div style={{ display: 'flex', gap: '12px', marginBottom: '1.5rem', alignItems: 'flex-start' }}>
+                
+                {/* Price Input Wrapper */}
+                <div style={{ flex: 3 }}>
                     <label style={labelStyle}>Price</label>
-                    <div style={{ display: 'flex', gap: '0.5rem' }}>
-                      <select
-                          value={editableData.currency || 'INR'}
-                          onChange={(e) => handleEdit('currency', e.target.value)}
-                          style={{ ...inputStyle, width: '90px', padding: '8px 4px' }}
-                      >
-                          {currencies.map((curr) => (
-                          <option key={curr.code} value={curr.code}>
-                              {curr.symbol} {curr.code}
-                          </option>
-                          ))}
-                      </select>
+                    <div style={{ 
+                    display: 'flex', 
+                    alignItems: 'center',
+                    border: '1px solid #ddd', 
+                    borderRadius: '8px', 
+                    backgroundColor: '#fff',
+                    height: '48px',
+                    position: 'relative',
+                    overflow: 'hidden'
+                    }}>
+                    {/* Currency Indicator (Static Label) */}
+                    <div style={{
+                        padding: '0 12px',
+                        backgroundColor: '#f9fafb',
+                        borderRight: '1px solid #ddd',
+                        height: '100%',
+                        display: 'flex',
+                        alignItems: 'center',
+                        color: '#4b5563',
+                        fontSize: '14px',
+                        fontWeight: '600',
+                        minWidth: '80px',
+                        justifyContent: 'center'
+                    }}>
+                        {currencyCode || 'INR'}
+                    </div>
 
-                      <input 
-                          type="text"
-                          value={editableData.price} 
-                          onChange={(e) => handleEdit('price', e.target.value)}
-                          style={inputStyle}
-                          placeholder="0.00"
-                      />
+                    {/* Actual Editable Input */}
+                    <div style={{ position: 'relative', flex: 1, height: '100%' }}>
+                        <span style={{ 
+                        position: 'absolute', 
+                        left: '12px', 
+                        top: '50%', 
+                        transform: 'translateY(-50%)',
+                        color: '#9ca3af',
+                        pointerEvents: 'none' // Ensures clicks go through to the input
+                        }}>
+                        {currencySymbol}
+                        </span>
+                        <input 
+                        type="text"
+                        value={editableData.price} 
+                        onChange={(e) => handleEdit('price', e.target.value)}
+                        placeholder="0.00"
+                        style={{ 
+                            width: '100%', 
+                            height: '100%',
+                            padding: '0 12px 0 28px', // Extra left padding to clear the symbol
+                            border: 'none', 
+                            outline: 'none',
+                            fontSize: '16px',
+                            backgroundColor: 'transparent',
+                            display: 'block' // Ensures it takes up the space
+                        }}
+                        />
+                    </div>
                     </div>
                 </div>
-                
+
+                {/* Quantity Wrapper */}
                 <div style={{ flex: 1 }}>
                     <label style={labelStyle}>Quantity</label>
                     <input 
-                      type="number" 
-                      min="1"
-                      value={editableData.quantity || 1} 
-                      onChange={(e) => handleEdit('quantity', e.target.value)}
-                      style={inputStyle}
+                    type="number" 
+                    min="1"
+                    value={editableData.quantity || 1} 
+                    onChange={(e) => handleEdit('quantity', e.target.value)}
+                    style={{ 
+                        width: '100%', 
+                        height: '48px', 
+                        padding: '0 12px', 
+                        borderRadius: '8px', 
+                        border: '1px solid #ddd',
+                        fontSize: '16px',
+                        outline: 'none'
+                    }}
                     />
                 </div>
               </div>
 
+              <p style={{ fontSize: '12px', color: '#6b7280', marginTop: '-10px', marginBottom: '1.5rem' }}>
+                Converted automatically based on site currency settings.
+              </p>
               <div style={{ marginBottom: '1.5rem' }}>
                 <label style={labelStyle}>Notes for Fans (Optional)</label>
                 <textarea 
@@ -144,7 +197,7 @@ export default function UrlInputForm({
                 />
               </div>
 
-              {/* DYNAMIC VARIANT SECTION - Fixed logic to prevent duplicate renders */}
+              {/* Dynamic Variants */}
               {(scrapedData?.variants?.sizes?.length > 0 || scrapedData?.variants?.colors?.length > 0) && (
                 <div style={{ display: 'flex', gap: '1rem', marginBottom: '1rem' }}>
                     {scrapedData.variants?.sizes?.length > 0 && (
@@ -198,7 +251,7 @@ export default function UrlInputForm({
   );
 }
 
-// ... Styles remain the same ...
+// Styles
 const modalOverlayStyle = { position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 };
 const modalContentStyle = { backgroundColor: 'white', borderRadius: '1rem', width: '100%', maxWidth: '500px', maxHeight: '90vh', overflowY: 'auto' };
 const headerStyle = { padding: '1.25rem', borderBottom: '1px solid #eee', display: 'flex', justifyContent: 'space-between', alignItems: 'center' };

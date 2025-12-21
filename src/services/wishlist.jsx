@@ -69,24 +69,26 @@ export async function getWishlistStats(creatorId) {
     .select('category, price')
     .eq('creator_id', creatorId);
 
-  if (error) throw error;
+  if (error) {
+    console.error("Stats fetch error:", error);
+    return { totalItems: 0, categories: {}, totalValue: 0 };
+  }
 
-  // Calculate statistics
   const stats = {
-    totalItems: data.length,
+    totalItems: data?.length || 0,
     categories: {},
     totalValue: 0
   };
 
-  data.forEach(item => {
-    // Count by category
+  data?.forEach(item => {
     if (item.category) {
       stats.categories[item.category] = (stats.categories[item.category] || 0) + 1;
     }
 
-    // Calculate total value
     if (item.price) {
-      const priceValue = parseFloat(item.price.replace(/[^0-9.]/g, ''));
+      // Handle both string prices like "$1,200" and number prices like 1200
+      const priceStr = String(item.price);
+      const priceValue = parseFloat(priceStr.replace(/[^0-9.]/g, ''));
       if (!isNaN(priceValue)) {
         stats.totalValue += priceValue;
       }
