@@ -28,8 +28,6 @@ export default function CartPage() {
   const handleCurrencyChange = async (newCode) => {
     try {
       await updateCurrency(newCode);
-      // NOTE: If you change currency here, the cart items won't auto-convert 
-      // because they were saved with a specific price. 
     } catch (err) {
       console.error("Failed to update currency:", err);
     }
@@ -42,18 +40,42 @@ export default function CartPage() {
     window.dispatchEvent(new Event('cartUpdated'));
   };
 
-  // 🚀 NO MATH: Just sum up the prices exactly as they are in the cart
+  /**
+   * 🚀 THE CORE FIX: 
+   * This function normalizes the price. If the item was added in USD
+   * but we are viewing in INR, it converts back. If they match, it stays.
+   */
+  const getNormalizedPrice = (item) => {
+    const savedPrice = parseFloat(item.price) || 0;
+    const savedCurrency = item.added_currency || 'INR'; // Fallback to INR if not set
+
+    // 1. If saved currency matches current view, return exactly the saved price
+    if (savedCurrency === currency.code) {
+      return savedPrice;
+    }
+
+    // 2. If we are viewing INR but item was saved in something else (like USD)
+    // Convert it BACK to INR using the rate it was saved with
+    if (currency.code === 'INR') {
+        const rateAtTimeOfAdding = item.added_rate || currency.rate || 1;
+        return savedPrice / rateAtTimeOfAdding;
+    }
+
+    // 3. If we are viewing a different currency than what was saved
+    // First get the "Pure INR" then multiply by current global rate
+    const rateAtTimeOfAdding = item.added_rate || 1;
+    const baseINR = savedCurrency === 'INR' ? savedPrice : (savedPrice / rateAtTimeOfAdding);
+    return baseINR * (currency.rate || 1);
+  };
+
   const calculateSubtotal = () => {
-    return cartItems.reduce((sum, item) => {
-      return sum + (parseFloat(item.price) || 0);
-    }, 0);
+    return cartItems.reduce((sum, item) => sum + getNormalizedPrice(item), 0);
   };
 
   const subtotal = calculateSubtotal();
   const platformFee = subtotal * 0.08; 
   const finalPayable = subtotal + platformFee;
 
-  // 🚀 NO MATH: Just format the number with the correct symbol
   const formatPrice = (amount) => {
     return new Intl.NumberFormat(currency.code === 'INR' ? 'en-IN' : 'en-US', {
       style: 'currency',
@@ -65,16 +87,12 @@ export default function CartPage() {
   const isFormIncomplete = !senderName.trim() || !senderEmail.trim() || !senderEmail.includes('@');
 
   const handleCheckout = async () => {
-    // 🚀 RAZORPAY LOGIC
-    // We need to know if the finalPayable is USD or INR to send to Razorpay.
-    // If currency.code is INR, we multiply by 100 (paise).
-    // If currency.code is USD, we must convert to INR first for Razorpay India.
-    
+    // For Razorpay (INR Base)
+    // We get the subtotal in current view, convert to INR, then to Paise
     let amountInPaise;
     if (currency.code === 'INR') {
       amountInPaise = Math.round(finalPayable * 100);
     } else {
-      // Convert back to INR for the actual charge
       amountInPaise = Math.round((finalPayable / currency.rate) * 100);
     }
 
@@ -133,23 +151,12 @@ export default function CartPage() {
     }
   };
 
-  if (cartItems.length === 0) {
-    return (
-      <div className="cart-empty-state">
-        <ShoppingCart size={64} color="#cbd5e1" />
-        <h2>Your gift cart is empty</h2>
-        <Link to="/" className="back-btn"><ArrowLeft size={18}/> Explore Wishlists</Link>
-      </div>
-    );
-  }
-
   return (
     <div className="cart-page-container">
       <div className="cart-content">
         <div className="cart-items-list">
           <div className="cart-header-row">
             <h1>Your Gift Cart ({cartItems.length})</h1>
-            
             <select 
               className="currency-dropdown-minimal"
               value={currency.code}
@@ -172,7 +179,7 @@ export default function CartPage() {
               <div className="cart-item-info">
                 <h4>{item.title}</h4>
                 <p className="cart-item-recipient">For: <strong>{item.recipient_name || 'Verified Creator'}</strong></p>
-                <span className="cart-item-price">{formatPrice(item.price)}</span>
+                <span className="cart-item-price">{formatPrice(getNormalizedPrice(item))}</span>
               </div>
               <button onClick={() => removeItem(index)} className="cart-remove-btn">
                 <Trash2 size={18} />
@@ -213,7 +220,6 @@ export default function CartPage() {
               value={senderEmail}
               onChange={(e) => setSenderEmail(e.target.value)}
             />
-            <div className="privacy-note">🔒 Private & Secure Checkout</div>
           </div>
 
           <button 
