@@ -40,7 +40,14 @@ export default function AppRoutes() {
       <Route path="/track/:orderId" element={<TrackOrder />} />
       <Route path="/cart" element={<CartPage />} />
       <Route path="/success/:orderId" element={<SuccessPage />} />
-
+      <Route 
+        path="/admin-fulfill" 
+        element={
+          session?.user?.email === 'msrujitha@gmail.com' ? 
+          <AdminFulfillment /> : 
+          <Navigate to="/" />
+        } 
+      />
       {/* ONBOARDING & DASHBOARD */}
       <Route path="/onboarding" element={
         <RequireAuth>
