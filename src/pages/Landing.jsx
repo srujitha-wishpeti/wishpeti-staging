@@ -9,8 +9,8 @@ export default function Landing() {
 
   return (
     <div style={{ padding: 32 }}>
-      <h1>Safe & Secure Gifting for India's Top Creators. 🎁</h1>
-      <p>Bridge the gap between you and your fans. Curate your WishPeti, accept secure payments via Razorpay, and receive gifts at your doorstep with total privacy.</p>
+      <h1>The Safest Way for Digital Creators to Receive Gifts. 🎁</h1>
+      <p>Build your WishPeti in minutes. Receive physical gifts or secure payments while keeping your personal address and identity 100% private. Trusted by top influencers to bridge the gap between creators and fans—safely.</p>
     </div>
   )
 }
