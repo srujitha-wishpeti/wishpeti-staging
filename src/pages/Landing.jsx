@@ -60,6 +60,32 @@ export default function Landing() {
           </div>
         </div>
       </div>
+      {/* FAQ SECTION */}
+      <div style={{ padding: '80px 32px', maxWidth: '800px', margin: '0 auto' }}>
+        <h2 style={{ fontSize: '2rem', textAlign: 'center', marginBottom: '40px' }}>Common Questions</h2>
+        
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+          <div style={faqItemStyle}>
+            <h4 style={faqQuestionStyle}>Is my address really private?</h4>
+            <p style={faqAnswerStyle}>Yes. Fans never see your shipping address. We provide a secure middle-man service to ensure your doorstep remains your private space.</p>
+          </div>
+
+          <div style={faqItemStyle}>
+            <h4 style={faqQuestionStyle}>How do I get paid?</h4>
+            <p style={faqAnswerStyle}>For cash gifts, we use Razorpay's secure infrastructure to transfer funds directly to your linked account.</p>
+          </div>
+
+          <div style={faqItemStyle}>
+            <h4 style={faqQuestionStyle}>What platforms does this work with?</h4>
+            <p style={faqAnswerStyle}>Everywhere! You can put your WishPeti link in your bio on Instagram, TikTok, YouTube, Twitch, or X (Twitter).</p>
+          </div>
+
+          <div style={faqItemStyle}>
+            <h4 style={faqQuestionStyle}>Are there any fees?</h4>
+            <p style={faqAnswerStyle}>Setting up your WishPeti is 100% free. We only take a small platform fee on cash contributions to keep the lights on.</p>
+          </div>
+        </div>
+      </div>
     </div>
   )
 }
@@ -86,4 +112,24 @@ const numberCircle = {
   justifyContent: 'center',
   marginBottom: '16px',
   fontWeight: 'bold'
+};
+
+const faqItemStyle = {
+  padding: '20px',
+  borderRadius: '12px',
+  backgroundColor: '#f8fafc',
+  border: '1px solid #e2e8f0'
+};
+
+const faqQuestionStyle = {
+  margin: '0 0 10px 0',
+  fontSize: '1.1rem',
+  fontWeight: '700',
+  color: '#1a202c'
+};
+
+const faqAnswerStyle = {
+  margin: 0,
+  color: '#4a5568',
+  lineHeight: '1.5'
 };

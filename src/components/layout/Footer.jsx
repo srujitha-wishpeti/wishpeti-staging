@@ -1,49 +1,64 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Instagram, Linkedin, Heart } from 'lucide-react';
-import '../../pages/CartPage.css'
+
 export default function Footer() {
   const currentYear = new Date().getFullYear();
 
   return (
-    <footer className="cart-footer">
-      <div className="footer-container">
+    <footer style={styles.footer}>
+      <div style={styles.container}>
+        
         {/* Brand Section */}
-        <div className="footer-brand">
-          <h3 className="footer-logo">🎁 WishPeti</h3>
-          <p className="footer-tagline">The easiest way to gift your favorite creators.</p>
-          <div className="social-links">
-            <a href="https://instagram.com" target="_blank" rel="noreferrer"><Instagram size={18} /></a>
-            <a href="https://linkedin.com" target="_blank" rel="noreferrer"><Linkedin size={18} /></a>
+        <div style={styles.section}>
+          <h3 style={styles.logo}>🎁 WishPeti</h3>
+          <p style={styles.tagline}>The easiest way for digital creators to receive gifts.</p>
+          <div style={styles.socialLinks}>
+            <a href="https://instagram.com" target="_blank" rel="noreferrer" style={styles.socialIcon}><Instagram size={20} /></a>
+            <a href="https://linkedin.com" target="_blank" rel="noreferrer" style={styles.socialIcon}><Linkedin size={20} /></a>
           </div>
         </div>
 
-        {/* Legal Links (Vital for Razorpay) */}
-        <nav className="policy-links">
-          <Link to="/terms">Terms & Conditions</Link>
-          <Link to="/privacy">Privacy Policy</Link>
-          <Link to="/refund">Refund Policy</Link>
-          <Link to="/shipping">Shipping Policy</Link>
-          <Link to="/contact">Contact Us</Link>
-        </nav>
+        {/* Legal Links */}
+        <div style={styles.section}>
+          <h4 style={styles.heading}>Legal</h4>
+          <nav style={styles.linkGroup}>
+            <Link to="/terms" style={styles.link}>Terms & Conditions</Link>
+            <Link to="/privacy" style={styles.link}>Privacy Policy</Link>
+            <Link to="/refund" style={styles.link}>Refund Policy</Link>
+          </nav>
+        </div>
 
-        {/* Bottom Copyright */}
-        <div className="footer-bottom">
-          <p>© {currentYear} WishPeti - Secure Payments by Razorpay</p>
-          <p className="made-with">
-            Made with <Heart size={12} fill="#ef4444" color="#ef4444" /> in India
+        {/* Support Links */}
+        <div style={styles.section}>
+          <h4 style={styles.heading}>Support</h4>
+          <nav style={styles.linkGroup}>
+            <Link to="/shipping" style={styles.link}>Shipping Policy</Link>
+            <Link to="/contact" style={styles.link}>Contact Us</Link>
+          </nav>
+        </div>
+      </div>
+
+      {/* Bottom Bar */}
+      <div style={styles.bottomBar}>
+        <div style={styles.copyright}>
+          <p>© {currentYear} WishPeti — Secure Payments by Razorpay</p>
+          <p style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px', marginTop: '8px' }}>
+            Made with <Heart size={12} fill="#ef4444" color="#ef4444" /> for Creators
           </p>
         </div>
       </div>
     </footer>
   );
 }
+
 const styles = {
   footer: {
     backgroundColor: '#ffffff',
-    borderTop: '1px solid #eee',
-    padding: '60px 20px 20px',
-    marginTop: 'auto', // Pushes footer to bottom if page is short
+    borderTop: '1px solid #f1f5f9',
+    padding: '60px 40px 30px',
+    marginTop: 'auto',
+    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
   },
   container: {
     maxWidth: '1100px',
@@ -58,24 +73,54 @@ const styles = {
     flexDirection: 'column',
     gap: '12px',
   },
-  logo: { fontSize: '20px', fontWeight: 'bold', margin: 0 },
-  tagline: { color: '#64748b', fontSize: '14px', lineHeight: '1.5' },
-  socialLinks: { display: 'flex', gap: '15px', marginTop: '10px' },
-  socialIcon: { color: '#1e293b', transition: 'color 0.2s' },
-  linkGroup: { display: 'flex', flexDirection: 'column', gap: '12px' },
-  heading: { fontSize: '16px', fontWeight: '700', marginBottom: '8px' },
-  link: { textDecoration: 'none', color: '#64748b', fontSize: '14px', transition: 'color 0.2s' },
+  logo: { 
+    fontSize: '22px', 
+    fontWeight: '800', 
+    margin: 0,
+    color: '#0f172a' 
+  },
+  tagline: { 
+    color: '#64748b', 
+    fontSize: '14px', 
+    lineHeight: '1.6',
+    maxWidth: '250px'
+  },
+  socialLinks: { 
+    display: 'flex', 
+    gap: '15px', 
+    marginTop: '10px' 
+  },
+  socialIcon: { 
+    color: '#64748b', 
+    textDecoration: 'none',
+    transition: 'color 0.2s' 
+  },
+  linkGroup: { 
+    display: 'flex', 
+    flexDirection: 'column', 
+    gap: '12px' 
+  },
+  heading: { 
+    fontSize: '14px', 
+    fontWeight: '700', 
+    marginBottom: '8px',
+    textTransform: 'uppercase',
+    letterSpacing: '0.05em',
+    color: '#94a3b8'
+  },
+  link: { 
+    textDecoration: 'none', 
+    color: '#475569', 
+    fontSize: '14px', 
+    transition: 'color 0.2s' 
+  },
   bottomBar: {
     borderTop: '1px solid #f1f5f9',
-    paddingTop: '20px',
+    paddingTop: '30px',
     textAlign: 'center',
   },
   copyright: {
     color: '#94a3b8',
     fontSize: '13px',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: '5px',
   },
 };
