@@ -150,8 +150,18 @@ export default function WishlistPage() {
     }
   };
 
-  useEffect(() => {
-    loadData();
+  const totalGiftValue = wishlist.reduce((acc, item) => {
+    const price = typeof item.price === 'string' 
+        ? parseFloat(item.price.replace(/[^0-9.]/g, '')) 
+        : item.price;
+    return acc + (isNaN(price) ? 0 : price);
+  }, 0);
+
+// For now, we can set pendingGifts to 0 or count items marked as 'unbought' 
+// if you have a 'bought' status in your DB
+  const pendingGifts = wishlist.length;
+    useEffect(() => {
+        loadData();
   }, [username, session?.user?.id]);
 
   const handleAddToCart = async (item) => {
@@ -273,8 +283,43 @@ export default function WishlistPage() {
         </div>
       </header>
 
+      {isOwner && (
+        <section className="creator-stats-bar" style={dashboardStatsStyle}>
+            <div style={statGroupStyle}>
+            <div style={statItemStyle}>
+                <span style={statLabelStyle}>TOTAL GIFT VALUE</span>
+                <span style={statValueStyle}>
+                {currency.code === 'INR' ? '₹' : currency.code + ' '}
+                {(totalGiftValue * currency.rate).toLocaleString(undefined, { 
+                    minimumFractionDigits: currency.code === 'INR' ? 0 : 2 
+                })}
+                </span>
+            </div>
+            <div style={statDividerStyle} />
+            <div style={statItemStyle}>
+                <span style={statLabelStyle}>ITEMS IN PETI</span>
+                <span style={statValueStyle}>{wishlist.length}</span>
+            </div>
+            <div style={statDividerStyle} />
+            <div style={statItemStyle}>
+                <span style={statLabelStyle}>STATUS</span>
+                <span style={{...statValueStyle, color: '#10b981', fontSize: '14px'}}>
+                Ready for Gifting ✨
+                </span>
+            </div>
+            </div>
+            
+            <button 
+            style={manageGiftsButtonStyle} 
+            onClick={() => setToastMsg("Order history coming soon! 📦")}
+            >
+            View Recent Givers
+            </button>
+        </section>
+      )}
+
       {/* SEARCH AND CONTROLS */}
-      <section className="modern-controls-container">
+      <section className="modern-controls-container" style={{ marginTop: isOwner ? '20px' : '40px' }}>
         <div className="search-bar-wrapper">
           <Search size={20} className="search-icon-fixed" />
           <input 
@@ -423,3 +468,36 @@ const modalStyle = { backgroundColor: 'white', borderRadius: '16px', width: '95%
 const labelStyle = { display: 'block', fontSize: '14px', fontWeight: '600', marginBottom: '8px', color: '#374151' };
 const bannerEditButtonStyle = { position: 'absolute', top: '12px', right: '12px', background: 'white', padding: '6px 12px', borderRadius: '20px', fontSize: '12px', fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px', boxShadow: '0 2px 5px rgba(0,0,0,0.2)' };
 const avatarEditButtonStyle = { position: 'absolute', bottom: '0', right: '0', background: '#4f46e5', width: '28px', height: '28px', borderRadius: '50%', border: '2px solid white', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' };
+
+const dashboardStatsStyle = {
+  maxWidth: '1000px',
+  margin: '20px auto 0',
+  padding: '20px',
+  background: '#ffffff',
+  borderRadius: '16px',
+  border: '1px solid #e2e8f0',
+  display: 'flex',
+  justifyContent: 'space-between',
+  alignItems: 'center',
+  flexWrap: 'wrap',
+  gap: '20px',
+  boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)'
+};
+
+const statGroupStyle = { display: 'flex', alignItems: 'center', gap: '40px' };
+const statItemStyle = { display: 'flex', flexDirection: 'column', gap: '4px' };
+const statLabelStyle = { fontSize: '11px', fontWeight: '700', color: '#94a3b8', letterSpacing: '0.05em' };
+const statValueStyle = { fontSize: '20px', fontWeight: '800', color: '#1e293b' };
+const statDividerStyle = { width: '1px', height: '30px', background: '#e2e8f0' };
+
+const manageGiftsButtonStyle = {
+  background: '#1e293b',
+  color: 'white',
+  padding: '12px 24px',
+  borderRadius: '12px',
+  border: 'none',
+  fontWeight: '700',
+  fontSize: '14px',
+  cursor: 'pointer',
+  boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+};

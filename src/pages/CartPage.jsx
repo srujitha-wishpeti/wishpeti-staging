@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Trash2, ShoppingCart, ArrowLeft, CreditCard } from 'lucide-react';
+import { Trash2, ShoppingCart, ArrowLeft, CreditCard, Lock, ShieldCheck } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '../services/supabaseClient';
 import './CartPage.css';
@@ -152,85 +152,113 @@ export default function CartPage() {
   };
 
   return (
-    <div className="cart-page-container">
-      <div className="cart-content">
-        <div className="cart-items-list">
-          <div className="cart-header-row">
-            <h1>Your Gift Cart ({cartItems.length})</h1>
-            <select 
-              className="currency-dropdown-minimal"
-              value={currency.code}
-              onChange={(e) => handleCurrencyChange(e.target.value)}
-            >
-              <option value="INR">INR (₹)</option>
-              <option value="USD">USD ($)</option>
-              <option value="GBP">GBP (£)</option>
-              <option value="EUR">EUR (€)</option>
-            </select>
-          </div>
-
-          {cartItems.map((item, index) => (
-            <div key={index} className="cart-item-row">
-              <img 
-                src={item.image_url || item.image || 'https://placehold.co/150x150?text=Gift'} 
-                alt={item.title} 
-                className="cart-item-img" 
-              />
-              <div className="cart-item-info">
-                <h4>{item.title}</h4>
-                <p className="cart-item-recipient">For: <strong>{item.recipient_name || 'Verified Creator'}</strong></p>
-                <span className="cart-item-price">{formatPrice(getNormalizedPrice(item))}</span>
-              </div>
-              <button onClick={() => removeItem(index)} className="cart-remove-btn">
-                <Trash2 size={18} />
-              </button>
+    <div className="cart-page-wrapper">
+      <div className="cart-main-container">
+        
+        {/* Left Column: Items */}
+        <div className="cart-items-column">
+          <div className="cart-header-section">
+            <Link to="/" className="back-to-wishlist">
+              <ArrowLeft size={16} /> Back to Wishlist
+            </Link>
+            <div className="header-title-row">
+              <h1>Gift Cart ({cartItems.length})</h1>
+              <select 
+                className="currency-picker"
+                value={currency.code}
+                onChange={(e) => handleCurrencyChange(e.target.value)}
+              >
+                <option value="INR">INR (₹)</option>
+                <option value="USD">USD ($)</option>
+                <option value="GBP">GBP (£)</option>
+                <option value="EUR">EUR (€)</option>
+              </select>
             </div>
-          ))}
-        </div>
-
-        <div className="cart-summary-card">
-          <h3>Order Summary</h3>
-          <div className="summary-row">
-            <span>Items Subtotal</span>
-            <span>{formatPrice(subtotal)}</span>
-          </div>
-          <div className="summary-row">
-            <span>Platform Fee (8%)</span>
-            <span>{formatPrice(platformFee)}</span>
-          </div>
-          <hr className="summary-divider" />
-          <div className="summary-row total">
-            <span>Total Payable</span>
-            <span>{formatPrice(finalPayable)}</span>
-          </div>
-          
-          <div className="sender-form-container">
-            <h4>Sender Details ✍️</h4>
-            <input 
-              type="text" 
-              placeholder="Your Name" 
-              className="form-input" 
-              value={senderName}
-              onChange={(e) => setSenderName(e.target.value)}
-            />
-            <input 
-              type="email" 
-              placeholder="Email Address" 
-              className="form-input" 
-              value={senderEmail}
-              onChange={(e) => setSenderEmail(e.target.value)}
-            />
           </div>
 
-          <button 
-            className="checkout-btn" 
-            onClick={handleCheckout}
-            disabled={isFormIncomplete || loading}
-          >
-            <CreditCard size={18} /> 
-            {loading ? 'Processing...' : `Pay ${formatPrice(finalPayable)}`}
-          </button>
+          {cartItems.length === 0 ? (
+            <div className="empty-cart-state">
+              <ShoppingCart size={48} color="#cbd5e1" />
+              <p>Your cart is empty. Pick a gift to get started!</p>
+            </div>
+          ) : (
+            <div className="cart-items-grid">
+              {cartItems.map((item, index) => (
+                <div key={index} className="modern-cart-item">
+                  <img 
+                    src={item.image_url || item.image || 'https://placehold.co/150x150?text=Gift'} 
+                    alt={item.title} 
+                  />
+                  <div className="item-details">
+                    <h4>{item.title}</h4>
+                    <p>Recipient: <span>{item.recipient_name || 'Creator'}</span></p>
+                    <span className="price-tag">{formatPrice(getNormalizedPrice(item))}</span>
+                  </div>
+                  <button onClick={() => removeItem(index)} className="item-remove-icon">
+                    <Trash2 size={18} />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
+
+        {/* Right Column: Checkout Form & Summary */}
+        <div className="cart-summary-column">
+          <div className="modern-summary-card">
+            <h3>Secure Checkout</h3>
+            
+            <div className="sender-inputs">
+              <label>Sender Information</label>
+              <input 
+                type="text" 
+                placeholder="Your Name (Visible to creator)" 
+                value={senderName}
+                onChange={(e) => setSenderName(e.target.value)}
+              />
+              <input 
+                type="email" 
+                placeholder="Email Address (For receipt)" 
+                value={senderEmail}
+                onChange={(e) => setSenderEmail(e.target.value)}
+              />
+            </div>
+
+            <div className="price-breakdown">
+              <div className="price-row">
+                <span>Gift Subtotal</span>
+                <span>{formatPrice(subtotal)}</span>
+              </div>
+              <div className="price-row">
+                <span>Platform Fee (8%)</span>
+                <span>{formatPrice(platformFee)}</span>
+              </div>
+              <div className="price-row shipping">
+                <span>Shipping & Privacy Handling</span>
+                <span className="free-tag">FREE</span>
+              </div>
+              <div className="price-row grand-total">
+                <span>Total Payable</span>
+                <span>{formatPrice(finalPayable)}</span>
+              </div>
+            </div>
+
+            <button 
+              className="pay-now-button" 
+              onClick={handleCheckout}
+              disabled={isFormIncomplete || loading}
+            >
+              <CreditCard size={18} /> 
+              {loading ? 'Processing...' : `Pay ${formatPrice(finalPayable)}`}
+            </button>
+
+            <div className="security-badges">
+              <span><Lock size={12} /> SSL Secured</span>
+              <span><ShieldCheck size={12} /> Razorpay Verified</span>
+            </div>
+          </div>
+        </div>
+
       </div>
     </div>
   );
