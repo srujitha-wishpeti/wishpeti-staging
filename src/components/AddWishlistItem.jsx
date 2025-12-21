@@ -101,46 +101,49 @@ export default function AddWishlistItem({
     setError(null);
 
     try {
-      // 🚀 DE-CONVERSION LOGIC (Back to INR for DB)
+      // 1. Clean the price (remove symbols/commas)
       let inputPrice = editableData.price;
       if (typeof inputPrice === 'string') {
           inputPrice = parseFloat(inputPrice.replace(/[^\d.]/g, ''));
       }
 
-      // If user typed '12' (USD), divide by 0.012 to get ~1000 INR
+      // 2. Convert back to base INR for database
       const priceInINR = currency.code !== 'INR' 
         ? Math.round(inputPrice / currency.rate) 
         : Math.round(inputPrice);
 
       const updatedData = {
-        ...editableData,
-        price: priceInINR, 
+        title: editableData.title,
+        price: priceInINR,
         url: url,
+        image: editableData.image,
+        notes: editableData.notes || editableData.description,
+        quantity: editableData.quantity,
         category: selectedCategory,
-        brand: scrapedData?.brand || '',
-        store: scrapedData?.store || '',
+        variants: {
+          selectedSize: editableData.selectedSize,
+          selectedColor: editableData.selectedColor
+        }
       };
 
       if (isEditing) {
-        // Handle update via service or parent
-        if (onItemAdded) await onItemAdded(updatedData);
+        // 🚀 THE MISSING STEP: Update Supabase
+        const { error: updateError } = await supabase
+          .from('wishlist_items')
+          .update(updatedData)
+          .eq('id', initialData.id); // Ensure you have the item ID
+
+        if (updateError) throw updateError;
+        
+        // Notify parent to refresh and close modal
+        if (onItemAdded) await onItemAdded(); 
       } else {
+        // Insert logic (Already working)
         const { error: insertError } = await supabase
           .from('wishlist_items')
           .insert([{
-            creator_id: session.user.id,
-            url: url,
-            title: editableData.title,
-            price: priceInINR, 
-            image: editableData.image,
-            notes: editableData.description,
-            brand: scrapedData?.brand,
-            store: scrapedData?.store,
-            category: selectedCategory || scrapedData?.category,
-            variants: {
-              selectedSize: editableData.selectedSize,
-              selectedColor: editableData.selectedColor
-            }
+            ...updatedData,
+            creator_id: session.user.id
           }]);
 
         if (insertError) throw insertError;
@@ -148,6 +151,7 @@ export default function AddWishlistItem({
         resetForm();
       }
     } catch (err) {
+      console.error('Save error:', err);
       setError(err.message || 'Failed to save item');
     } finally {
       setLoading(false);

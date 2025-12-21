@@ -14,7 +14,6 @@ export default function CartPage() {
   const [senderEmail, setSenderEmail] = useState('');
   const showToast = useToast();
   
-  // 🚀 Use global context only (removed local useState for currency)
   const { currency, updateCurrency } = useCurrency();
 
   const loadCart = () => {
@@ -28,8 +27,9 @@ export default function CartPage() {
 
   const handleCurrencyChange = async (newCode) => {
     try {
-      // updateCurrency handles fetching rate, saving to localStorage, and global state
       await updateCurrency(newCode);
+      // NOTE: If you change currency here, the cart items won't auto-convert 
+      // because they were saved with a specific price. 
     } catch (err) {
       console.error("Failed to update currency:", err);
     }
@@ -42,14 +42,10 @@ export default function CartPage() {
     window.dispatchEvent(new Event('cartUpdated'));
   };
 
+  // 🚀 NO MATH: Just sum up the prices exactly as they are in the cart
   const calculateSubtotal = () => {
     return cartItems.reduce((sum, item) => {
-      let priceValue = item.price;
-      if (typeof priceValue === 'string') {
-        const cleaned = priceValue.replace(/[^\d.]/g, '');
-        priceValue = parseFloat(cleaned);
-      }
-      return sum + (isNaN(priceValue) ? 0 : priceValue);
+      return sum + (parseFloat(item.price) || 0);
     }, 0);
   };
 
@@ -57,26 +53,37 @@ export default function CartPage() {
   const platformFee = subtotal * 0.08; 
   const finalPayable = subtotal + platformFee;
 
+  // 🚀 NO MATH: Just format the number with the correct symbol
   const formatPrice = (amount) => {
-    const convertedAmount = amount * (currency.rate || 1);
     return new Intl.NumberFormat(currency.code === 'INR' ? 'en-IN' : 'en-US', {
       style: 'currency',
       currency: currency.code || 'INR',
       maximumFractionDigits: currency.code === 'INR' ? 0 : 2
-    }).format(convertedAmount || 0);
+    }).format(amount || 0);
   };
 
   const isFormIncomplete = !senderName.trim() || !senderEmail.trim() || !senderEmail.includes('@');
 
   const handleCheckout = async () => {
-    const amountInPaise = Math.round(finalPayable * 100);
+    // 🚀 RAZORPAY LOGIC
+    // We need to know if the finalPayable is USD or INR to send to Razorpay.
+    // If currency.code is INR, we multiply by 100 (paise).
+    // If currency.code is USD, we must convert to INR first for Razorpay India.
+    
+    let amountInPaise;
+    if (currency.code === 'INR') {
+      amountInPaise = Math.round(finalPayable * 100);
+    } else {
+      // Convert back to INR for the actual charge
+      amountInPaise = Math.round((finalPayable / currency.rate) * 100);
+    }
 
     const options = {
       key: "rzp_test_RtgvVK9ZMU6pKm", 
-      amount: amountInPaise,
-      currency: "INR",
+      amount: amountInPaise, 
+      currency: "INR", 
       display_currency: currency.code, 
-      display_amount: (finalPayable * currency.rate).toFixed(2), 
+      display_amount: finalPayable.toFixed(2), 
       name: "WishPeti",
       description: `Gifting ${cartItems.length} items`,
       handler: async function (response) {
@@ -93,7 +100,7 @@ export default function CartPage() {
   const handlePaymentSuccess = async (response) => {
     setLoading(true);
     try {
-      const creatorId = cartItems[0]?.recipient_id || cartItems[0]?.user_id || cartItems[0]?.creator_id; 
+      const creatorId = cartItems[0]?.recipient_id || cartItems[0]?.creator_id; 
       const { data: orderData, error: orderError } = await supabase
         .from('orders')
         .insert([{
@@ -101,7 +108,7 @@ export default function CartPage() {
             buyer_name: senderName,
             buyer_email: senderEmail,
             creator_id: creatorId,
-            total_amount: finalPayable,
+            total_amount: finalPayable, 
             items: cartItems, 
             payment_status: 'paid',
             gift_status: 'pending'
@@ -158,7 +165,7 @@ export default function CartPage() {
           {cartItems.map((item, index) => (
             <div key={index} className="cart-item-row">
               <img 
-                src={item.image_url || 'https://placehold.co/150x150?text=Gift'} 
+                src={item.image_url || item.image || 'https://placehold.co/150x150?text=Gift'} 
                 alt={item.title} 
                 className="cart-item-img" 
               />
@@ -219,16 +226,6 @@ export default function CartPage() {
           </button>
         </div>
       </div>
-      
-      <footer className="cart-footer">
-        <div className="policy-links">
-            <Link to="/terms">Terms</Link>
-            <Link to="/privacy">Privacy</Link>
-            <Link to="/refund">Refunds</Link>
-            <Link to="/contact">Contact Us</Link>
-        </div>
-        <p>© 2025 WishPeti - Bellary, Karnataka</p>
-      </footer>
     </div>
   );
 }

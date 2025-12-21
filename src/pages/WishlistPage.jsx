@@ -218,33 +218,63 @@ export default function WishlistPage() {
 
   const handleAddToCart = async (item) => {
     try {
-      let cleanPrice = item.price;
-      if (typeof cleanPrice === 'string') {
-        cleanPrice = parseFloat(cleanPrice.replace(/[^\d.]/g, ''));
-      }
-      const finalPrice = isNaN(cleanPrice) ? 0 : cleanPrice;
-      
-      const itemWithCurrency = {
+        const userId = session?.user?.id || 'guest'; 
+
+        // 1. Get the raw price from the database (always INR)
+        // We assume 'item.price' is the value stored in Supabase
+        const basePrice = parseFloat(item.price);
+
+        // 2. Determine if we need to convert
+        // If we are currently viewing in INR, use the base price.
+        // If we are in USD/GBP, apply the rate ONCE.
+        let finalPrice;
+        if (currency.code === 'INR') {
+        finalPrice = basePrice;
+        } else {
+        // 🚀 THE FIX: Only multiply if the price isn't already small (USD/EUR)
+        // Check if item.price looks like an INR value (usually > 100) 
+        // vs a USD value (usually < 100)
+        if (basePrice > 0 && basePrice < 500 && currency.code !== 'INR') {
+            // If price is already small, it might have been converted upstream.
+            // In that case, don't multiply again!
+            finalPrice = basePrice;
+        } else {
+            finalPrice = (basePrice * currency.rate).toFixed(2);
+        }
+        }
+        
+        const itemWithCurrency = {
         ...item,
-        price: finalPrice,
+        price: parseFloat(finalPrice),
+        display_price: finalPrice,
         added_currency: currency.code,
         added_rate: currency.rate,
-        recipient_id: session.user.id,
+        recipient_id: userId,
         addedAt: new Date().getTime()
-      };
+        };
 
-      const existingCart = JSON.parse(localStorage.getItem('wishlist_cart') || '[]');
-      localStorage.setItem('wishlist_cart', JSON.stringify([...existingCart, itemWithCurrency]));
-      
-      window.dispatchEvent(new Event('cartUpdated'));
-      setToastMsg(`Added to cart in ${currency.code}! 🎁`);
-      setShowToast(true);
+        const existingCart = JSON.parse(localStorage.getItem('wishlist_cart') || '[]');
+        
+        // Check for duplicates
+        if (existingCart.find(cartItem => cartItem.id === item.id)) {
+        setToastMsg("Item already in cart! 🛒");
+        setShowToast(true);
+        return;
+        }
+
+        localStorage.setItem('wishlist_cart', JSON.stringify([...existingCart, itemWithCurrency]));
+        
+        window.dispatchEvent(new Event('cartUpdated'));
+        setToastMsg(`Added to cart! 🎁`);
+        setShowToast(true);
+
     } catch (err) {
-      setToastMsg("Failed to add to cart.");
-      setShowToast(true);
+        console.error("Cart Error:", err);
+        setToastMsg("Failed to add to cart.");
+        setShowToast(true);
     }
   };
-
+  
   useEffect(() => {
     if (session) loadData();
   }, [session]);
