@@ -126,7 +126,10 @@ export default function CartPage() {
             buyer_name: senderName,
             buyer_email: senderEmail,
             creator_id: creatorId,
+            subtotal: subtotal,        // 🎁 The Gift Value
+            platform_fee: platformFee,
             total_amount: finalPayable, 
+            currency_code: currency.code,
             items: cartItems, 
             payment_status: 'paid',
             gift_status: 'pending'
@@ -136,10 +139,7 @@ export default function CartPage() {
       if (orderError) throw orderError;
 
       const itemIds = cartItems.map(item => item.id).filter(id => id && id !== 'undefined');
-      if (itemIds.length > 0) {
-          await supabase.from('wishlist_items').delete().in('id', itemIds);
-      }
-
+      
       localStorage.removeItem('wishlist_cart');
       setCartItems([]);
       window.dispatchEvent(new Event('cartUpdated'));

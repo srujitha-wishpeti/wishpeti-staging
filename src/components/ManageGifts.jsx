@@ -3,6 +3,7 @@ import { supabase } from '../services/supabaseClient';
 import { Package, Truck, CheckCircle, ExternalLink } from 'lucide-react'; // Added icons for better UI
 import { useToast } from '../context/ToastContext';
 
+
 export default function ManageGifts() {
   const [gifts, setGifts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -56,6 +57,13 @@ export default function ManageGifts() {
     }
   };
 
+  const formatGiftPrice = (amount, originalCurrencyCode) => {
+    return new Intl.NumberFormat(originalCurrencyCode === 'INR' ? 'en-IN' : 'en-US', {
+      style: 'currency',
+      currency: originalCurrencyCode || 'INR',
+      maximumFractionDigits: originalCurrencyCode === 'INR' ? 0 : 2
+    }).format(amount || 0);
+  };
   // Helper for Status Badge Colors
   const getStatusStyle = (status) => {
     switch (status) {
@@ -139,8 +147,14 @@ export default function ManageGifts() {
                 </div>
                 
                 <div style={{ textAlign: 'right', marginLeft: '20px' }}>
-                  <div style={{ fontWeight: 'bold', color: '#1e293b', fontSize: '18px' }}>
-                    ₹{Number(gift.total_amount).toLocaleString('en-IN')}
+                  <div style={{ textAlign: 'right' }}>
+                    <div style={{ fontWeight: 'bold', color: '#1e293b', fontSize: '18px' }}>
+                        {/* Display only the subtotal to the creator */}
+                        {formatGiftPrice(gift.subtotal, gift.currency_code)}
+                    </div>
+                    <p style={{ fontSize: '12px', color: '#64748b', margin: 0 }}>
+                        Gift Value
+                    </p>
                   </div>
                   
                   {gift.gift_status === 'pending' && (

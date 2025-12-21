@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthProvider';
 import { useToast } from '../context/ToastContext';
 import AvatarUpload from '../pages/AvatarUpload';
+import BannerUpload from '../pages/BannerUpload';
 
 export default function OnBoarding() {
   const { session, loading: authLoading } = useAuth();
@@ -19,6 +20,7 @@ export default function OnBoarding() {
     full_name: '',
     bio: '',
     avatar_url: '',
+    banner_url: '',
     address_line1: '',
     city: '',
     state: '',
@@ -45,6 +47,7 @@ export default function OnBoarding() {
             username: data.username || '',
             display_name: data.display_name || '',
             avatar_url: data.avatar_url || '',
+            banner_url: data.banner_url || '', 
             bio: data.bio || '',
             full_name: data.full_name || '',
             address_line1: data.address_line1 || '',
@@ -105,6 +108,7 @@ export default function OnBoarding() {
         .upsert({
             id: session.user.id,
             avatar_url: formData.avatar_url,
+            banner_url: formData.banner_url,
             username: cleanUsername,
             display_name: formData.display_name,
             bio: formData.bio,
@@ -183,6 +187,12 @@ export default function OnBoarding() {
         <p style={{ color: '#666', marginBottom: '24px', fontSize: '0.95rem' }}>
           Update your identity and shipping details.
         </p>
+
+        <BannerUpload 
+            url={formData.banner_url} 
+            onUpload={(url) => setFormData({ ...formData, banner_url: url })} 
+        />
+
         <AvatarUpload 
             url={formData.avatar_url} 
             onUpload={(url) => setFormData({ ...formData, avatar_url: url })} 
@@ -231,9 +241,9 @@ export default function OnBoarding() {
             <label style={labelStyle}>About You (Bio)</label>
             <textarea
                 placeholder="Tell your fans a little bit about yourself or why you're collecting gifts..."
-                /* 🚀 FIX: Use formData.bio instead of bio */
+                /*  FIX: Use formData.bio instead of bio */
                 value={formData.bio} 
-                /* 🚀 FIX: Use setFormData to update the bio key */
+                /* FIX: Use setFormData to update the bio key */
                 onChange={(e) => setFormData({ ...formData, bio: e.target.value })} 
                 maxLength={160}
                 style={{
@@ -244,7 +254,7 @@ export default function OnBoarding() {
                 }}
             />
             <p style={{ fontSize: '0.75rem', textAlign: 'right', color: '#94a3b8' }}>
-                {/* 🚀 FIX: Use formData.bio.length */}
+                {/*FIX: Use formData.bio.length */}
                 {(formData.bio || '').length}/160
             </p>
           </div>

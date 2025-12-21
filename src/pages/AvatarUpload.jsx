@@ -10,9 +10,11 @@ export default function AvatarUpload({ url, onUpload }) {
       if (!event.target.files || event.target.files.length === 0) throw new Error('Select an image.');
 
       const file = event.target.files[0];
+      const user = (await supabase.auth.getUser()).data.user;
       const fileExt = file.name.split('.').pop();
-      const fileName = `${Math.random()}.${fileExt}`;
-      const filePath = `avatars/${fileName}`;
+      const fileName = `avatar_${Math.random()}.${fileExt}`;
+      // This structure: "USER_ID/FILENAME"
+      const filePath = `${user.id}/${fileName}`; 
 
       // Upload to Supabase Storage
       const { error: uploadError } = await supabase.storage
