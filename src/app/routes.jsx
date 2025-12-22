@@ -12,6 +12,7 @@ import PolicyPage from '../pages/PolicyPage'
 import ManageGifts from '../components/ManageGifts'
 import TrackOrder from '../pages/TrackOrder'
 import SuccessPage from '../pages/SuccessPage'
+import AdminFulfillment from '../pages/AdminFulfillment'
 
 export default function AppRoutes() {
   const { session, loading } = useAuth();
