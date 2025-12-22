@@ -5,6 +5,7 @@ import { supabase } from '../services/supabaseClient';
 import './CartPage.css';
 import { useToast } from '../context/ToastContext';
 import { useCurrency } from '../context/CurrencyContext';
+import { getCurrencyPreference } from '../utils/currency';
 
 export default function CartPage() {
   const navigate = useNavigate();
@@ -41,7 +42,7 @@ export default function CartPage() {
   };
 
   /**
-   * 🚀 THE CORE FIX: 
+   * THE CORE FIX: 
    * This function normalizes the price. If the item was added in USD
    * but we are viewing in INR, it converts back. If they match, it stays.
    */
