@@ -15,7 +15,7 @@ export default function Landing() {
           The Safest Way for Digital Creators to Receive Gifts. 🎁
         </h1>
         <p style={{ fontSize: '1.2rem', color: '#4a5568', lineHeight: '1.6', marginBottom: '32px' }}>
-          Build your WishPeti in minutes. Receive physical gifts or secure payments while keeping your personal address and identity 100% private. Trusted by top influencers to bridge the gap between creators and fans safely.
+          Build your WishPeti in minutes. Receive physical gifts while keeping your personal address and identity 100% private. Trusted by top influencers to bridge the gap between creators and fans safely.
         </p>
         
         <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
