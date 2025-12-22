@@ -6,103 +6,85 @@ export default function ContributeModal({ item, currency, onClose, onSuccess }) 
   const [amount, setAmount] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const goalAmount = item.price * (item.quantity || 1);
-  const remaining = Math.max(goalAmount - (item.total_raised || 0), 0);
+  // Convert the DB values (INR) to the User's Display Currency
+  const displayGoal = (item.price * currency.rate);
+  const displayRaised = (item.amount_raised || 0) * currency.rate;
+  const displayRemaining = Math.max(displayGoal - displayRaised, 0);
 
-  // Inside your ContributeModal component...
+  const handlePayment = async () => {
+    if (!amount || amount <= 0) return;
+    setLoading(true);
 
-const handleContributionRecord = async (response, paidAmount) => {
-  // 1. Convert to base INR
-  const amountInINR = currency.code !== 'INR' 
-    ? Math.ceil(paidAmount / currency.rate) 
-    : Math.ceil(paidAmount);
+    try {
+      // Razorpay calculation: 
+      // User types $10 -> Convert to INR -> Convert to Paise
+      const amountInINR = currency.code === 'INR' ? amount : (amount / currency.rate);
+      const amountInPaise = Math.round(amountInINR * 100);
 
-  // 2. Create the Order Record (Historical Proof)
-  const { error: orderError } = await supabase
-    .from('orders')
-    .insert([{
-      razorpay_payment_id: response.razorpay_payment_id,
-      item_id: item.id,
-      creator_id: item.creator_id,
-      total_amount: amountInINR,
-      payment_status: 'paid',
-      is_crowdfund_contribution: true,
-      gift_status: 'pending'
-    }]);
-
-  if (orderError) throw orderError;
-
-  // 3. UPDATE THE WISHLIST ITEM (The Progress Bar Truth)
-  // We use an RPC (Remote Procedure Call) or a simple increment logic
-  const { error: updateError } = await supabase.rpc('increment_wishlist_raised', {
-    row_id: item.id,
-    increment_by: amountInINR
-  });
-
-  // Fallback if you haven't set up the RPC function yet:
-  if (updateError) {
-    const { error: fallbackError } = await supabase
-      .from('wishlist_items')
-      .update({ amount_raised: (item.amount_raised || 0) + amountInINR })
-      .eq('id', item.id);
-      
-    if (fallbackError) throw fallbackError;
-  }
-  
-  window.dispatchEvent(new Event('contributionUpdated'));
-};
-
-const handlePayment = async () => {
-  if (!amount || amount <= 0) return;
-  setLoading(true);
-
-  try {
-    // Calculate amount in Paise for Razorpay
-    let amountInPaise;
-    if (currency.code === 'INR') {
-      amountInPaise = Math.round(amount * 100);
-    } else {
-      amountInPaise = Math.round((amount / currency.rate) * 100);
-    }
-
-    const options = {
-      key: "rzp_test_RtgvVK9ZMU6pKm", 
-      amount: amountInPaise, 
-      currency: "INR", 
-      display_currency: currency.code, 
-      display_amount: parseFloat(amount).toFixed(2), 
-      name: "WishPeti",
-      description: `Contribution for ${item.title}`,
-      handler: async function (response) {
-        try {
-          // 🚀 This now calls the function we just defined above
+      const options = {
+        key: "rzp_test_RtgvVK9ZMU6pKm", 
+        amount: amountInPaise, 
+        currency: "INR", 
+        display_currency: currency.code, // Shows local currency in Razorpay UI
+        display_amount: amount,          // Shows the exact amount they entered
+        name: "WishPeti",
+        description: `Contribution for ${item.title}`,
+        handler: async function (response) {
           await handleContributionRecord(response, amount); 
-          onSuccess(); // Close modal & refresh parent UI
-        } catch (dbErr) {
-          console.error("Database Error:", dbErr);
-          alert("Payment successful, but record update failed: " + dbErr.message);
-        }
-      },
-      prefill: { 
-        name: "", 
-        email: "" 
-      },
-      theme: { color: "#6366f1" },
-      modal: {
-        ondismiss: function() {
-          setLoading(false); 
-        }
-      }
-    };
+          onSuccess(); 
+        },
+        theme: { color: "#6366f1" },
+        modal: { ondismiss: () => setLoading(false) }
+      };
 
-    const rzp = new window.Razorpay(options);
-    rzp.open();
+      const rzp = new window.Razorpay(options);
+      rzp.open();
+    } catch (err) {
+      alert("Payment error: " + err.message);
+      setLoading(false);
+    }
+  };
+
+  const handleContributionRecord = async (response, paidAmount) => {
+    // 1. Convert to base INR
+    const amountInINR = currency.code !== 'INR' 
+        ? Math.ceil(paidAmount / currency.rate) 
+        : Math.ceil(paidAmount);
+
+    // 2. Create the Order Record (Historical Proof)
+    const { error: orderError } = await supabase
+        .from('orders')
+        .insert([{
+        razorpay_payment_id: response.razorpay_payment_id,
+        item_id: item.id,
+        creator_id: item.creator_id,
+        total_amount: amountInINR,
+        payment_status: 'paid',
+        is_crowdfund_contribution: true,
+        gift_status: 'pending'
+        }]);
+
+    if (orderError) throw orderError;
+
+    // 3. UPDATE THE WISHLIST ITEM (The Progress Bar Truth)
+    // We use an RPC (Remote Procedure Call) or a simple increment logic
+    const { error: updateError } = await supabase.rpc('increment_wishlist_raised', {
+        row_id: item.id,
+        increment_by: amountInINR
+    });
+
+    // Fallback if you haven't set up the RPC function yet:
+    if (updateError) {
+        const { error: fallbackError } = await supabase
+        .from('wishlist_items')
+        .update({ amount_raised: (item.amount_raised || 0) + amountInINR })
+        .eq('id', item.id);
+        
+        if (fallbackError) throw fallbackError;
+    }
     
-  } catch (err) {
-    alert("Payment failed: " + err.message);
-    setLoading(false);
-  }
-};
+    window.dispatchEvent(new Event('contributionUpdated'));
+  };
 
   return (
     <div style={overlayStyle}>
@@ -118,7 +100,7 @@ const handlePayment = async () => {
           <div style={remainingBox}>
             <span style={{ fontSize: '12px', color: '#64748b' }}>Remaining Goal:</span>
             <div style={{ fontSize: '18px', fontWeight: 'bold' }}>
-              {currency.symbol}{remaining.toLocaleString()}
+              {currency.symbol}{displayRemaining.toLocaleString()}
             </div>
           </div>
 
