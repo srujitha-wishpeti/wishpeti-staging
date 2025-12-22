@@ -119,6 +119,7 @@ export default function CartPage() {
     setLoading(true);
     try {
       const creatorId = cartItems[0]?.recipient_id || cartItems[0]?.creator_id; 
+      const { rate } = getCurrencyPreference();
       const { data: orderData, error: orderError } = await supabase
         .from('orders')
         .insert([{
@@ -132,6 +133,7 @@ export default function CartPage() {
             currency_code: currency.code,
             items: cartItems, 
             payment_status: 'paid',
+            exchange_rate_at_payment: rate, // Freeze the rate here!
             gift_status: 'pending'
         }])
         .select();

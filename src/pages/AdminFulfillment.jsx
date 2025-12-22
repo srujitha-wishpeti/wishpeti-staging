@@ -57,6 +57,47 @@ useEffect(() => {
     }
   };
 
+  const [isUploading, setIsUploading] = useState(null); // Stores orderId being uploaded
+
+  const uploadInvoice = async (orderId, file) => {
+    if (!file) return;
+    
+    setIsUploading(orderId);
+    try {
+        const fileExt = file.name.split('.').pop();
+        // Path: orders/ORDER_ID/invoice-RANDOM.pdf
+        const filePath = `invoices/${orderId}-${Date.now()}.${fileExt}`;
+
+        const { data, error: uploadError } = await supabase.storage
+        .from('order-invoices')
+        .upload(filePath, file, {
+            cacheControl: '3600',
+            upsert: false
+        });
+
+        if (uploadError) throw uploadError;
+
+        const { data: { publicUrl } } = supabase.storage
+        .from('order-invoices')
+        .getPublicUrl(filePath);
+
+        const { error: updateError } = await supabase
+        .from('orders')
+        .update({ invoice_url: publicUrl })
+        .eq('id', orderId);
+
+        if (updateError) throw updateError;
+
+        alert("Invoice linked successfully!");
+        fetchOrders(); 
+    } catch (error) {
+        console.error("Full Error:", error);
+        alert("Upload failed: Check Storage RLS policies.");
+    } finally {
+        setIsUploading(null);
+    }
+  };
+
   const fetchOrders = async () => {
     setLoading(true);
     try {
@@ -122,24 +163,34 @@ useEffect(() => {
     }
   };
 
+  const updateInvoiceUrl = async (orderId, url) => {
+    const { error } = await supabase
+        .from('orders')
+        .update({ invoice_url: url })
+        .eq('id', orderId);
+
+    if (error) alert(error.message);
+    else fetchOrders(); // Refresh to show the upload input again
+  };
+
   const { code: prefCode, rate: globalRate } = getCurrencyPreference();
+
+  const { rate: currentGlobalRate } = getCurrencyPreference(); //
 
   const stats = tasks.reduce((acc, order) => {
     if (order.payment_status === 'paid') {
-        // 1. Identify the fan's payment
-        const fanAmount = Number(order.total_amount || 0);
-        const fanCurrency = order.currency_code;
-
-        // 2. Convert everything to INR for your base accounting
-        // If fan paid USD, and your globalRate is INR->USD (0.012), 
-        // then INR = USD / 0.012
-        const amountInINR = fanCurrency === 'USD' ? (fanAmount / globalRate) : fanAmount;
+        const rawAmount = Number(order.total_amount || 0);
         
-        // 3. Subtract the actual cost you paid (which is always in INR)
-        const costInINR = Number(order.actual_purchase_cost || 0);
+        // Use the snapshot rate from the DB if available, else current global rate
+        const rateUsed = order.exchange_rate_at_payment || currentGlobalRate;
+
+        // MATH: Since rate is INR -> Target, DIVIDE to get back to INR
+        const amountInINR = order.currency_code !== 'INR' 
+        ? (rawAmount / rateUsed) 
+        : rawAmount;
 
         acc.totalRevenue += amountInINR;
-        acc.totalSpend += costInINR;
+        acc.totalSpend += Number(order.actual_purchase_cost || 0);
     }
     return acc;
   }, { totalRevenue: 0, totalSpend: 0 });
@@ -225,6 +276,47 @@ useEffect(() => {
                 >
                     Buy on {getStoreName(order.items)}
                 </button>
+                </td>
+                <td style={cellStyle}>
+                    <div style={{ fontWeight: 'bold', color: '#1e293b' }}>
+                        {/* Use rate=1 here because order.total_amount is already converted */}
+                        Fan Paid: {formatPrice(order.total_amount, order.currency_code, 1)}
+                    </div>
+                    
+                    {order.currency_code !== 'INR' && (
+                        <div style={{ fontSize: '10px', color: '#64748b' }}>
+                        (≈ {formatPrice(order.total_amount / (order.exchange_rate_at_payment || currentGlobalRate), 'INR', 1)})
+                        </div>
+                    )}
+                </td>
+                <td style={cellStyle}>
+                    <div>
+                        <label style={{ fontSize: '10px', color: '#64748b', display: 'block', marginBottom: '4px' }}>
+                            MERCHANT INVOICE
+                        </label>
+                        
+                        {order.invoice_url ? (
+                            <div style={{ display: 'flex', alignItems: 'center' }}>
+                            <a href={order.invoice_url} target="_blank" rel="noreferrer" style={viewInvoiceBtn}>
+                                View Invoice ↗
+                            </a>
+                            {/* Button to clear the URL if you need to re-upload */}
+                            <button 
+                                onClick={() => updateInvoiceUrl(order.id, null)} 
+                                style={deleteBtnStyle}
+                            >
+                                Remove
+                            </button>
+                            </div>
+                        ) : (
+                            <input 
+                            type="file" 
+                            accept="image/*,.pdf"
+                            onChange={(e) => uploadInvoice(order.id, e.target.files[0])}
+                            style={{ fontSize: '10px' }}
+                            />
+                        )}
+                    </div>
                 </td>
                 <td style={cellStyle}>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', minWidth: '150px' }}>
@@ -319,4 +411,29 @@ const smallSaveBtnStyle = {
   cursor: 'pointer',
   fontSize: '11px',
   fontWeight: '600'
+};
+
+const viewInvoiceBtn = { 
+  fontSize: '11px', 
+  color: '#4f46e5', 
+  textDecoration: 'none', 
+  fontWeight: '600', 
+  padding: '6px 10px', 
+  backgroundColor: '#eef2ff', 
+  borderRadius: '4px',
+  display: 'inline-flex',
+  alignItems: 'center',
+  border: '1px solid #c7d2fe',
+  transition: 'all 0.2s'
+};
+
+const deleteBtnStyle = {
+  padding: '4px 8px',
+  backgroundColor: '#fee2e2',
+  color: '#b91c1c',
+  border: 'none',
+  borderRadius: '4px',
+  cursor: 'pointer',
+  fontSize: '10px',
+  marginLeft: '8px'
 };

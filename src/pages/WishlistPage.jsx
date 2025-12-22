@@ -15,7 +15,7 @@ import './WishlistPage.css';
 import Toast from '../components/ui/Toast';
 import { useCurrency } from '../context/CurrencyContext';
 
-export default function WishlistPage() {
+export default function WishlistPage() {  
   const { username } = useParams();
   const { session } = useAuth();
   
@@ -35,6 +35,11 @@ export default function WishlistPage() {
 
   const { currency, updateCurrency } = useCurrency();
   const [editingItem, setEditingItem] = useState(null);
+  // 1. ADD THIS: Handle Edit Item
+  // This opens the AddWishlistItem modal in "edit mode"
+  const handleEditItem = (item) => {
+    setEditingItem(item); // This will pass the item data to your AddWishlistItem component
+  };
 
   useEffect(() => {
     if (profile) {
@@ -164,15 +169,28 @@ export default function WishlistPage() {
         loadData();
   }, [username, session?.user?.id]);
 
+  // 2. UPDATED: Handle Add To Cart / Contribute
   const handleAddToCart = async (item) => {
+    // If it's a crowdfunded item, we handle it differently
+    if (item.is_crowdfund) {
+      // Logic for crowdfunding contribution (e.g., opening a payment modal)
+      setToastMsg(`Opening contribution for ${item.title}... 💸`);
+      setShowToast(true);
+      // You can eventually replace this with a setOpenContributeModal(item)
+      return;
+    }
+
+    // Standard "Gift This" logic
     const existingCart = JSON.parse(localStorage.getItem('wishlist_cart') || '[]');
     if (existingCart.find(cartItem => cartItem.id === item.id)) {
         setToastMsg("Already in cart! 🛒");
         setShowToast(true);
         return;
     }
+    
     const finalPrice = currency.code === 'INR' ? item.price : (item.price * currency.rate).toFixed(2);
     const itemWithCurrency = { ...item, price: parseFloat(finalPrice), added_currency: currency.code };
+    
     localStorage.setItem('wishlist_cart', JSON.stringify([...existingCart, itemWithCurrency]));
     window.dispatchEvent(new Event('cartUpdated'));
     setToastMsg(`Added to cart! 🎁`);
@@ -318,7 +336,6 @@ export default function WishlistPage() {
         </section>
       )}
 
-      {/* SEARCH AND CONTROLS */}
       <section className="modern-controls-container" style={{ marginTop: isOwner ? '20px' : '40px' }}>
         <div className="search-bar-wrapper">
           <Search size={20} className="search-icon-fixed" />
@@ -335,7 +352,21 @@ export default function WishlistPage() {
              <button onClick={() => setViewMode('grid')} className={viewMode === 'grid' ? 'active' : ''}><Grid size={18}/></button>
              <button onClick={() => setViewMode('list')} className={viewMode === 'list' ? 'active' : ''}><List size={18}/></button>
           </div>
-          {isOwner && <AddWishlistItem session={session} onItemAdded={loadData} currency={currency} />}
+          
+          {/* 3. ENSURE THIS COMPONENT HANDLES EDITING */}
+          {isOwner && (
+            <AddWishlistItem 
+                session={session} 
+                onItemAdded={() => { setEditingItem(null); loadData(); }} 
+                currency={currency} 
+                initialData={editingItem} // Your item object
+                isEditing={!!editingItem} // True if editingItem is not null
+                onClose={() => {
+                    setEditingItem(null);
+                    loadData(); // Refresh list after edit
+                }} 
+            />
+          )}
         </div>
       </section>
 
@@ -343,14 +374,16 @@ export default function WishlistPage() {
       <main className="wishlist-display-area">
         <div className={`wishlist-container-${viewMode}`}>
             {wishlist
-                .filter(item => (item.name || item.title).toLowerCase().includes(searchQuery.toLowerCase()))
+                .filter(item => (item.title || "").toLowerCase().includes(searchQuery.toLowerCase()))
                 .map(item => (
                     <WishlistItemCard 
                         key={item.id} 
                         item={item} 
                         isOwner={isOwner} 
+                        onEdit={handleEditItem} // Now properly defined
                         onDelete={(id) => deleteWishlistItem(id).then(loadData)} 
                         onAddToCart={() => handleAddToCart(item)}
+                        username={username || profile?.username}
                         currencySettings={currency}
                     />
             ))}

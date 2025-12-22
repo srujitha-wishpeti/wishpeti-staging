@@ -11,49 +11,50 @@ export default function AddWishlistItem({
   isEditing = false,
   currency = { code: 'INR', rate: 1 }
 }) {
-  const [url, setUrl] = useState(initialData?.url || '');
+  const [url, setUrl] = useState('');
   const [loading, setLoading] = useState(false);
   const [scraping, setScraping] = useState(false);
-  const [showForm, setShowForm] = useState(isEditing); 
+  const [showForm, setShowForm] = useState(false); 
   const [error, setError] = useState(null);
-  const [scrapedData, setScrapedData] = useState(initialData || null);
-  const [selectedCategory, setSelectedCategory] = useState(initialData?.category || '');
+  const [scrapedData, setScrapedData] = useState(null);
+  const [selectedCategory, setSelectedCategory] = useState('');
   
   const [editableData, setEditableData] = useState({
-    title: initialData?.title || '',
-    // 🚀 INITIAL CONVERSION: Show the price in the current currency
-    price: initialData?.price ? (initialData.price * currency.rate).toFixed(2) : '',
-    image: initialData?.image || initialData?.image_url || '',
-    quantity: initialData?.quantity || 1,
-    description: initialData?.notes || '',
-    selectedSize: initialData?.variants?.selectedSize || '',
-    selectedColor: initialData?.variants?.selectedColor || ''
+    title: '',
+    price: '',
+    image: '',
+    quantity: 1,
+    notes: '',
+    selectedSize: '',
+    selectedColor: '',
+    is_crowdfund: false
   });
 
-  // Keep display price updated if user switches currency while editing
+  // Sync state when entering Edit Mode
   useEffect(() => {
     if (initialData && isEditing) {
+      setShowForm(true);
       setUrl(initialData.url || '');
       setScrapedData(initialData);
       setSelectedCategory(initialData.category || '');
       setEditableData({
         title: initialData.title || '',
-        // 🚀 ENSURE PRICE IS CONVERTED FOR DISPLAY
         price: initialData.price ? (initialData.price * currency.rate).toFixed(2) : '',
         image: initialData.image || initialData.image_url || '',
         quantity: initialData.quantity || 1,
-        description: initialData.notes || '',
+        notes: initialData.notes || '',
         selectedSize: initialData.variants?.selectedSize || '',
-        selectedColor: initialData.variants?.selectedColor || ''
+        selectedColor: initialData.variants?.selectedColor || '',
+        is_crowdfund: initialData.is_crowdfund || false
       });
     }
-  }, [initialData, isEditing, currency.rate]); // Watch currency.rate
+  }, [initialData, isEditing, currency.rate]);
 
+  // THE SCRAPER LOGIC
   const scrapeProduct = async (productUrl) => {
-    if (isEditing) return; 
+    if (isEditing) return;
     setScraping(true);
-    setError(null);
-
+    
     try {
       const { data, error: functionError } = await supabase.functions.invoke('scrape-product', {
         body: { url: productUrl }
@@ -61,28 +62,34 @@ export default function AddWishlistItem({
 
       if (functionError) throw functionError;
 
-      setScrapedData(data);
-      
-      // 🚀 SCRAPED PRICE CONVERSION
-      // If scraper finds 1000 (INR), but user is in USD, show 12.00
-      let rawPrice = data.price || '';
-      if (typeof rawPrice === 'string') {
-          rawPrice = parseFloat(rawPrice.replace(/[^\d.]/g, ''));
-      }
-      const displayPrice = rawPrice ? (rawPrice * currency.rate).toFixed(2) : '';
+      // 1. Get the raw text (e.g., "$44.00")
+      const rawPriceText = data.price_raw || data.price || "";
+      const numericValue = parseFloat(rawPriceText.toString().replace(/[^\d.]/g, '')) || 0;
 
-      setEditableData({
+      // 2. Determine the "Source of Truth"
+      let priceInINR = numericValue;
+      
+      // If the scraper found a $, convert it to your base (INR) first.
+      // If it didn't find a $, assume it's already INR.
+      if (rawPriceText.includes('$') || productUrl.includes('.com')) {
+        priceInINR = numericValue * 83.5; // Use a fixed base rate or an API
+      }
+
+      // 3. Now convert that INR base to whatever the USER wants to see
+      // If user preference is USD, math is: (numericValue * 83.5) / 83.5 = numericValue (44!)
+      const displayValue = (priceInINR * currency.rate).toFixed(2);
+
+      setEditableData(prev => ({
+        ...prev,
         title: data.title || '',
-        price: displayPrice,
+        price: displayValue, 
         image: data.image || '',
-        quantity: 1,
-        description: '',
-        selectedSize: data.variants?.sizes?.[0] || '',
-        selectedColor: data.variants?.colors?.[0] || ''
-      });
+        is_crowdfund: false
+      }));
+      
+      setScrapedData(data);
     } catch (err) {
-      console.error('Scraping error:', err);
-      setError(err.message);
+      setError("Manual entry required for price.");
     } finally {
       setScraping(false);
     }
@@ -90,7 +97,7 @@ export default function AddWishlistItem({
 
   const handleUrlChange = async (newUrl) => {
     setUrl(newUrl);
-    setError(null);
+    // Trigger scrape only for new items
     if (!isEditing && newUrl.length > 10 && newUrl.startsWith('http')) {
       await scrapeProduct(newUrl);
     }
@@ -98,78 +105,53 @@ export default function AddWishlistItem({
 
   const handleFinalAdd = async () => {
     setLoading(true);
-    setError(null);
-
     try {
-      // 1. Clean the price (remove symbols/commas)
-      let inputPrice = editableData.price;
-      if (typeof inputPrice === 'string') {
-          inputPrice = parseFloat(inputPrice.replace(/[^\d.]/g, ''));
-      }
+      // 1. Get the price as a clean number
+      const inputVal = parseFloat(editableData.price.toString().replace(/[^\d.]/g, '')) || 0;
 
-      // 2. Convert back to base INR for database
+      // 2. Convert back to base INR for Supabase
+      // Using Math.ceil ensures that $43.9999 becomes the higher INR value
       const priceInINR = currency.code !== 'INR' 
-        ? Math.round(inputPrice / currency.rate) 
-        : Math.round(inputPrice);
+        ? Math.ceil(inputVal / currency.rate) 
+        : Math.ceil(inputVal);
 
       const updatedData = {
         title: editableData.title,
-        price: priceInINR,
+        price: priceInINR, // This is now safely rounded up
         url: url,
         image: editableData.image,
-        notes: editableData.notes || editableData.description,
-        quantity: editableData.quantity,
-        category: selectedCategory,
-        variants: {
-          selectedSize: editableData.selectedSize,
-          selectedColor: editableData.selectedColor
+        notes: editableData.notes,
+        is_crowdfund: editableData.is_crowdfund,
+          variants: {
+            selectedSize: editableData.selectedSize,
+            selectedColor: editableData.selectedColor
+          }
+        };
+
+        if (isEditing) {
+          await supabase.from('wishlist_items').update(updatedData).eq('id', initialData.id);
+        } else {
+          await supabase.from('wishlist_items').insert([{ ...updatedData, creator_id: session.user.id }]);
         }
-      };
-
-      if (isEditing) {
-        // 🚀 THE MISSING STEP: Update Supabase
-        const { error: updateError } = await supabase
-          .from('wishlist_items')
-          .update(updatedData)
-          .eq('id', initialData.id); // Ensure you have the item ID
-
-        if (updateError) throw updateError;
         
-        // Notify parent to refresh and close modal
-        if (onItemAdded) await onItemAdded(); 
-      } else {
-        // Insert logic (Already working)
-        const { error: insertError } = await supabase
-          .from('wishlist_items')
-          .insert([{
-            ...updatedData,
-            creator_id: session.user.id
-          }]);
+        onItemAdded(); 
+        if (!isEditing) resetForm();
 
-        if (insertError) throw insertError;
-        if (onItemAdded) onItemAdded(); 
-        resetForm();
+      } catch (err) {
+        setError("Failed to save.");
+      } finally {
+        setLoading(false);
       }
-    } catch (err) {
-      console.error('Save error:', err);
-      setError(err.message || 'Failed to save item');
-    } finally {
-      setLoading(false);
-    }
   };
 
   const resetForm = () => {
     if (isEditing) {
-      if (onItemAdded) onItemAdded(null); 
+      onItemAdded(); // This acts as the close signal for the parent
     } else {
+      setShowForm(false);
       setUrl('');
       setScrapedData(null);
-      setShowForm(false);
-      setError(null);
-      setEditableData({ 
-        title: '', price: '', image: '', quantity: 1, 
-        description: '', selectedSize: '', selectedColor: '' 
-      });
+      setEditableData({ title: '', price: '', image: '', quantity: 1, notes: '', selectedSize: '', selectedColor: '', is_crowdfund: false });
     }
   };
 
@@ -188,15 +170,12 @@ export default function AddWishlistItem({
           setEditableData={setEditableData}
           scraping={scraping}
           error={error}
-          categories={categories}
-          selectedCategory={selectedCategory}
-          onCategoryChange={setSelectedCategory}
           onContinue={handleFinalAdd}
           onCancel={resetForm}
           loading={loading}
           isEditing={isEditing}
           currencySymbol={currency.code === 'INR' ? '₹' : '$'}
-          currencyCode={ currency.code}
+          currencyCode={currency.code}
         />
       )}
     </>
