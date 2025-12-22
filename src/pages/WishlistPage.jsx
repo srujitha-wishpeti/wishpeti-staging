@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { Camera, Search, Grid, List, Share2, Pencil } from 'lucide-react';
 import AddWishlistItem from '../components/AddWishlistItem';
 import { useAuth } from '../auth/AuthProvider';
@@ -15,6 +15,7 @@ import { supabase } from '../services/supabaseClient';
 import './WishlistPage.css';
 import Toast from '../components/ui/Toast';
 import { useCurrency } from '../context/CurrencyContext';
+import { useToast } from '../context/ToastContext';
 
 export default function WishlistPage() {  
   const { username } = useParams();
@@ -171,14 +172,67 @@ export default function WishlistPage() {
         loadData();
   }, [username, session?.user?.id]);
 
+
+  const handleClaimGift = async (item) => {
+    try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+
+        // 1. Create the ONE AND ONLY Master Order
+        const { error: orderError } = await supabase
+            .from('orders')
+            .insert([{
+                creator_id: user.id,
+                items: [item], 
+                wishlist_item_id: [item.id],
+                subtotal: item.price,
+                currency_code: item.currency_code || 'INR',
+                gift_status: 'accepted', 
+                is_crowdfund_master: true, // ONLY this new row gets 'true'
+                is_crowdfund: false,       // We mark this as a "Final Order"
+                buyer_name: 'Community Funded'
+            }]);
+
+        if (orderError) throw orderError;
+
+        // 2. IMPORTANT: Update all individual contributions for THIS specific item 
+        // so they are definitely NOT marked as master.
+        await supabase
+            .from('orders')
+            .update({ is_crowdfund_master: false, is_crowdfund: true })
+            .eq('creator_id', user.id)
+            .contains('items', [{ id: item.id }]) // Matches orders containing this item
+            .neq('buyer_name', 'Community Funded'); // Don't overwrite the master we just made
+
+        // 3. Mark the wishlist item as purchased
+        await supabase
+            .from('wishlist_items')
+            .update({ status: 'purchased' })
+            .eq('id', item.id);
+
+        loadData(); 
+        setToastMsg("Gift claimed!");
+        setShowToast(true);
+        setContributingItem(null);
+        
+    } catch (err) {
+        console.error("Error:", err.message);
+    }
+  };
+
   // 2. UPDATED: Handle Add To Cart / Contribute
   const handleAddToCart = async (item) => {
-    // If it's a crowdfunded item, we handle it differently
     if (item.is_crowdfund) {
-      // Logic for crowdfunding contribution (e.g., opening a payment modal)
-      
-      setContributingItem(item); 
-      return;
+        if (isOwner) {
+        // 🚀 Redirect creator to a stats/manage page instead of the payment modal
+        //navigate(`/manage-crowdfund/${item.id}`);
+        setContributingItem(item);
+        return;
+        } else {
+        // Fans get the modal
+        setContributingItem(item);
+        }
+        return;
     }
 
     // Standard "Gift This" logic
@@ -393,8 +447,10 @@ export default function WishlistPage() {
       {contributingItem && (
         <ContributeModal 
             item={contributingItem}
+            isOwner={isOwner}
             currency={currency}
             onClose={() => setContributingItem(null)}
+            onClaimGift={() => handleClaimGift(contributingItem)}
             onSuccess={() => {
             setContributingItem(null);
             loadData(); // Refresh the progress bar on the main page

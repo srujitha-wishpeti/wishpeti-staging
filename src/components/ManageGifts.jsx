@@ -19,6 +19,7 @@ export default function ManageGifts() {
         .from('orders')
         .select('*')
         .eq('creator_id', user.id)
+        .or('is_crowdfund.eq.false,is_crowdfund_master.eq.true')
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -57,13 +58,6 @@ export default function ManageGifts() {
     }
   };
 
-  const formatGiftPrice = (amount, originalCurrencyCode) => {
-    return new Intl.NumberFormat(originalCurrencyCode === 'INR' ? 'en-IN' : 'en-US', {
-      style: 'currency',
-      currency: originalCurrencyCode || 'INR',
-      maximumFractionDigits: originalCurrencyCode === 'INR' ? 0 : 2
-    }).format(amount || 0);
-  };
   // Helper for Status Badge Colors
   const getStatusStyle = (status) => {
     switch (status) {
@@ -147,14 +141,12 @@ export default function ManageGifts() {
                 </div>
                 
                 <div style={{ textAlign: 'right', marginLeft: '20px' }}>
-                  <div style={{ textAlign: 'right' }}>
-                    <div style={{ fontWeight: 'bold', color: '#1e293b', fontSize: '18px' }}>
-                        {/* Display only the subtotal to the creator */}
-                        {formatGiftPrice(gift.subtotal, gift.currency_code)}
-                    </div>
-                    <p style={{ fontSize: '12px', color: '#64748b', margin: 0 }}>
-                        Gift Value
-                    </p>
+                  <div style={{ fontWeight: 'bold', color: '#1e293b', fontSize: '18px' }}>
+                    {new Intl.NumberFormat(gift.currency_code === 'INR' ? 'en-IN' : 'en-US', {
+                        style: 'currency',
+                        currency: gift.currency_code || 'INR', // 🚀 Use the code saved with the GIFT
+                        maximumFractionDigits: gift.currency_code === 'INR' ? 0 : 2
+                    }).format(gift.total_amount)}
                   </div>
                   
                   {gift.gift_status === 'pending' && (

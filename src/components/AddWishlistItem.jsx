@@ -102,6 +102,7 @@ export default function AddWishlistItem({
       await scrapeProduct(newUrl);
     }
   };
+  
 
   const handleFinalAdd = async () => {
     setLoading(true);
@@ -114,6 +115,7 @@ export default function AddWishlistItem({
       const priceInINR = currency.code !== 'INR' 
         ? Math.ceil(inputVal / currency.rate) 
         : Math.ceil(inputVal);
+
 
       const updatedData = {
         title: editableData.title,

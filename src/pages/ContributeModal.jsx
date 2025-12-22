@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { X, ShieldCheck } from 'lucide-react';
 import { supabase } from '../services/supabaseClient';
 
-export default function ContributeModal({ item, currency, onClose, onSuccess }) {
+export default function ContributeModal({ item, isOwner, currency, onClose, onClaimGift, onSuccess }) {
   const [amount, setAmount] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -60,7 +60,7 @@ export default function ContributeModal({ item, currency, onClose, onSuccess }) 
         creator_id: item.creator_id,
         total_amount: amountInINR,
         payment_status: 'paid',
-        is_crowdfund_contribution: true,
+        is_crowdfund: true,
         gift_status: 'pending'
         }]);
 
@@ -86,43 +86,73 @@ export default function ContributeModal({ item, currency, onClose, onSuccess }) 
     window.dispatchEvent(new Event('contributionUpdated'));
   };
 
+  // Logic check before the return
+  const isGoalReached = displayRemaining <= 0;
+
   return (
     <div style={overlayStyle}>
       <div style={modalStyle}>
         <div style={headerStyle}>
-          <h3 style={{ margin: 0 }}>Contribute to Gift 🎁</h3>
+          <h3 style={{ margin: 0 }}>
+            {isGoalReached ? 'Goal Reached! 🥳' : 'Contribute to Gift 🎁'}
+          </h3>
           <X onClick={onClose} style={{ cursor: 'pointer' }} />
         </div>
 
         <div style={{ padding: '20px' }}>
           <p style={itemText}>Item: <strong>{item.title}</strong></p>
           
-          <div style={remainingBox}>
-            <span style={{ fontSize: '12px', color: '#64748b' }}>Remaining Goal:</span>
-            <div style={{ fontSize: '18px', fontWeight: 'bold' }}>
-              {currency.symbol}{displayRemaining.toLocaleString()}
+          <div style={{
+            ...remainingBox,
+            backgroundColor: isGoalReached ? '#f0fdf4' : '#f8fafc',
+            border: isGoalReached ? '1px solid #bbf7d0' : 'none'
+          }}>
+            <span style={{ fontSize: '12px', color: isGoalReached ? '#166534' : '#64748b' }}>
+              {isGoalReached ? 'Status:' : 'Remaining Goal:'}
+            </span>
+            <div style={{ fontSize: '18px', fontWeight: 'bold', color: isGoalReached ? '#15803d' : '#1e293b' }}>
+              {isGoalReached ? 'Fully Funded' : `${currency.symbol}${displayRemaining.toLocaleString()}`}
             </div>
           </div>
 
-          <label style={labelStyle}>How much would you like to give?</label>
-          <div style={inputContainer}>
-            <span style={prefixStyle}>{currency.symbol}</span>
-            <input 
-              type="number"
-              value={amount}
-              onChange={(e) => setAmount(e.target.value)}
-              placeholder="Enter amount..."
-              style={inputStyle}
-            />
-          </div>
+          {!isGoalReached ? (
+            <>
+              <label style={labelStyle}>How much would you like to give?</label>
+              <div style={inputContainer}>
+                <span style={prefixStyle}>{currency.symbol}</span>
+                <input 
+                  type="number"
+                  value={amount}
+                  onChange={(e) => setAmount(e.target.value)}
+                  placeholder="Enter amount..."
+                  style={inputStyle}
+                />
+              </div>
 
-          <button 
-            onClick={handlePayment}
-            disabled={!amount || amount <= 0 || loading}
-            style={btnStyle}
-          >
-            {loading ? 'Processing...' : `Confirm Contribution`}
-          </button>
+              <button 
+                onClick={handlePayment}
+                disabled={!amount || amount <= 0 || loading}
+                style={btnStyle}
+              >
+                {loading ? 'Processing...' : `Confirm Contribution`}
+              </button>
+            </>
+          ) : (
+            <div style={{ textAlign: 'center', marginTop: '10px' }}>
+              <p style={{ color: '#64748b', fontSize: '14px', marginBottom: '20px' }}>
+                This gift is already fully funded. Thank you for your support!
+              </p>
+              <button 
+                onClick={isGoalReached && isOwner ? onClaimGift : onClose} 
+                style={{
+                    ...btnStyle,
+                    backgroundColor: isGoalReached && isOwner ? '#22c55e' : '#1e293b'
+                }}
+                >
+                {isGoalReached && isOwner ? 'Claim & Order Gift 🎁' : 'Close Modal'}
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </div>
