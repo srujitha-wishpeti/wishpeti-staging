@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { X, ShieldCheck, Mail, User } from 'lucide-react';
 import { supabase } from '../services/supabaseClient';
 import { useCurrency } from '../context/CurrencyContext';
-import {getCurrencySymbol} from '../utils/currency';
+import {convertAmount, fetchExchangeRate, getCurrencySymbol} from '../utils/currency';
 
 export default function ContributeModal({ item, isOwner, onClose, onClaimGift, onSuccess }) {
   const [amount, setAmount] = useState('');
@@ -22,7 +22,7 @@ export default function ContributeModal({ item, isOwner, onClose, onClaimGift, o
   const symbol = getCurrencySymbol(currency.code);
   const rate = currency?.rate || 1;
 
-  const displayGoal = (item.price * rate);
+  const displayGoal = convertAmount(item.price, currency?.code || 'INR');
   const displayRaised = (item.amount_raised || 0) * rate;
   const displayRemaining = Math.max(displayGoal - displayRaised, 0);
 

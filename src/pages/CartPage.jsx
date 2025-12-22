@@ -48,25 +48,33 @@ export default function CartPage() {
    */
   const getNormalizedPrice = (item) => {
     const savedPrice = parseFloat(item.price) || 0;
-    const savedCurrency = item.added_currency || 'INR'; // Fallback to INR if not set
-
-    // 1. If saved currency matches current view, return exactly the saved price
+    const savedCurrency = item.added_currency || 'INR';
+    
+    // 1. If saved currency matches current view, return exactly the saved price.
+    // This is the "Golden Rule" to prevent $70 becoming $65.
     if (savedCurrency === currency.code) {
       return savedPrice;
     }
 
-    // 2. If we are viewing INR but item was saved in something else (like USD)
-    // Convert it BACK to INR using the rate it was saved with
-    if (currency.code === 'INR') {
-        const rateAtTimeOfAdding = item.added_rate || currency.rate || 1;
-        return savedPrice / rateAtTimeOfAdding;
+    // 2. Find the "Pure INR" value (The Source of Truth)
+    // If it was saved as $70 at a rate of 0.011, we get the original INR back.
+    let baseINR;
+    if (savedCurrency === 'INR') {
+      baseINR = savedPrice;
+    } else {
+      // If it was USD, we divide by the rate recorded when the item was added
+      const rateAtTimeOfAdding = item.added_rate || 1;
+      baseINR = savedPrice / rateAtTimeOfAdding;
     }
 
-    // 3. If we are viewing a different currency than what was saved
-    // First get the "Pure INR" then multiply by current global rate
-    const rateAtTimeOfAdding = item.added_rate || 1;
-    const baseINR = savedCurrency === 'INR' ? savedPrice : (savedPrice / rateAtTimeOfAdding);
-    return baseINR * (currency.rate || 1);
+    // 3. Use the Central Converter to get the final display price
+    // This applies your safety buffers and consistent rounding.
+    return convertAmount(
+      baseINR, 
+      'INR', 
+      currency.code, 
+      allRates
+    );
   };
 
   const calculateSubtotal = () => {

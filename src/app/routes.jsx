@@ -17,7 +17,7 @@ import ScrollToTop from "../components/ScrollToTop";
 
 export default function AppRoutes() {
   const { session, loading } = useAuth();
-
+  const ADMIN_EMAILS = ['msrujitha@gmail.com', 'madhubandru@gmail.com'];
   // Wait for Supabase to check the session before rendering
   if (loading) return null; 
 
@@ -47,7 +47,7 @@ export default function AppRoutes() {
       <Route 
         path="/admin-fulfill" 
         element={
-          session?.user?.email === 'msrujitha@gmail.com' ? 
+          session?.user?.email && ADMIN_EMAILS.includes(session.user.email) ? 
           <AdminFulfillment /> : 
           <Navigate to="/" />
         } 

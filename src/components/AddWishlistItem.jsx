@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '../services/supabaseClient';
 import AddItemButton from './AddItemButton';
 import UrlInputForm from './UrlInputForm';
+import { getCurrencySymbol } from '../utils/currency';
 
 export default function AddWishlistItem({ 
   session, 
@@ -39,7 +40,12 @@ export default function AddWishlistItem({
       setSelectedCategory(initialData.category || '');
       setEditableData({
         title: initialData.title || '',
-        price: initialData.price ? (initialData.price * currency.rate).toFixed(2) : '',
+        price: convertAmount(
+          initialData.price, // This is the base INR from DB
+          'INR', 
+          currency.code, 
+          allRates
+        ),
         image: initialData.image || initialData.image_url || '',
         quantity: initialData.quantity || 1,
         notes: initialData.notes || '',
@@ -176,7 +182,7 @@ export default function AddWishlistItem({
           onCancel={resetForm}
           loading={loading}
           isEditing={isEditing}
-          currencySymbol={currency.code === 'INR' ? '₹' : '$'}
+          currencySymbol= {getCurrencySymbol(currency.code)}
           currencyCode={currency.code}
         />
       )}
