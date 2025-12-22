@@ -13,6 +13,7 @@ import ManageGifts from '../components/ManageGifts'
 import TrackOrder from '../pages/TrackOrder'
 import SuccessPage from '../pages/SuccessPage'
 import AdminFulfillment from '../pages/AdminFulfillment'
+import ScrollToTop from "../components/ScrollToTop";
 
 export default function AppRoutes() {
   const { session, loading } = useAuth();
@@ -21,6 +22,8 @@ export default function AppRoutes() {
   if (loading) return null; 
 
   return (
+    <>
+    <ScrollToTop />
     <Routes>
       {/* AUTH LOGIC */}
       <Route path="/" element={session ? <Navigate to="/dashboard" /> : <Landing />} />
@@ -155,5 +158,6 @@ export default function AppRoutes() {
 </div>`} />} 
       />
     </Routes>
+    </>
   );
 }
