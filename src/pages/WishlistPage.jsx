@@ -16,7 +16,6 @@ import './WishlistPage.css';
 import Toast from '../components/ui/Toast';
 import { useCurrency } from '../context/CurrencyContext';
 import { useToast } from '../context/ToastContext';
-
 export default function WishlistPage() {  
   const { username } = useParams();
   const { session } = useAuth();
