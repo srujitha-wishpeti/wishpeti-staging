@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom';
 import { Camera, Search, Grid, List, Share2, Pencil } from 'lucide-react';
 import AddWishlistItem from '../components/AddWishlistItem';
 import { useAuth } from '../auth/AuthProvider';
+import ContributeModal from './ContributeModal';
 
 import { 
   getWishlistItems, 
@@ -32,6 +33,7 @@ export default function WishlistPage() {
 
   const [editingProfile, setEditingProfile] = useState(false);
   const [tempProfile, setTempProfile] = useState({ display_name: '', bio: '', avatar_url: '', banner_url: '' });
+  const [contributingItem, setContributingItem] = useState(null);
 
   const { currency, updateCurrency } = useCurrency();
   const [editingItem, setEditingItem] = useState(null);
@@ -174,9 +176,8 @@ export default function WishlistPage() {
     // If it's a crowdfunded item, we handle it differently
     if (item.is_crowdfund) {
       // Logic for crowdfunding contribution (e.g., opening a payment modal)
-      setToastMsg(`Opening contribution for ${item.title}... 💸`);
-      setShowToast(true);
-      // You can eventually replace this with a setOpenContributeModal(item)
+      
+      setContributingItem(item); 
       return;
     }
 
@@ -389,7 +390,17 @@ export default function WishlistPage() {
             ))}
         </div>
       </main>
-
+      {contributingItem && (
+        <ContributeModal 
+            item={contributingItem}
+            currency={currency}
+            onClose={() => setContributingItem(null)}
+            onSuccess={() => {
+            setContributingItem(null);
+            loadData(); // Refresh the progress bar on the main page
+            }}
+        />
+      )}
       {/* EDIT MODAL WITH WORKING BUTTONS */}
       {editingProfile && (
         <div className="edit-overlay" style={overlayStyle}>

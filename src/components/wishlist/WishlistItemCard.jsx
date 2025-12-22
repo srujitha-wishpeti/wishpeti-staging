@@ -7,16 +7,20 @@ export default function WishlistItemCard({
   isOwner,
   onDelete, 
   onAddToCart, 
-  onEdit, // Ensure this is passed from the parent!
+  onEdit, 
   username, 
-  currencySettings = { code: 'INR', rate: 1 } 
+  currencySettings = { code: 'INR', rate: 1, symbol: '₹' } 
 }) {
   
   const isCrowdfund = item.is_crowdfund === true;
   const goalAmount = item.price;
   const raisedAmount = item.amount_raised || 0;
+  
+  // Calculate percentage (max 100)
   const progressPercent = Math.min(Math.round((raisedAmount / goalAmount) * 100), 100);
+  const isFullyFunded = raisedAmount >= goalAmount;
 
+  // Use the formatting utility for consistent currency display
   const displayPrice = formatPrice(
     item.price, 
     currencySettings.code, 
@@ -29,7 +33,6 @@ export default function WishlistItemCard({
     currencySettings.rate
   );
 
-  // Fix: Check all possible image fields
   const displayImage = item.image_url || item.image;
 
   const handleShare = async (e) => {
@@ -53,6 +56,7 @@ export default function WishlistItemCard({
   return (
     <div className={`unified-wishlist-card ${isCrowdfund ? 'crowdfund-style' : ''}`} id={`item-${item.id}`}>
       
+      {/* MEDIA SECTION */}
       <div className="card-media-box">
         {displayImage ? (
           <img src={displayImage} alt={item.title} loading="lazy" />
@@ -61,14 +65,13 @@ export default function WishlistItemCard({
         )}
 
         {isCrowdfund && (
-          <div className="crowdfund-badge">
-            <Users size={12} />
-            <span>Crowdfund Goal</span>
-          </div>
+            <div className="crowdfund-badge" style={badgeContainerStyle}>
+                <Users size={12} style={{ marginRight: '4px' }} />
+                <span style={{ lineHeight: '1' }}>{isFullyFunded ? 'Goal Met!' : 'Crowdfund Goal'}</span>
+            </div>
         )}
         
         <div className="item-actions-pill">
-          {/* Fix: Added optional chaining to prevent crash if onEdit is missing */}
           {isOwner && onEdit && (
             <button onClick={() => onEdit(item)} title="Edit">
               <Edit3 size={16} />
@@ -91,6 +94,7 @@ export default function WishlistItemCard({
         </div>
       </div>
 
+      {/* INFO SECTION */}
       <div className="card-info-box">
         <div className="card-meta-top">
           <div className="brand-group">
@@ -102,14 +106,36 @@ export default function WishlistItemCard({
         
         <h3 className="card-product-title">{item.title}</h3>
 
+        {/* PROGRESS BAR SECTION */}
         {isCrowdfund && (
           <div className="crowdfund-progress-section">
-            <div className="progress-stats">
-              <span className="percent-text">{progressPercent}% Funded</span>
-              <span className="raised-text">{displayRaised} raised</span>
+            <div className="progress-stats" style={{ 
+                display: 'flex', 
+                justifyContent: 'space-between', 
+                alignItems: 'baseline', // Keeps text level
+                marginBottom: '4px' 
+                }}>
+                <span style={{ fontSize: '14px', fontWeight: '800', color: '#1e293b' }}>
+                    {progressPercent}% Funded
+                </span>
+                <span style={{ fontSize: '12px', fontWeight: '600', color: '#64748b' }}>
+                    {displayRaised}
+                </span>
             </div>
-            <div className="progress-track">
-              <div className="progress-fill" style={{ width: `${progressPercent}%` }}></div>
+            
+            <div className="progress-track" style={{ height: '8px', backgroundColor: '#e2e8f0', borderRadius: '4px', overflow: 'hidden' }}>
+              <div 
+                className="progress-fill" 
+                style={{ 
+                  width: `${progressPercent}%`, 
+                  height: '100%', 
+                  backgroundColor: progressPercent >= 100 ? '#22c55e' : '#6366f1',
+                  transition: 'width 0.5s ease-in-out'
+                }} 
+              />
+            </div>
+            <div style={{ fontSize: '10px', color: '#94a3b8', marginTop: '4px', textAlign: 'right' }}>
+              Target: {displayPrice}
             </div>
           </div>
         )}
@@ -118,12 +144,16 @@ export default function WishlistItemCard({
           <button 
             className={`btn-main-action ${isCrowdfund ? 'crowdfund-btn' : ''}`} 
             onClick={() => onAddToCart(item)}
+            disabled={isCrowdfund && isFullyFunded && !isOwner}
+            style={{ 
+              opacity: (isCrowdfund && isFullyFunded && !isOwner) ? 0.6 : 1,
+              cursor: (isCrowdfund && isFullyFunded && !isOwner) ? 'not-allowed' : 'pointer'
+            }}
           >
             <ShoppingBag size={16} />
             <span>
-              {/* Logic Fix: Owners see "Edit/Add", Fans see "Gift/Contribute" */}
               {isCrowdfund 
-                ? (isOwner ? 'View Contributions' : 'Contribute') 
+                ? (isFullyFunded && !isOwner ? 'Fully Funded' : (isOwner ? 'View Stats' : 'Contribute')) 
                 : (!isOwner ? 'Gift This' : 'Add to Cart')}
             </span>
           </button>
@@ -132,3 +162,19 @@ export default function WishlistItemCard({
     </div>
   );
 }
+const badgeContainerStyle = {
+  position: 'absolute',
+  top: '12px',
+  left: '12px',
+  display: 'flex',            // Enable Flexbox
+  alignItems: 'center',       // Center icon and text vertically
+  backgroundColor: 'rgba(255, 255, 255, 0.9)',
+  padding: '4px 8px',
+  borderRadius: '6px',
+  fontSize: '11px',
+  fontWeight: '700',
+  color: '#475569',
+  boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
+  backdropFilter: 'blur(4px)',
+  zIndex: 10
+};
