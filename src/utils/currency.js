@@ -14,7 +14,7 @@ export const fetchExchangeRate = async (toCurrency) => {
 };
 
 export const formatPrice = (amount, currencyCode = 'INR', rate = 1) => {
-  // 1. 🚀 THE FIX: Clean the input
+  // 1.  THE FIX: Clean the input
   // If amount is "₹1,500.50", this turns it into 1500.50
   let numericPrice = 0;
   
@@ -56,4 +56,15 @@ export const getCurrencyPreference = () => {
     }
   }
   return { code: 'INR', rate: 1 }; // Default
+};
+
+export const getCurrencySymbol = (code) => {
+  try {
+    return (0).toLocaleString(
+      'en-US', 
+      { style: 'currency', currency: code, minimumFractionDigits: 0, maximumFractionDigits: 0 }
+    ).replace(/\d/g, '').trim();
+  } catch (e) {
+    return '₹'; // Fallback
+  }
 };

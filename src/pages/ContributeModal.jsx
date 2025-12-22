@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { X, ShieldCheck, Mail, User } from 'lucide-react';
 import { supabase } from '../services/supabaseClient';
 import { useCurrency } from '../context/CurrencyContext';
+import {getCurrencySymbol} from '../utils/currency';
 
 export default function ContributeModal({ item, isOwner, onClose, onClaimGift, onSuccess }) {
   const [amount, setAmount] = useState('');
@@ -18,7 +19,7 @@ export default function ContributeModal({ item, isOwner, onClose, onClaimGift, o
 
   const { currency, updateCurrency } = useCurrency();
   // Safe Defaults for Currency to prevent "undefined"
-  const symbol = currency?.code || '₹';
+  const symbol = getCurrencySymbol(currency.code);
   const rate = currency?.rate || 1;
 
   const displayGoal = (item.price * rate);
