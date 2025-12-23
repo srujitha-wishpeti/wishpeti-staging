@@ -7,7 +7,7 @@ export default function RequireAuth({ children }) {
   if (loading) return <p>Loading...</p>
 
   if (!session) {
-    return <Navigate to="/login" replace />
+    return <Navigate to="/auth?mode=login" replace />
   }
 
   return children
