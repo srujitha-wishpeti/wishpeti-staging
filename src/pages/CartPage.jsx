@@ -29,6 +29,7 @@ export default function CartPage() {
   const handleCurrencyChange = async (newCode) => {
     try {
       await updateCurrency(newCode);
+      console.log("updatecurrency+", newCode);
     } catch (err) {
       console.error("Failed to update currency:", err);
     }
@@ -53,10 +54,12 @@ export default function CartPage() {
     // 1. If saved currency matches current view, return exactly the saved price.
     // This is the "Golden Rule" to prevent $70 becoming $65.
     if (savedCurrency === currency.code) {
+      console.log("saved currency ",savedCurrency);
       return savedPrice;
     }
 
    if (currency.code === 'INR') {
+        console.log("item added rate", item.added_rate);
         const rateAtTimeOfAdding = item.added_rate || currency.rate || 1;
         return savedPrice / rateAtTimeOfAdding;
    }

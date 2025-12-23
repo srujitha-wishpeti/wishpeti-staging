@@ -243,7 +243,7 @@ export default function WishlistPage() {
     }
     
     const finalPrice = currency.code === 'INR' ? item.price : (item.price * currency.rate).toFixed(2);
-    const itemWithCurrency = { ...item, price: parseFloat(finalPrice), added_currency: currency.code };
+    const itemWithCurrency = { ...item, price: parseFloat(finalPrice), added_currency: currency.code, added_rate: currency.rate };
     
     localStorage.setItem('wishlist_cart', JSON.stringify([...existingCart, itemWithCurrency]));
     window.dispatchEvent(new Event('cartUpdated'));
