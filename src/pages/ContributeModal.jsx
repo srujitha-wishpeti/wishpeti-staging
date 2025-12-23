@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { X, ShieldCheck, Mail, User, MessageSquare } from 'lucide-react';
+import { X, ShieldCheck, Mail, User, MessageSquare, Heart, TrendingUp, Download } from 'lucide-react';
 import { supabase } from '../services/supabaseClient';
 import { useCurrency } from '../context/CurrencyContext';
 import { getCurrencySymbol } from '../utils/currency';
 
-export default function ContributeModal({ item, onClose, onSuccess }) {
+export default function ContributeModal({ item, onClose, onSuccess, isOwner }) {
   const [amount, setAmount] = useState('');
   const [loading, setLoading] = useState(false);
   
@@ -15,7 +15,7 @@ export default function ContributeModal({ item, onClose, onSuccess }) {
   const [isAnonymous, setIsAnonymous] = useState(false);
   
   const [recentGivers, setRecentGivers] = useState([]);
-  const [showGivers, setShowGivers] = useState(false);
+  const [showGivers, setShowGivers] = useState(isOwner);
 
   const { currency } = useCurrency();
   const symbol = getCurrencySymbol(currency.code);
@@ -29,24 +29,45 @@ export default function ContributeModal({ item, onClose, onSuccess }) {
   const displayGoal = totalGoalBase * rate;
   const displayRaised = (item.amount_raised || 0) * rate;
   const displayRemaining = Math.max(displayGoal - displayRaised, 0);
+  const progressPercent = Math.min((displayRaised / displayGoal) * 100, 100);
 
   useEffect(() => {
     const fetchGivers = async () => {
       const { data } = await supabase
         .from('orders')
-        .select('buyer_name, total_amount, created_at')
+        .select('buyer_name, buyer_email, total_amount, created_at, buyer_message')
         .eq('item_id', item.id)
         .eq('payment_status', 'paid')
-        .order('created_at', { ascending: false })
-        .limit(5);
+        .order('created_at', { ascending: false });
       if (data) setRecentGivers(data);
     };
     fetchGivers();
   }, [item.id]);
 
+  // --- CSV EXPORT LOGIC ---
+  const handleExportCSV = () => {
+    if (recentGivers.length === 0) return;
+    const headers = ["Donor Name", "Amount", "Date", "Email", "Message"];
+    const rows = recentGivers.map(g => [
+      `"${g.buyer_name}"`,
+      `"${symbol}${(g.total_amount * rate).toFixed(2)}"`,
+      `"${new Date(g.created_at).toLocaleDateString()}"`,
+      `"${g.buyer_email || 'N/A'}"`,
+      `"${(g.buyer_message || '').replace(/"/g, '""')}"`
+    ]);
+    const csvContent = [headers, ...rows].map(e => e.join(",")).join("\n");
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", `contributions_${item.title.replace(/\s+/g, '_')}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   const handlePayment = async () => {
     let inputAmount = parseFloat(amount);
-
     if (!inputAmount || inputAmount <= 0 || !buyerEmail) {
       alert("Please enter a valid amount and email.");
       return;
@@ -96,7 +117,6 @@ export default function ContributeModal({ item, onClose, onSuccess }) {
       ? parseFloat((paidAmount / rate).toFixed(2)) 
       : paidAmount;
 
-    // 1. Create Order Record
     const { error: orderError } = await supabase
         .from('orders')
         .insert([{
@@ -114,12 +134,10 @@ export default function ContributeModal({ item, onClose, onSuccess }) {
 
     if (orderError) throw orderError;
 
-    // 2. Update Raised Amount
     const newRaisedTotal = (item.amount_raised || 0) + contributionInINR;
     const isNowFullyFunded = newRaisedTotal >= (totalGoalBase - 0.05); 
     
     const updatePayload = { amount_raised: newRaisedTotal };
-
     if (isNowFullyFunded) {
         updatePayload.status = 'claimed';
         updatePayload.quantity = 0; 
@@ -141,7 +159,7 @@ export default function ContributeModal({ item, onClose, onSuccess }) {
       <div style={modalStyle}>
         <div style={headerStyle}>
           <h3 style={{ margin: 0, fontSize: '18px', fontWeight: '800' }}>
-            {isGoalReached ? 'Goal Reached! 🥳' : 'Contribute to Gift 🎁'}
+            {isOwner ? 'Gift Management' : (isGoalReached ? 'Goal Reached! 🥳' : 'Contribute to Gift 🎁')}
           </h3>
           <X onClick={onClose} style={{ cursor: 'pointer', opacity: 0.5 }} />
         </div>
@@ -149,140 +167,155 @@ export default function ContributeModal({ item, onClose, onSuccess }) {
         <div style={{ padding: '20px', maxHeight: '85vh', overflowY: 'auto' }}>
           <p style={itemText}>Item: <strong>{item.title}</strong></p>
           
-          <div style={{
-            ...remainingBox,
-            backgroundColor: isGoalReached ? '#f0fdf4' : '#f8fafc',
-            border: isGoalReached ? '1px solid #bbf7d0' : '1px solid #f1f5f9'
-          }}>
-            <span style={{ fontSize: '12px', color: isGoalReached ? '#166534' : '#64748b' }}>
-              {isGoalReached ? 'Status:' : 'Remaining Goal:'}
-            </span>
-            <div style={{ fontSize: '22px', fontWeight: '900', color: isGoalReached ? '#15803d' : '#1e293b' }}>
-              {isGoalReached ? 'Fully Funded' : `${symbol}${displayRemaining.toLocaleString(undefined, {minimumFractionDigits: 2})}`}
+          {/* Progress Bar Section */}
+          <div style={{...remainingBox, backgroundColor: '#f8fafc', border: '1px solid #f1f5f9'}}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                <span style={labelStyle}>Raised: {symbol}{displayRaised.toFixed(2)}</span>
+                <span style={labelStyle}>Goal: {symbol}{displayGoal.toFixed(2)}</span>
+            </div>
+            <div style={progressBarContainer}>
+                <div style={{...progressBarFill, width: `${progressPercent}%`}}></div>
             </div>
           </div>
 
-          {!isGoalReached && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-              
-              <div style={fieldGroup}>
-                <label style={labelStyle}>Your Email</label>
-                <div style={inputContainer}>
-                  <Mail size={16} style={iconStyle} />
-                  <input 
-                    type="email"
-                    value={buyerEmail}
-                    onChange={(e) => setBuyerEmail(e.target.value)}
-                    placeholder="email@example.com"
-                    style={inputStyleWithIcon}
-                  />
+          {isOwner ? (
+            /* --- OWNER VIEW: Dashboard & History --- */
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                <div style={ownerStatsGrid}>
+                    <div style={statCard}>
+                        <TrendingUp size={16} color="#6366f1" />
+                        <span style={{fontSize: '11px', color: '#64748b'}}>Remaining</span>
+                        <div style={{fontWeight: '700'}}>{symbol}{displayRemaining.toFixed(2)}</div>
+                    </div>
+                    <div style={statCard}>
+                        <Heart size={16} color="#ec4899" />
+                        <span style={{fontSize: '11px', color: '#64748b'}}>Supporters</span>
+                        <div style={{fontWeight: '700'}}>{recentGivers.length}</div>
+                    </div>
                 </div>
-              </div>
 
-              <div style={fieldGroup}>
-                <label style={labelStyle}>Display Name</label>
-                <div style={inputContainer}>
-                  <User size={16} style={iconStyle} />
-                  <input 
-                    type="text"
-                    value={isAnonymous ? '' : buyerName}
-                    disabled={isAnonymous}
-                    onChange={(e) => setBuyerName(e.target.value)}
-                    placeholder={isAnonymous ? "Anonymous" : "Your name (optional)"}
-                    style={{...inputStyleWithIcon, backgroundColor: isAnonymous ? '#f8fafc' : 'white'}}
-                  />
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <label style={labelStyle}>Contribution History</label>
+                    {recentGivers.length > 0 && (
+                      <button onClick={handleExportCSV} style={exportBtnStyle}>
+                        <Download size={12} /> CSV
+                      </button>
+                    )}
                 </div>
-              </div>
 
-              {/* Message Field */}
-              <div style={fieldGroup}>
-                <label style={labelStyle}>Message for Creator</label>
-                <div style={inputContainer}>
-                  <MessageSquare size={16} style={{...iconStyle, top: '12px'}} />
-                  <textarea 
-                    value={buyerMessage}
-                    onChange={(e) => setBuyerMessage(e.target.value)}
-                    placeholder="Leave a nice note..."
-                    style={{...inputStyleWithIcon, height: '80px', resize: 'none', paddingTop: '10px'}}
-                  />
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                    {recentGivers.length > 0 ? recentGivers.map((g, i) => (
+                        <div key={i} style={ownerGiverRow}>
+                            <div style={{ textAlign: 'left' }}>
+                                <div style={{ fontSize: '14px', fontWeight: '600' }}>{g.buyer_name}</div>
+                                {g.buyer_message && <div style={{ fontSize: '12px', color: '#64748b', fontStyle: 'italic' }}>"{g.buyer_message}"</div>}
+                            </div>
+                            <div style={{ fontWeight: '700', color: '#10b981' }}>+{symbol}{(g.total_amount * rate).toFixed(2)}</div>
+                        </div>
+                    )) : (
+                        <p style={{ fontSize: '13px', color: '#94a3b8', textAlign: 'center', padding: '20px' }}>No contributions yet.</p>
+                    )}
                 </div>
-              </div>
-
-              {/* Anonymous Toggle Card (Crowdfund Style) */}
-              <div 
-                onClick={() => setIsAnonymous(!isAnonymous)}
-                style={{
-                  ...toggleCardStyle,
-                  borderColor: isAnonymous ? '#6366f1' : '#e2e8f0',
-                  backgroundColor: isAnonymous ? '#f5f3ff' : '#fff',
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center' }}>
-                  <input 
-                    type="checkbox" 
-                    checked={isAnonymous} 
-                    onChange={() => {}} 
-                    style={{ width: '18px', height: '18px', cursor: 'pointer' }}
-                  />
-                </div>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontWeight: '700', fontSize: '14px', color: '#1e293b' }}>
-                    Stay Anonymous 👤
-                  </div>
-                  <div style={{ fontSize: '12px', color: '#64748b', lineHeight: '1.4' }}>
-                    Hide your identity and message from the public wishlist.
+                
+                <button onClick={onClose} style={btnStyle}>Done</button>
+            </div>
+          ) : (
+            /* --- SUPPORTER VIEW: Payment Form --- */
+            !isGoalReached && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                <div style={fieldGroup}>
+                  <label style={labelStyle}>Your Email</label>
+                  <div style={inputContainer}>
+                    <Mail size={16} style={iconStyle} />
+                    <input 
+                      type="email"
+                      value={buyerEmail}
+                      onChange={(e) => setBuyerEmail(e.target.value)}
+                      placeholder="email@example.com"
+                      style={inputStyleWithIcon}
+                    />
                   </div>
                 </div>
-              </div>
 
-              <div style={fieldGroup}>
-                <label style={labelStyle}>Contribution Amount</label>
-                <div style={inputContainer}>
-                  <span style={prefixStyle}>{symbol}</span>
-                  <input 
-                    type="number"
-                    value={amount}
-                    onChange={(e) => setAmount(e.target.value)}
-                    placeholder="0.00"
-                    style={inputStyle}
-                  />
+                <div style={fieldGroup}>
+                  <label style={labelStyle}>Display Name</label>
+                  <div style={inputContainer}>
+                    <User size={16} style={iconStyle} />
+                    <input 
+                      type="text"
+                      value={isAnonymous ? '' : buyerName}
+                      disabled={isAnonymous}
+                      onChange={(e) => setBuyerName(e.target.value)}
+                      placeholder={isAnonymous ? "Anonymous" : "Your name (optional)"}
+                      style={{...inputStyleWithIcon, backgroundColor: isAnonymous ? '#f8fafc' : 'white'}}
+                    />
+                  </div>
                 </div>
-                {parseFloat(amount) > displayRemaining && (
-                  <span style={{ fontSize: '11px', color: '#6366f1', fontWeight: '600' }}>
-                    ✨ Capped at {symbol}{displayRemaining.toFixed(2)} to complete the goal.
-                  </span>
-                )}
+
+                <div style={fieldGroup}>
+                  <label style={labelStyle}>Message for Creator</label>
+                  <div style={inputContainer}>
+                    <MessageSquare size={16} style={{...iconStyle, top: '12px'}} />
+                    <textarea 
+                      value={buyerMessage}
+                      onChange={(e) => setBuyerMessage(e.target.value)}
+                      placeholder="Leave a nice note..."
+                      style={{...inputStyleWithIcon, height: '80px', resize: 'none', paddingTop: '10px'}}
+                    />
+                  </div>
+                </div>
+
+                <div 
+                  onClick={() => setIsAnonymous(!isAnonymous)}
+                  style={{
+                    ...toggleCardStyle,
+                    borderColor: isAnonymous ? '#6366f1' : '#e2e8f0',
+                    backgroundColor: isAnonymous ? '#f5f3ff' : '#fff',
+                  }}
+                >
+                  {/* Checkbox wrapper to ensure it doesn't shrink */}
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <input 
+                      type="checkbox" 
+                      checked={isAnonymous} 
+                      readOnly 
+                      style={{ width: '20px', height: '20px', cursor: 'pointer', margin: 0 }} 
+                    />
+                  </div>
+
+                  <div style={{ display: 'flex', flexDirection: 'column' }}>
+                    <div style={{ fontWeight: '700', fontSize: '14px', color: '#1e293b', lineHeight: '1.2' }}>
+                      Stay Anonymous 👤
+                    </div>
+                    <div style={{ fontSize: '12px', color: '#64748b', marginTop: '2px' }}>
+                      Hide your name on the public wishlist.
+                    </div>
+                  </div>
+                </div>
+
+                <div style={fieldGroup}>
+                  <label style={labelStyle}>Contribution Amount</label>
+                  <div style={inputContainer}>
+                    <span style={prefixStyle}>{symbol}</span>
+                    <input 
+                      type="number"
+                      value={amount}
+                      onChange={(e) => setAmount(e.target.value)}
+                      placeholder="0.00"
+                      style={inputStyle}
+                    />
+                  </div>
+                </div>
+
+                <button 
+                  onClick={handlePayment}
+                  disabled={!amount || amount <= 0 || !buyerEmail || loading}
+                  style={{...btnStyle, opacity: (!amount || !buyerEmail || loading) ? 0.6 : 1}}
+                >
+                  {loading ? 'Processing...' : `Confirm Contribution`}
+                </button>
               </div>
-
-              <button 
-                onClick={handlePayment}
-                disabled={!amount || amount <= 0 || !buyerEmail || loading}
-                style={{...btnStyle, opacity: (!amount || !buyerEmail || loading) ? 0.6 : 1}}
-              >
-                {loading ? 'Processing...' : `Confirm Contribution`}
-              </button>
-            </div>
-          )}
-
-          {recentGivers.length > 0 && (
-            <div style={{ marginTop: '24px', borderTop: '1px solid #f1f5f9', paddingTop: '16px', textAlign: 'left' }}>
-               <button 
-                 onClick={() => setShowGivers(!showGivers)} 
-                 style={{ background: 'none', border: 'none', color: '#6366f1', fontSize: '13px', fontWeight: '600', cursor: 'pointer', padding: 0 }}
-               >
-                 {showGivers ? 'Hide Recent Givers' : `View Recent Givers (${recentGivers.length})`}
-               </button>
-               {showGivers && (
-                 <div style={{ marginTop: '12px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                   {recentGivers.map((g, i) => (
-                     <div key={i} style={{ display: 'flex', justifyContent: 'space-between' }}>
-                       <span style={{ fontSize: '13px', color: '#1e293b', fontWeight: '500' }}>{g.buyer_name}</span>
-                       <span style={{ fontSize: '12px', color: '#94a3b8' }}>{new Date(g.created_at).toLocaleDateString()}</span>
-                     </div>
-                   ))}
-                 </div>
-               )}
-            </div>
+            )
           )}
 
           <div style={footerStyle}>
@@ -295,10 +328,17 @@ export default function ContributeModal({ item, onClose, onSuccess }) {
 }
 
 // Styles
+const progressBarContainer = { width: '100%', height: '8px', backgroundColor: '#e2e8f0', borderRadius: '10px', overflow: 'hidden' };
+const progressBarFill = { height: '100%', backgroundColor: '#6366f1', transition: 'width 0.5s ease-out' };
+const ownerStatsGrid = { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' };
+const statCard = { padding: '12px', backgroundColor: '#f8fafc', borderRadius: '12px', border: '1px solid #f1f5f9', textAlign: 'left', display: 'flex', flexDirection: 'column', gap: '4px' };
+const ownerGiverRow = { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px', backgroundColor: '#fff', border: '1px solid #f1f5f9', borderRadius: '12px' };
+const exportBtnStyle = { display: 'flex', alignItems: 'center', gap: '4px', background: '#f1f5f9', border: '1px solid #e2e8f0', padding: '4px 10px', borderRadius: '6px', fontSize: '11px', fontWeight: '700', color: '#475569', cursor: 'pointer' };
+
 const fieldGroup = { display: 'flex', flexDirection: 'column', gap: '6px', textAlign: 'left' };
 const headerStyle = { padding: '20px', borderBottom: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center' };
-const remainingBox = { padding: '20px', borderRadius: '16px', textAlign: 'center', marginBottom: '10px' };
-const inputContainer = { position: 'relative', display: 'flex', alignItems: 'flex-start' };
+const remainingBox = { padding: '20px', borderRadius: '16px', textAlign: 'center', marginBottom: '16px' };
+const inputContainer = { position: 'relative', display: 'flex', alignItems: 'flex-start', width: '100%' };
 const iconStyle = { position: 'absolute', left: '14px', top: '14px', color: '#94a3b8' };
 const prefixStyle = { position: 'absolute', left: '16px', top: '16px', fontWeight: '700', color: '#1e293b' };
 const inputStyle = { width: '100%', padding: '14px 12px 14px 40px', borderRadius: '12px', border: '1px solid #e2e8f0', fontSize: '16px', outline: 'none' };
@@ -308,39 +348,18 @@ const labelStyle = { fontSize: '11px', fontWeight: '800', color: '#64748b', text
 const itemText = { fontSize: '14px', margin: '0 0 16px 0', color: '#475569', textAlign: 'left' };
 const footerStyle = { marginTop: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px', color: '#94a3b8', fontSize: '11px' };
 
-const overlayStyle = { 
-  position: 'fixed', 
-  inset: 0, 
-  // This creates a massive shadow that dims the screen but leaves the center clear
-  boxShadow: '0 0 0 5000px rgba(15, 23, 42, 0.85)', 
-  backdropFilter: 'blur(4px)',
-  display: 'flex', 
-  alignItems: 'center', 
-  justifyContent: 'center', 
-  zIndex: 10000, 
-  padding: '20px' 
-};
-
-const modalStyle = { 
-  backgroundColor: 'white', 
-  borderRadius: '24px', 
-  width: '100%', 
-  maxWidth: '420px', 
-  overflow: 'hidden', 
-  boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)',
-  // Ensure the modal is clickable
-  position: 'relative',
-  zIndex: 10001
-};
-
+const overlayStyle = { position: 'fixed', inset: 0, boxShadow: '0 0 0 5000px rgba(15, 23, 42, 0.85)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10000, padding: '20px' };
+const modalStyle = { backgroundColor: 'white', borderRadius: '24px', width: '100%', maxWidth: '420px', overflow: 'hidden', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', position: 'relative', zIndex: 10001 };
 const toggleCardStyle = {
   display: 'flex',
-  alignItems: 'flex-start',
-  gap: '12px',
-  padding: '14px',
+  alignItems: 'center', // This centers them vertically
+  justifyContent: 'flex-start',
+  gap: '16px', // Increased gap slightly for better breathing room
+  padding: '14px 18px',
   borderRadius: '14px',
   border: '2px solid',
   cursor: 'pointer',
   transition: 'all 0.2s ease',
-  textAlign: 'left'
+  textAlign: 'left',
+  width: '100%' // Ensure it fills the container
 };
