@@ -95,7 +95,7 @@ export default function AppRoutes() {
     </ul>
 
     <h3>4. Contact Information</h3>
-    <p>Email: <strong>msrujitha@gmail.com</strong><br>
+    <p>Email: <strong>support@wishpeti.com</strong><br>
     Address: <strong>Vidya Nagar 1st cross, Bellary, Karnataka - 583104</strong></p>
 </div>`} />} 
       />
@@ -150,7 +150,7 @@ export default function AppRoutes() {
         element={<PolicyPage title="Contact Us" content={`<div class="contact-container">
     <p>We're here to support your gifting journey.</p>
     <div class="contact-details" style="margin-top: 20px;">
-      <p><strong>Email:</strong> msrujitha@gmail.com</p>
+      <p><strong>Email:</strong> support@wishpeti.com</p>
       <p><strong>Phone:</strong> +91 9972769491</p>
       <p><strong>Address:</strong> WishPeti, Vidya Nagar 1st cross, Bellary, Karnataka - 583104</p>
       <p><strong>Operating Hours:</strong> Monday to Friday, 10:00 AM – 6:00 PM IST</p>
