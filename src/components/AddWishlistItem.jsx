@@ -42,12 +42,7 @@ export default function AddWishlistItem({
       setSelectedCategory(initialData.category || '');
       setEditableData({
         title: initialData.title || '',
-        price: convertAmount(
-          initialData.price, // This is the base INR from DB
-          'INR', 
-          currency.code, 
-          allRates
-        ),
+        price: initialData.price ? (initialData.price * currency.rate).toFixed(2) : '',
         image: initialData.image || initialData.image_url || '',
         quantity: initialData.quantity || 1,
         notes: initialData.notes || '',
@@ -80,7 +75,7 @@ export default function AddWishlistItem({
       // If the scraper found a $, convert it to your base (INR) first.
       // If it didn't find a $, assume it's already INR.
       if (rawPriceText.includes('$') || productUrl.includes('.com')) {
-        priceInINR = numericValue * 89.73; // Use a fixed base rate or an API
+        priceInINR = numericValue * 90.73; // Use a fixed base rate or an API
       }
 
       // 3. Now convert that INR base to whatever the USER wants to see

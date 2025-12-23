@@ -56,25 +56,14 @@ export default function CartPage() {
       return savedPrice;
     }
 
-    // 2. Find the "Pure INR" value (The Source of Truth)
-    // If it was saved as $70 at a rate of 0.011, we get the original INR back.
-    let baseINR;
-    if (savedCurrency === 'INR') {
-      baseINR = savedPrice;
-    } else {
-      // If it was USD, we divide by the rate recorded when the item was added
-      const rateAtTimeOfAdding = item.added_rate || 1;
-      baseINR = savedPrice / rateAtTimeOfAdding;
-    }
+   if (currency.code === 'INR') {
+        const rateAtTimeOfAdding = item.added_rate || currency.rate || 1;
+        return savedPrice / rateAtTimeOfAdding;
+   }
 
-    // 3. Use the Central Converter to get the final display price
-    // This applies your safety buffers and consistent rounding.
-    return convertAmount(
-      baseINR, 
-      'INR', 
-      currency.code, 
-      allRates
-    );
+    const rateAtTimeOfAdding = item.added_rate || 1;
+    const baseINR = savedCurrency === 'INR' ? savedPrice : (savedPrice / rateAtTimeOfAdding);
+    return baseINR * (currency.rate || 1);
   };
 
   const calculateSubtotal = () => {

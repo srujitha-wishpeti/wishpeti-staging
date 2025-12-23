@@ -22,7 +22,7 @@ export default function ContributeModal({ item, isOwner, onClose, onClaimGift, o
   const symbol = getCurrencySymbol(currency.code);
   const rate = currency?.rate || 1;
 
-  const displayGoal = convertAmount(item.price, currency?.code || 'INR');
+  const displayGoal = (item.price * rate);
   const displayRaised = (item.amount_raised || 0) * rate;
   const displayRemaining = Math.max(displayGoal - displayRaised, 0);
 
