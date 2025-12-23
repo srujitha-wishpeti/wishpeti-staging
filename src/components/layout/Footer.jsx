@@ -22,10 +22,10 @@ export default function Footer() {
           <h3 style={styles.logo}>🎁 WishPeti</h3>
           <p style={styles.tagline}>The safest way for digital creators to receive gifts from fans worldwide.</p>
           <div style={styles.socialLinks}>
-            <a href="https://instagram.com" target="_blank" rel="noreferrer" className="social-icon" style={styles.socialIcon}>
+            <a href="https://www.instagram.com/wishpeti/" target="_blank" rel="noreferrer" className="social-icon" style={styles.socialIcon}>
               <Instagram size={20} />
             </a>
-            <a href="https://linkedin.com" target="_blank" rel="noreferrer" className="social-icon" style={styles.socialIcon}>
+            <a href="https://www.linkedin.com/company/wishpeti/" target="_blank" rel="noreferrer" className="social-icon" style={styles.socialIcon}>
               <Linkedin size={20} />
             </a>
           </div>
