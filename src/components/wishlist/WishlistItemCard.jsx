@@ -13,22 +13,31 @@ export default function WishlistItemCard({
 }) {
   
   const isCrowdfund = item.is_crowdfund === true;
-  const goalAmount = item.price;
   const raisedAmount = item.amount_raised || 0;
   
   // Logic for "Claimed" status
   const isClaimed = item.status === 'claimed' || item.status === 'purchased' || (item.quantity !== null && item.quantity <= 0);
 
+  // NEW: Calculate dynamic goal based on Unit Price * Quantity
+  const unitPrice = item.price || 0;
+  const qty = item.quantity || 1;
+  const goalAmount = unitPrice * qty;
+
   // Math for progress bar
-  const progressPercent = Math.round((item.amount_raised / item.price) * 100) || 0;
+  const progressPercent = Math.round((raisedAmount / goalAmount) * 100) || 0;
   const clampedPercentage = Math.min(progressPercent, 100);
   const isFullyFunded = raisedAmount >= goalAmount;
 
   // Check if item has any contributions (prevents 409 Conflict error on delete)
   const hasContributions = raisedAmount > 0;
-
   const isLocked = hasContributions || isClaimed;
-  const displayPrice = formatPrice(item.price, currencySettings.code, currencySettings.rate);
+
+  // DISPLAY VALUES
+  // For Crowdfunds, we show the Total Goal price. For normal items, we show Unit Price.
+  const displayMainPrice = isCrowdfund 
+    ? formatPrice(goalAmount, currencySettings.code, currencySettings.rate)
+    : formatPrice(unitPrice, currencySettings.code, currencySettings.rate);
+
   const displayRaised = formatPrice(raisedAmount, currencySettings.code, currencySettings.rate);
   const displayImage = item.image_url || item.image;
 
@@ -99,10 +108,9 @@ export default function WishlistItemCard({
             <Share2 size={16} />
           </button>
 
-          {/* DYNAMIC DELETE ACTION: Only show if 0 funds raised */}
           {isOwner && onDelete && (
             isLocked ? (
-              <div className="locked-action" title="Funded items cannot be deleted" style={lockContainerStyle}>
+              <div className="locked-action" title="Funded or claimed items cannot be deleted" style={lockContainerStyle}>
                 <Lock size={14} />
               </div>
             ) : (
@@ -116,27 +124,29 @@ export default function WishlistItemCard({
 
       {/* INFO SECTION */}
       <div className="card-info-box">
-        <div className="card-meta-top">
+        <div className="card-meta-top" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div className="brand-group">
             <span className="brand-tag">{item.brand || item.store || 'Store'}</span>
-            <span className="category-tag">{item.category}</span>
+            {qty > 1 && <span className="qty-tag" style={qtyTagStyle}>Qty: {qty}</span>}
           </div>
-          <span className="item-price-footer">{displayPrice}</span>
+          <span className="item-price-footer" style={{ fontWeight: '800', color: '#1e293b' }}>
+            {displayMainPrice}
+          </span>
         </div>
         
-        <h3 className="card-product-title" style={{ color: isClaimed ? '#94a3b8' : '#1e293b' }}>
+        <h3 className="card-product-title" style={{ color: isClaimed ? '#94a3b8' : '#1e293b', marginTop: '8px' }}>
             {item.title}
         </h3>
 
         {/* PROGRESS BAR SECTION */}
         {isCrowdfund && (
-          <div className="crowdfund-progress-section">
-            <div className="progress-stats" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '4px' }}>
-                <span style={{ fontSize: '14px', fontWeight: '800', color: isFullyFunded ? '#22c55e' : '#1e293b' }}>
-                    {clampedPercentage}% Funded
+          <div className="crowdfund-progress-section" style={{ marginTop: '12px' }}>
+            <div className="progress-stats" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '6px' }}>
+                <span style={{ fontSize: '13px', fontWeight: '800', color: isFullyFunded ? '#22c55e' : '#6366f1' }}>
+                    {clampedPercentage}% Raised
                 </span>
-                <span style={{ fontSize: '12px', fontWeight: '600', color: '#64748b' }}>
-                    {displayRaised}
+                <span style={{ fontSize: '11px', fontWeight: '600', color: '#64748b' }}>
+                    {displayRaised} of {displayMainPrice}
                 </span>
             </div>
             
@@ -154,7 +164,7 @@ export default function WishlistItemCard({
           </div>
         )}
         
-        <div className="card-footer-actions">
+        <div className="card-footer-actions" style={{ marginTop: '16px' }}>
           <button 
             className={`btn-main-action ${isCrowdfund ? 'crowdfund-btn' : ''} ${isClaimed ? 'btn-disabled' : ''}`} 
             onClick={() => !isClaimed && onAddToCart(item)}
@@ -163,13 +173,14 @@ export default function WishlistItemCard({
               backgroundColor: isClaimed && !isOwner ? '#f1f5f9' : '',
               color: isClaimed && !isOwner ? '#94a3b8' : '',
               border: isClaimed && !isOwner ? '1px solid #e2e8f0' : '',
-              cursor: isClaimed && !isOwner ? 'not-allowed' : 'pointer'
+              cursor: isClaimed && !isOwner ? 'not-allowed' : 'pointer',
+              width: '100%'
             }}
           >
             {!isClaimed && <ShoppingBag size={16} />}
             <span>
               {isCrowdfund 
-                ? (isFullyFunded && !isOwner ? 'Fully Funded' : (isOwner ? 'View Stats' : 'Contribute')) 
+                ? (isFullyFunded && !isOwner ? 'Fully Funded' : (isOwner ? 'View Contributions' : 'Contribute')) 
                 : (isClaimed ? 'Already Gifted! 🎁' : (!isOwner ? 'Gift This' : 'Add to Cart'))}
             </span>
           </button>
@@ -180,6 +191,17 @@ export default function WishlistItemCard({
 }
 
 // STYLES
+const qtyTagStyle = {
+  backgroundColor: '#f1f5f9',
+  color: '#475569',
+  padding: '2px 6px',
+  borderRadius: '4px',
+  fontSize: '10px',
+  fontWeight: '700',
+  marginLeft: '6px',
+  textTransform: 'uppercase'
+};
+
 const badgeContainerStyle = {
   position: 'absolute',
   top: '12px',

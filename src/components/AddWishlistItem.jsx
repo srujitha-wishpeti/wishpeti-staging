@@ -100,30 +100,27 @@ export default function AddWishlistItem({
     setLoading(true);
     setError(null);
     try {
-      // 1. Clean the input price (e.g. "1,200.50" -> 1200.50)
-      const inputVal = parseFloat(editableData.price.toString().replace(/[^\d.]/g, '')) || 0;
+      // 1. Clean the input price (unit price)
+      const unitPrice = parseFloat(editableData.price.toString().replace(/[^\d.]/g, '')) || 0;
       const qty = parseInt(editableData.quantity, 10) || 1;
 
-      // 2. CROWDFUND LOGIC: If crowdfunding, price becomes (unit price * quantity)
-      const totalLocalPrice = editableData.is_crowdfund ? (inputVal * qty) : inputVal;
-      const finalQuantity = editableData.is_crowdfund ? 1 : qty;
-
-      // 3. Convert back to base INR for Supabase (keeping decimals)
+      // 2. Convert the UNIT PRICE back to base INR for Supabase
+      // We no longer multiply by quantity here.
       const priceInINR = currency.code !== 'INR' 
-        ? parseFloat((totalLocalPrice / currency.rate).toFixed(2)) 
-        : totalLocalPrice;
+        ? parseFloat((unitPrice / currency.rate).toFixed(2)) 
+        : unitPrice;
 
       const updatedData = {
         title: editableData.title,
-        price: priceInINR, 
+        price: priceInINR,         // SAVES UNIT PRICE ONLY
+        quantity: qty,             // SAVES ACTUAL QUANTITY (e.g., 5)
         currency_code: currency.code,
         url: url,
         image: editableData.image,
         notes: editableData.notes,
         is_crowdfund: editableData.is_crowdfund,
-        quantity: finalQuantity,
-        // Status logic
-        status: finalQuantity > 0 ? 'available' : 'claimed',
+        // Status logic: if quantity is 0, it's claimed
+        status: qty > 0 ? 'available' : 'claimed',
         variants: {
           selectedSize: editableData.selectedSize,
           selectedColor: editableData.selectedColor

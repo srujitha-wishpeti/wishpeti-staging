@@ -1,32 +1,35 @@
 import React, { useState, useEffect } from 'react';
-import { X, ShieldCheck, Mail, User } from 'lucide-react';
+import { X, ShieldCheck, Mail, User, MessageSquare } from 'lucide-react';
 import { supabase } from '../services/supabaseClient';
 import { useCurrency } from '../context/CurrencyContext';
-import {convertAmount, fetchExchangeRate, getCurrencySymbol} from '../utils/currency';
+import { getCurrencySymbol } from '../utils/currency';
 
-export default function ContributeModal({ item, isOwner, onClose, onClaimGift, onSuccess }) {
+export default function ContributeModal({ item, onClose, onSuccess }) {
   const [amount, setAmount] = useState('');
   const [loading, setLoading] = useState(false);
   
-  // Giver Information States
+  // Giver Information
   const [buyerName, setBuyerName] = useState('');
   const [buyerEmail, setBuyerEmail] = useState('');
+  const [buyerMessage, setBuyerMessage] = useState('');
   const [isAnonymous, setIsAnonymous] = useState(false);
   
-  // Recent Givers States
   const [recentGivers, setRecentGivers] = useState([]);
   const [showGivers, setShowGivers] = useState(false);
 
-  const { currency, updateCurrency } = useCurrency();
-  // Safe Defaults for Currency to prevent "undefined"
+  const { currency } = useCurrency();
   const symbol = getCurrencySymbol(currency.code);
   const rate = currency?.rate || 1;
 
-  const displayGoal = (item.price * rate);
+  // --- LOGIC: UNIT PRICE * QUANTITY ---
+  const unitPrice = item.price || 0;
+  const quantity = item.quantity || 1;
+  const totalGoalBase = unitPrice * quantity; // Base INR total goal
+  
+  const displayGoal = totalGoalBase * rate;
   const displayRaised = (item.amount_raised || 0) * rate;
   const displayRemaining = Math.max(displayGoal - displayRaised, 0);
 
-  // Fetch recent givers for social proof
   useEffect(() => {
     const fetchGivers = async () => {
       const { data } = await supabase
@@ -42,7 +45,6 @@ export default function ContributeModal({ item, isOwner, onClose, onClaimGift, o
   }, [item.id]);
 
   const handlePayment = async () => {
-    // 1. Convert input to a clean number
     let inputAmount = parseFloat(amount);
 
     if (!inputAmount || inputAmount <= 0 || !buyerEmail) {
@@ -50,10 +52,7 @@ export default function ContributeModal({ item, isOwner, onClose, onClaimGift, o
       return;
     }
 
-    // 2. AUTO-CAP & ROUNDING LOGIC
-    // We use a small epsilon or simply round to 2 decimal places to avoid 51.4000000001
     if (inputAmount > displayRemaining) {
-      // Round down to 2 decimal places to ensure we don't exceed the goal by a fraction
       inputAmount = Math.floor(displayRemaining * 100) / 100;
       setAmount(inputAmount.toString()); 
     }
@@ -61,10 +60,7 @@ export default function ContributeModal({ item, isOwner, onClose, onClaimGift, o
     setLoading(true);
 
     try {
-      // 3. Convert to INR for Razorpay
       const amountInINR = currency.code === 'INR' ? inputAmount : (inputAmount / rate);
-      
-      // Use Math.round here to ensure Paise is a whole integer (Razorpay requirement)
       const amountInPaise = Math.round(amountInINR * 100);
 
       const options = {
@@ -80,7 +76,6 @@ export default function ContributeModal({ item, isOwner, onClose, onClaimGift, o
           email: buyerEmail
         },
         handler: async function (response) {
-          // Pass the clean inputAmount (e.g., 51.41) to the record
           await handleContributionRecord(response, inputAmount); 
           onSuccess(); 
         },
@@ -97,48 +92,55 @@ export default function ContributeModal({ item, isOwner, onClose, onClaimGift, o
   };
 
   const handleContributionRecord = async (response, paidAmount) => {
-    const amountInINR = currency.code !== 'INR' 
-      ? parseFloat((paidAmount / rate).toFixed(2)) // Keep 2 decimals
+    const contributionInINR = currency.code !== 'INR' 
+      ? parseFloat((paidAmount / rate).toFixed(2)) 
       : paidAmount;
 
+    // 1. Create Order Record
     const { error: orderError } = await supabase
         .from('orders')
         .insert([{
           razorpay_payment_id: response.razorpay_payment_id,
           item_id: item.id,
           creator_id: item.creator_id,
-          total_amount: amountInINR,
+          total_amount: contributionInINR,
           payment_status: 'paid',
           is_crowdfund: true,
           gift_status: 'pending',
           buyer_name: isAnonymous ? "Anonymous" : (buyerName || "Kind Supporter"),
-          buyer_email: buyerEmail 
+          buyer_email: buyerEmail,
+          buyer_message: buyerMessage
         }]);
 
     if (orderError) throw orderError;
 
-    const { error: updateError } = await supabase.rpc('increment_wishlist_raised', {
-        row_id: item.id,
-        increment_by: amountInINR
-    });
-
-    if (updateError) {
-        await supabase
-        .from('wishlist_items')
-        .update({ amount_raised: (item.amount_raised || 0) + amountInINR })
-        .eq('id', item.id);
-    }
+    // 2. Update Raised Amount
+    const newRaisedTotal = (item.amount_raised || 0) + contributionInINR;
+    const isNowFullyFunded = newRaisedTotal >= (totalGoalBase - 0.05); 
     
+    const updatePayload = { amount_raised: newRaisedTotal };
+
+    if (isNowFullyFunded) {
+        updatePayload.status = 'claimed';
+        updatePayload.quantity = 0; 
+    }
+
+    const { error: updateError } = await supabase
+        .from('wishlist_items')
+        .update(updatePayload)
+        .eq('id', item.id);
+
+    if (updateError) throw updateError;
     window.dispatchEvent(new Event('contributionUpdated'));
   };
 
-  const isGoalReached = displayRemaining <= 0;
+  const isGoalReached = displayRemaining <= 0.01;
 
   return (
     <div style={overlayStyle}>
       <div style={modalStyle}>
         <div style={headerStyle}>
-          <h3 style={{ margin: 0, fontSize: '18px' }}>
+          <h3 style={{ margin: 0, fontSize: '18px', fontWeight: '800' }}>
             {isGoalReached ? 'Goal Reached! 🥳' : 'Contribute to Gift 🎁'}
           </h3>
           <X onClick={onClose} style={{ cursor: 'pointer', opacity: 0.5 }} />
@@ -155,8 +157,8 @@ export default function ContributeModal({ item, isOwner, onClose, onClaimGift, o
             <span style={{ fontSize: '12px', color: isGoalReached ? '#166534' : '#64748b' }}>
               {isGoalReached ? 'Status:' : 'Remaining Goal:'}
             </span>
-            <div style={{ fontSize: '20px', fontWeight: '800', color: isGoalReached ? '#15803d' : '#1e293b' }}>
-              {isGoalReached ? 'Fully Funded' : `${symbol} ${displayRemaining.toLocaleString()}`}
+            <div style={{ fontSize: '22px', fontWeight: '900', color: isGoalReached ? '#15803d' : '#1e293b' }}>
+              {isGoalReached ? 'Fully Funded' : `${symbol}${displayRemaining.toLocaleString(undefined, {minimumFractionDigits: 2})}`}
             </div>
           </div>
 
@@ -190,19 +192,46 @@ export default function ContributeModal({ item, isOwner, onClose, onClaimGift, o
                     style={{...inputStyleWithIcon, backgroundColor: isAnonymous ? '#f8fafc' : 'white'}}
                   />
                 </div>
-                
-                {/* Fixed Checkbox Layout */}
-                <div 
-                  style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '4px', cursor: 'pointer' }}
-                  onClick={() => setIsAnonymous(!isAnonymous)}
-                >
+              </div>
+
+              {/* Message Field */}
+              <div style={fieldGroup}>
+                <label style={labelStyle}>Message for Creator</label>
+                <div style={inputContainer}>
+                  <MessageSquare size={16} style={{...iconStyle, top: '12px'}} />
+                  <textarea 
+                    value={buyerMessage}
+                    onChange={(e) => setBuyerMessage(e.target.value)}
+                    placeholder="Leave a nice note..."
+                    style={{...inputStyleWithIcon, height: '80px', resize: 'none', paddingTop: '10px'}}
+                  />
+                </div>
+              </div>
+
+              {/* Anonymous Toggle Card (Crowdfund Style) */}
+              <div 
+                onClick={() => setIsAnonymous(!isAnonymous)}
+                style={{
+                  ...toggleCardStyle,
+                  borderColor: isAnonymous ? '#6366f1' : '#e2e8f0',
+                  backgroundColor: isAnonymous ? '#f5f3ff' : '#fff',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center' }}>
                   <input 
                     type="checkbox" 
                     checked={isAnonymous} 
                     onChange={() => {}} 
-                    style={{ width: '16px', height: '16px', margin: 0, cursor: 'pointer' }}
+                    style={{ width: '18px', height: '18px', cursor: 'pointer' }}
                   />
-                  <span style={{ fontSize: '13px', color: '#64748b' }}>Keep my name anonymous on the wishlist</span>
+                </div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontWeight: '700', fontSize: '14px', color: '#1e293b' }}>
+                    Stay Anonymous 👤
+                  </div>
+                  <div style={{ fontSize: '12px', color: '#64748b', lineHeight: '1.4' }}>
+                    Hide your identity and message from the public wishlist.
+                  </div>
                 </div>
               </div>
 
@@ -218,10 +247,9 @@ export default function ContributeModal({ item, isOwner, onClose, onClaimGift, o
                     style={inputStyle}
                   />
                 </div>
-                {/* Add this warning message */}
                 {parseFloat(amount) > displayRemaining && (
-                  <span style={{ fontSize: '11px', color: '#6366f1', fontWeight: '600', marginTop: '4px' }}>
-                    ✨ Amount will be capped at {symbol}{displayRemaining.toLocaleString()} to complete the goal.
+                  <span style={{ fontSize: '11px', color: '#6366f1', fontWeight: '600' }}>
+                    ✨ Capped at {symbol}{displayRemaining.toFixed(2)} to complete the goal.
                   </span>
                 )}
               </div>
@@ -236,7 +264,6 @@ export default function ContributeModal({ item, isOwner, onClose, onClaimGift, o
             </div>
           )}
 
-          {/* Recent Givers Section */}
           {recentGivers.length > 0 && (
             <div style={{ marginTop: '24px', borderTop: '1px solid #f1f5f9', paddingTop: '16px', textAlign: 'left' }}>
                <button 
@@ -270,15 +297,27 @@ export default function ContributeModal({ item, isOwner, onClose, onClaimGift, o
 // Styles
 const fieldGroup = { display: 'flex', flexDirection: 'column', gap: '6px', textAlign: 'left' };
 const overlayStyle = { position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: '20px' };
-const modalStyle = { backgroundColor: 'white', borderRadius: '20px', width: '100%', maxWidth: '400px', overflow: 'hidden', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)' };
-const headerStyle = { padding: '16px 20px', borderBottom: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center' };
-const remainingBox = { padding: '16px', borderRadius: '12px', textAlign: 'center', marginBottom: '10px' };
-const inputContainer = { position: 'relative', display: 'flex', alignItems: 'center' };
-const iconStyle = { position: 'absolute', left: '12px', color: '#94a3b8' };
-const prefixStyle = { position: 'absolute', left: '14px', fontWeight: '700', color: '#475569' };
-const inputStyle = { width: '100%', padding: '12px 12px 12px 36px', borderRadius: '10px', border: '1px solid #e2e8f0', fontSize: '16px', outline: 'none' };
-const inputStyleWithIcon = { width: '100%', padding: '12px 12px 12px 40px', borderRadius: '10px', border: '1px solid #e2e8f0', fontSize: '14px', outline: 'none' };
-const btnStyle = { width: '100%', padding: '16px', backgroundColor: '#1e293b', color: 'white', border: 'none', borderRadius: '12px', fontWeight: '700', cursor: 'pointer' };
-const labelStyle = { fontSize: '12px', fontWeight: '700', color: '#64748b', textTransform: 'uppercase' };
+const modalStyle = { backgroundColor: 'white', borderRadius: '24px', width: '100%', maxWidth: '420px', overflow: 'hidden', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)' };
+const headerStyle = { padding: '20px', borderBottom: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center' };
+const remainingBox = { padding: '20px', borderRadius: '16px', textAlign: 'center', marginBottom: '10px' };
+const inputContainer = { position: 'relative', display: 'flex', alignItems: 'flex-start' };
+const iconStyle = { position: 'absolute', left: '14px', top: '14px', color: '#94a3b8' };
+const prefixStyle = { position: 'absolute', left: '16px', top: '16px', fontWeight: '700', color: '#1e293b' };
+const inputStyle = { width: '100%', padding: '14px 12px 14px 40px', borderRadius: '12px', border: '1px solid #e2e8f0', fontSize: '16px', outline: 'none' };
+const inputStyleWithIcon = { width: '100%', padding: '12px 12px 12px 42px', borderRadius: '12px', border: '1px solid #e2e8f0', fontSize: '14px', outline: 'none' };
+const btnStyle = { width: '100%', padding: '16px', backgroundColor: '#1e293b', color: 'white', border: 'none', borderRadius: '14px', fontWeight: '700', cursor: 'pointer', marginTop: '10px' };
+const labelStyle = { fontSize: '11px', fontWeight: '800', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' };
 const itemText = { fontSize: '14px', margin: '0 0 16px 0', color: '#475569', textAlign: 'left' };
 const footerStyle = { marginTop: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px', color: '#94a3b8', fontSize: '11px' };
+
+const toggleCardStyle = {
+  display: 'flex',
+  alignItems: 'flex-start',
+  gap: '12px',
+  padding: '14px',
+  borderRadius: '14px',
+  border: '2px solid',
+  cursor: 'pointer',
+  transition: 'all 0.2s ease',
+  textAlign: 'left'
+};

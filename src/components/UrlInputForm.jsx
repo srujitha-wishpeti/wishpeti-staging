@@ -17,6 +17,7 @@ export default function UrlInputForm({
   currencyCode 
 }) {
 
+  const hasFunds = editableData.amount_raised > 0;
   const handleEdit = (field, value) => {
     setEditableData(prev => ({ ...prev, [field]: value }));
   };
@@ -79,7 +80,12 @@ export default function UrlInputForm({
                         type="text"
                         value={editableData.price} 
                         onChange={(e) => handleEdit('price', e.target.value)}
-                        style={blankInputStyle}
+                          disabled={editableData.is_crowdfund} // LOCK IF FUNDED
+                          style={{ 
+                            ...blankInputStyle, 
+                            backgroundColor: editableData.is_crowdfund ? '#f8fafc' : 'transparent',
+                            cursor: editableData.is_crowdfund ? 'not-allowed' : 'text'
+                          }}
                         placeholder="0.00"
                       />
                     </div>
@@ -90,10 +96,20 @@ export default function UrlInputForm({
                   <input 
                     type="number" 
                     value={editableData.quantity || 1} 
-                    onChange={(e) => setEditableData({ ...editableData, quantity: e.target.value })}
-                    style={inputStyle}
+                    onChange={(e) => handleEdit('quantity', e.target.value)}
+                      disabled={editableData.is_crowdfund} // LOCK IF FUNDED
+                      style={{ 
+                        ...inputStyle, 
+                        backgroundColor: editableData.is_crowdfund ? '#f8fafc' : '#fff',
+                        cursor: editableData.is_crowdfund ? 'not-allowed' : 'pointer'
+                    }}
                   />
                 </div>
+                {hasFunds && (
+                  <div style={{ color: '#64748b', fontSize: '11px', marginTop: '4px' }}>
+                    🔒 Locked: Contributions have already started.
+                  </div>
+                )}
               </div>
 
               {/* CROWDFUNDING SECTION - Fixed ReferenceError */}
