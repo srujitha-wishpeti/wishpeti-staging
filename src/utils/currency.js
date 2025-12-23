@@ -43,6 +43,7 @@ export const fetchExchangeRate = async (toCurrency) => {
   }
 };
 
+
 const SAFETY_BUFFER = 0.015; 
 
 export const convertAmount = (amount, fromCurrency, toCurrency, rates) => {

@@ -17,7 +17,7 @@ import ScrollToTop from "../components/ScrollToTop";
 
 export default function AppRoutes() {
   const { session, loading } = useAuth();
-  const ADMIN_EMAILS = ['msrujitha@gmail.com', 'madhubandru@gmail.com'];
+  const ADMIN_EMAILS = ['msrujitha@gmail.com', 'madhubandru@gmail.com', 'shashi.karnati@gmail.com'];
   // Wait for Supabase to check the session before rendering
   if (loading) return null; 
 

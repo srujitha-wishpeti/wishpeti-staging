@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react';
 import { supabase } from '../services/supabaseClient';
 import AddItemButton from './AddItemButton';
 import UrlInputForm from './UrlInputForm';
-import { getCurrencySymbol } from '../utils/currency';
+import { getCurrencySymbol, convertAmount } from '../utils/currency';
+import { useCurrency } from '../context/CurrencyContext';
 
 export default function AddWishlistItem({ 
   session, 
@@ -19,7 +20,8 @@ export default function AddWishlistItem({
   const [error, setError] = useState(null);
   const [scrapedData, setScrapedData] = useState(null);
   const [selectedCategory, setSelectedCategory] = useState('');
-  
+  const [ setCurrency, allRates] = useCurrency();
+
   const [editableData, setEditableData] = useState({
     title: '',
     price: '',
@@ -78,7 +80,7 @@ export default function AddWishlistItem({
       // If the scraper found a $, convert it to your base (INR) first.
       // If it didn't find a $, assume it's already INR.
       if (rawPriceText.includes('$') || productUrl.includes('.com')) {
-        priceInINR = numericValue * 83.5; // Use a fixed base rate or an API
+        priceInINR = numericValue * 89.73; // Use a fixed base rate or an API
       }
 
       // 3. Now convert that INR base to whatever the USER wants to see
