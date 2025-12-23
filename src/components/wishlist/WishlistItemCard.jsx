@@ -1,5 +1,5 @@
 import React from 'react';
-import { ShoppingBag, Trash2, ExternalLink, Share2, Edit3, Users, CheckCircle } from 'lucide-react';
+import { ShoppingBag, Trash2, ExternalLink, Share2, Edit3, Users, CheckCircle, Lock } from 'lucide-react';
 import { formatPrice } from '../../utils/currency'; 
 
 export default function WishlistItemCard({ 
@@ -16,14 +16,18 @@ export default function WishlistItemCard({
   const goalAmount = item.price;
   const raisedAmount = item.amount_raised || 0;
   
-  // NEW: Logic for "Claimed" status based on your new DB columns
-  // An item is claimed if status is 'claimed', 'purchased', or quantity hits 0
+  // Logic for "Claimed" status
   const isClaimed = item.status === 'claimed' || item.status === 'purchased' || (item.quantity !== null && item.quantity <= 0);
 
-  // Calculate percentage (max 100)
-  const progressPercent = Math.min(Math.round((raisedAmount / goalAmount) * 100), 100);
+  // Math for progress bar
+  const progressPercent = Math.round((item.amount_raised / item.price) * 100) || 0;
+  const clampedPercentage = Math.min(progressPercent, 100);
   const isFullyFunded = raisedAmount >= goalAmount;
 
+  // Check if item has any contributions (prevents 409 Conflict error on delete)
+  const hasContributions = raisedAmount > 0;
+
+  const isLocked = hasContributions || isClaimed;
   const displayPrice = formatPrice(item.price, currencySettings.code, currencySettings.rate);
   const displayRaised = formatPrice(raisedAmount, currencySettings.code, currencySettings.rate);
   const displayImage = item.image_url || item.image;
@@ -65,7 +69,7 @@ export default function WishlistItemCard({
           <div className="placeholder-box">🎁</div>
         )}
 
-        {/* NEW: GIFTED BADGE */}
+        {/* GIFTED BADGE */}
         {isClaimed && !isCrowdfund && (
             <div className="gifted-overlay-badge" style={giftedBadgeStyle}>
                 <CheckCircle size={14} style={{ marginRight: '4px' }} />
@@ -95,10 +99,17 @@ export default function WishlistItemCard({
             <Share2 size={16} />
           </button>
 
+          {/* DYNAMIC DELETE ACTION: Only show if 0 funds raised */}
           {isOwner && onDelete && (
-            <button className="delete-btn" onClick={() => onDelete(item.id)} title="Delete">
-              <Trash2 size={16} />
-            </button>
+            isLocked ? (
+              <div className="locked-action" title="Funded items cannot be deleted" style={lockContainerStyle}>
+                <Lock size={14} />
+              </div>
+            ) : (
+              <button className="delete-btn" onClick={() => onDelete(item.id)} title="Delete">
+                <Trash2 size={16} />
+              </button>
+            )
           )}
         </div>
       </div>
@@ -122,7 +133,7 @@ export default function WishlistItemCard({
           <div className="crowdfund-progress-section">
             <div className="progress-stats" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '4px' }}>
                 <span style={{ fontSize: '14px', fontWeight: '800', color: isFullyFunded ? '#22c55e' : '#1e293b' }}>
-                    {progressPercent}% Funded
+                    {clampedPercentage}% Funded
                 </span>
                 <span style={{ fontSize: '12px', fontWeight: '600', color: '#64748b' }}>
                     {displayRaised}
@@ -133,9 +144,9 @@ export default function WishlistItemCard({
               <div 
                 className="progress-fill" 
                 style={{ 
-                  width: `${progressPercent}%`, 
+                  width: `${clampedPercentage}%`, 
                   height: '100%', 
-                  backgroundColor: progressPercent >= 100 ? '#22c55e' : '#6366f1',
+                  backgroundColor: isFullyFunded ? '#22c55e' : '#6366f1',
                   transition: 'width 0.5s ease-in-out'
                 }} 
               />
@@ -186,13 +197,24 @@ const badgeContainerStyle = {
   zIndex: 10
 };
 
+const lockContainerStyle = {
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  width: '32px',
+  height: '32px',
+  color: '#94a3b8',
+  opacity: 0.6,
+  cursor: 'help'
+};
+
 const giftedBadgeStyle = {
     position: 'absolute',
     top: '12px',
     left: '12px',
     display: 'flex',
     alignItems: 'center',
-    backgroundColor: '#10b981', // Emerald Green
+    backgroundColor: '#10b981', 
     color: 'white',
     padding: '4px 10px',
     borderRadius: '20px',

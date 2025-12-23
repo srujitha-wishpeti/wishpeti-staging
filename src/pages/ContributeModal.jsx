@@ -98,8 +98,8 @@ export default function ContributeModal({ item, isOwner, onClose, onClaimGift, o
 
   const handleContributionRecord = async (response, paidAmount) => {
     const amountInINR = currency.code !== 'INR' 
-        ? Math.ceil(paidAmount / rate) 
-        : Math.ceil(paidAmount);
+      ? parseFloat((paidAmount / rate).toFixed(2)) // Keep 2 decimals
+      : paidAmount;
 
     const { error: orderError } = await supabase
         .from('orders')
