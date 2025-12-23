@@ -354,7 +354,7 @@ const totalGiftValue = wishlist.reduce((acc, item) => {
                                 
                                 {/* RESTORED SHARE URL LOGIC */}
                                 <button className="modern-share-btn" style={shareButtonStyle} onClick={() => {
-                                    const shareUrl = `${window.location.origin}/wishlist/${profile?.username}`;
+                                    const shareUrl = `${window.location.origin}/${profile?.username}`;
                                     navigator.clipboard.writeText(shareUrl);
                                     setToastMsg("Link copied! 🔗");
                                     setShowToast(true);
