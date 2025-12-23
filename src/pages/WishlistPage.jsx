@@ -37,11 +37,20 @@ export default function WishlistPage() {
 
   const { currency, updateCurrency } = useCurrency();
   const [editingItem, setEditingItem] = useState(null);
+  const [showGeoNotice, setShowGeoNotice] = useState(false);
+
   // 1. ADD THIS: Handle Edit Item
   // This opens the AddWishlistItem modal in "edit mode"
   const handleEditItem = (item) => {
     setEditingItem(item); // This will pass the item data to your AddWishlistItem component
   };
+
+  useEffect(() => {
+    // If the currency is not INR (our default) and the user hasn't dismissed the notice
+    if (currency.code !== 'INR' && !localStorage.getItem('geo_notice_dismissed')) {
+        setShowGeoNotice(true);
+    }
+  }, [currency.code]);
 
   useEffect(() => {
     if (profile) {
@@ -456,6 +465,17 @@ export default function WishlistPage() {
             }}
         />
       )}
+
+      {showGeoNotice && (
+        <div className="geo-banner">
+            <p>Prices shown in <strong>{currency.code}</strong> based on your location.</p>
+            <button onClick={() => {
+            setShowGeoNotice(false);
+            localStorage.setItem('geo_notice_dismissed', 'true');
+            }}>Got it</button>
+        </div>
+      )}
+
       {/* EDIT MODAL WITH WORKING BUTTONS */}
       {editingProfile && (
         <div className="edit-overlay" style={overlayStyle}>
