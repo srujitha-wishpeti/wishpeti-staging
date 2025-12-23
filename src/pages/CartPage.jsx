@@ -26,6 +26,40 @@ export default function CartPage() {
     loadCart();
   }, []);
 
+  const validateCartItems = async () => {
+    const itemIds = cartItems.map(item => item.id);
+    
+    // Fetch fresh data for these specific items
+    const { data, error } = await supabase
+      .from('wishlist_items')
+      .select('id, quantity, status, title')
+      .in('id', itemIds);
+
+    if (error) return;
+
+    // Check if any item is now out of stock or claimed
+    const unavailableItems = data.filter(dbItem => dbItem.quantity <= 0 || dbItem.status === 'claimed');
+
+    if (unavailableItems.length > 0) {
+      const names = unavailableItems.map(i => i.title).join(', ');
+      showToast(`Oops! ${names} was just gifted by someone else.`);
+      
+      // Remove unavailable items from cart
+      const filteredCart = cartItems.filter(cartItem => 
+        !unavailableItems.find(un => un.id === cartItem.id)
+      );
+      setCartItems(filteredCart);
+      localStorage.setItem('wishlist_cart', JSON.stringify(filteredCart));
+    }
+  };
+
+  // Run this when the page loads
+  useEffect(() => {
+    if (cartItems.length > 0) {
+      validateCartItems();
+    }
+  }, [cartItems.length]);
+
   const handleCurrencyChange = async (newCode) => {
     try {
       await updateCurrency(newCode);
@@ -138,11 +172,15 @@ export default function CartPage() {
             gift_status: 'pending'
         }])
         .select();
-
       if (orderError) throw orderError;
 
       const itemIds = cartItems.map(item => item.id).filter(id => id && id !== 'undefined');
       
+      const updatePromises = cartItems.map(item => 
+        supabase.rpc('decrement_item_quantity', { row_id: item.id })
+      );
+      
+      await Promise.all(updatePromises);
       localStorage.removeItem('wishlist_cart');
       setCartItems([]);
       window.dispatchEvent(new Event('cartUpdated'));

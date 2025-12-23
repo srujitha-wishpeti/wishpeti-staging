@@ -166,12 +166,17 @@ export default function WishlistPage() {
     }
   };
 
-  const totalGiftValue = wishlist.reduce((acc, item) => {
+const totalGiftValue = wishlist.reduce((acc, item) => {
+    // Only add to the total if the item is NOT claimed/purchased
+    const isClaimed = item.status === 'claimed' || item.status === 'purchased' || (item.quantity !== null && item.quantity <= 0);
+    
+    if (isClaimed) return acc;
+
     const price = typeof item.price === 'string' 
         ? parseFloat(item.price.replace(/[^0-9.]/g, '')) 
         : item.price;
     return acc + (isNaN(price) ? 0 : price);
-  }, 0);
+}, 0);
 
 // For now, we can set pendingGifts to 0 or count items marked as 'unbought' 
 // if you have a 'bought' status in your DB
@@ -433,11 +438,19 @@ export default function WishlistPage() {
         </div>
       </section>
 
+      
+
       {/* ITEMS DISPLAY */}
       <main className="wishlist-display-area">
         <div className={`wishlist-container-${viewMode}`}>
             {wishlist
                 .filter(item => (item.title || "").toLowerCase().includes(searchQuery.toLowerCase()))
+                .sort((a, b) => {
+                    const aClaimed = a.status === 'claimed' || a.status === 'purchased' || a.quantity <= 0;
+                    const bClaimed = b.status === 'claimed' || b.status === 'purchased' || b.quantity <= 0;
+                    // Move claimed items (true) to the end
+                    return aClaimed === bClaimed ? 0 : aClaimed ? 1 : -1;
+                })
                 .map(item => (
                     <WishlistItemCard 
                         key={item.id} 

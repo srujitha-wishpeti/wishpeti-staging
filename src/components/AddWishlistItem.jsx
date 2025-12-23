@@ -123,17 +123,19 @@ export default function AddWishlistItem({
 
       const updatedData = {
         title: editableData.title,
-        price: priceInINR, // This is now safely rounded up
+        price: priceInINR, // Now a raw number! 
         currency_code: currency.code,
         url: url,
         image: editableData.image,
         notes: editableData.notes,
         is_crowdfund: editableData.is_crowdfund,
-          variants: {
-            selectedSize: editableData.selectedSize,
-            selectedColor: editableData.selectedColor
-          }
-        };
+        quantity: parseInt(editableData.quantity, 10) || 1,
+        status: (parseInt(editableData.quantity, 10) || 1) > 0 ? 'available' : 'claimed',
+        variants: {
+          selectedSize: editableData.selectedSize,
+          selectedColor: editableData.selectedColor
+        }
+      };
 
         if (isEditing) {
           await supabase.from('wishlist_items').update(updatedData).eq('id', initialData.id);

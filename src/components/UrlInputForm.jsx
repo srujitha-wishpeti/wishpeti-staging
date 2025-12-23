@@ -90,7 +90,7 @@ export default function UrlInputForm({
                   <input 
                     type="number" 
                     value={editableData.quantity || 1} 
-                    onChange={(e) => handleEdit('quantity', parseInt(e.target.value) || 1)}
+                    onChange={(e) => setEditableData({ ...editableData, quantity: e.target.value })}
                     style={inputStyle}
                   />
                 </div>

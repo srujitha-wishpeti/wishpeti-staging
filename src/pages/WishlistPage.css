@@ -812,3 +812,35 @@
     filter: brightness(0.9);
     transition: filter 0.2s ease;
 }
+
+.geo-banner {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #1e293b;
+  color: white;
+  padding: 12px 24px;
+  border-radius: 50px;
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+  z-index: 9999;
+  animation: slideUp 0.3s ease-out;
+}
+
+.geo-banner button {
+  background: #4f46e5;
+  border: none;
+  color: white;
+  padding: 5px 15px;
+  border-radius: 20px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+@keyframes slideUp {
+  from { bottom: -100px; }
+  to { bottom: 20px; }
+}

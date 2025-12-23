@@ -1,5 +1,5 @@
 import React from 'react';
-import { ShoppingBag, Trash2, ExternalLink, Share2, Edit3, Users } from 'lucide-react';
+import { ShoppingBag, Trash2, ExternalLink, Share2, Edit3, Users, CheckCircle } from 'lucide-react';
 import { formatPrice } from '../../utils/currency'; 
 
 export default function WishlistItemCard({ 
@@ -16,23 +16,16 @@ export default function WishlistItemCard({
   const goalAmount = item.price;
   const raisedAmount = item.amount_raised || 0;
   
+  // NEW: Logic for "Claimed" status based on your new DB columns
+  // An item is claimed if status is 'claimed', 'purchased', or quantity hits 0
+  const isClaimed = item.status === 'claimed' || item.status === 'purchased' || (item.quantity !== null && item.quantity <= 0);
+
   // Calculate percentage (max 100)
   const progressPercent = Math.min(Math.round((raisedAmount / goalAmount) * 100), 100);
   const isFullyFunded = raisedAmount >= goalAmount;
 
-  // Use the formatting utility for consistent currency display
-  const displayPrice = formatPrice(
-    item.price, 
-    currencySettings.code, 
-    currencySettings.rate
-  );
-
-  const displayRaised = formatPrice(
-    raisedAmount,
-    currencySettings.code,
-    currencySettings.rate
-  );
-
+  const displayPrice = formatPrice(item.price, currencySettings.code, currencySettings.rate);
+  const displayRaised = formatPrice(raisedAmount, currencySettings.code, currencySettings.rate);
   const displayImage = item.image_url || item.image;
 
   const handleShare = async (e) => {
@@ -54,14 +47,30 @@ export default function WishlistItemCard({
   };
 
   return (
-    <div className={`unified-wishlist-card ${isCrowdfund ? 'crowdfund-style' : ''}`} id={`item-${item.id}`}>
+    <div 
+      className={`unified-wishlist-card ${isCrowdfund ? 'crowdfund-style' : ''} ${isClaimed ? 'item-claimed' : ''}`} 
+      id={`item-${item.id}`}
+    >
       
       {/* MEDIA SECTION */}
       <div className="card-media-box">
         {displayImage ? (
-          <img src={displayImage} alt={item.title} loading="lazy" />
+          <img 
+            src={displayImage} 
+            alt={item.title} 
+            loading="lazy" 
+            style={{ filter: isClaimed ? 'grayscale(1) opacity(0.6)' : 'none' }} 
+          />
         ) : (
           <div className="placeholder-box">🎁</div>
+        )}
+
+        {/* NEW: GIFTED BADGE */}
+        {isClaimed && !isCrowdfund && (
+            <div className="gifted-overlay-badge" style={giftedBadgeStyle}>
+                <CheckCircle size={14} style={{ marginRight: '4px' }} />
+                <span>GIFTED</span>
+            </div>
         )}
 
         {isCrowdfund && (
@@ -104,18 +113,15 @@ export default function WishlistItemCard({
           <span className="item-price-footer">{displayPrice}</span>
         </div>
         
-        <h3 className="card-product-title">{item.title}</h3>
+        <h3 className="card-product-title" style={{ color: isClaimed ? '#94a3b8' : '#1e293b' }}>
+            {item.title}
+        </h3>
 
         {/* PROGRESS BAR SECTION */}
         {isCrowdfund && (
           <div className="crowdfund-progress-section">
-            <div className="progress-stats" style={{ 
-                display: 'flex', 
-                justifyContent: 'space-between', 
-                alignItems: 'baseline', // Keeps text level
-                marginBottom: '4px' 
-                }}>
-                <span style={{ fontSize: '14px', fontWeight: '800', color: '#1e293b' }}>
+            <div className="progress-stats" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '4px' }}>
+                <span style={{ fontSize: '14px', fontWeight: '800', color: isFullyFunded ? '#22c55e' : '#1e293b' }}>
                     {progressPercent}% Funded
                 </span>
                 <span style={{ fontSize: '12px', fontWeight: '600', color: '#64748b' }}>
@@ -134,27 +140,26 @@ export default function WishlistItemCard({
                 }} 
               />
             </div>
-            <div style={{ fontSize: '10px', color: '#94a3b8', marginTop: '4px', textAlign: 'right' }}>
-              Target: {displayPrice}
-            </div>
           </div>
         )}
         
         <div className="card-footer-actions">
           <button 
-            className={`btn-main-action ${isCrowdfund ? 'crowdfund-btn' : ''}`} 
-            onClick={() => onAddToCart(item)}
-            disabled={isCrowdfund && isFullyFunded && !isOwner}
+            className={`btn-main-action ${isCrowdfund ? 'crowdfund-btn' : ''} ${isClaimed ? 'btn-disabled' : ''}`} 
+            onClick={() => !isClaimed && onAddToCart(item)}
+            disabled={isClaimed && !isOwner}
             style={{ 
-              opacity: (isCrowdfund && isFullyFunded && !isOwner) ? 0.6 : 1,
-              cursor: (isCrowdfund && isFullyFunded && !isOwner) ? 'not-allowed' : 'pointer'
+              backgroundColor: isClaimed && !isOwner ? '#f1f5f9' : '',
+              color: isClaimed && !isOwner ? '#94a3b8' : '',
+              border: isClaimed && !isOwner ? '1px solid #e2e8f0' : '',
+              cursor: isClaimed && !isOwner ? 'not-allowed' : 'pointer'
             }}
           >
-            <ShoppingBag size={16} />
+            {!isClaimed && <ShoppingBag size={16} />}
             <span>
               {isCrowdfund 
                 ? (isFullyFunded && !isOwner ? 'Fully Funded' : (isOwner ? 'View Stats' : 'Contribute')) 
-                : (!isOwner ? 'Gift This' : 'Add to Cart')}
+                : (isClaimed ? 'Already Gifted! 🎁' : (!isOwner ? 'Gift This' : 'Add to Cart'))}
             </span>
           </button>
         </div>
@@ -162,12 +167,14 @@ export default function WishlistItemCard({
     </div>
   );
 }
+
+// STYLES
 const badgeContainerStyle = {
   position: 'absolute',
   top: '12px',
   left: '12px',
-  display: 'flex',            // Enable Flexbox
-  alignItems: 'center',       // Center icon and text vertically
+  display: 'flex',
+  alignItems: 'center',
   backgroundColor: 'rgba(255, 255, 255, 0.9)',
   padding: '4px 8px',
   borderRadius: '6px',
@@ -177,4 +184,21 @@ const badgeContainerStyle = {
   boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
   backdropFilter: 'blur(4px)',
   zIndex: 10
+};
+
+const giftedBadgeStyle = {
+    position: 'absolute',
+    top: '12px',
+    left: '12px',
+    display: 'flex',
+    alignItems: 'center',
+    backgroundColor: '#10b981', // Emerald Green
+    color: 'white',
+    padding: '4px 10px',
+    borderRadius: '20px',
+    fontSize: '11px',
+    fontWeight: '800',
+    letterSpacing: '0.05em',
+    boxShadow: '0 4px 12px rgba(16, 185, 129, 0.3)',
+    zIndex: 11
 };
