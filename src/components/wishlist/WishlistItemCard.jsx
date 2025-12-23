@@ -9,6 +9,7 @@ export default function WishlistItemCard({
   onAddToCart, 
   onEdit, 
   username, 
+  isHighlighted,
   currencySettings = { code: 'INR', rate: 1, symbol: '₹' } 
 }) {
   
@@ -44,24 +45,33 @@ export default function WishlistItemCard({
   const handleShare = async (e) => {
     e.preventDefault();
     e.stopPropagation();
-    const shareUrl = `${window.location.origin}/wishlist/${username}?item=${item.id}`;
+    const shareUrl = `${window.location.origin}/${username}/item/${item.id}`;
+    
     if (navigator.share) {
       try {
         await navigator.share({
           title: `Gift me this! 🎁`,
-          text: `I'd love to receive "${item.title}" from my WishPeti wishlist!`,
+          text: `I'd love to receive "${item.title}" from my wishlist!`,
           url: shareUrl,
         });
-      } catch (err) { console.log('Share cancelled'); }
+      } catch (err) { /* User cancelled or share failed */ }
     } else {
-      navigator.clipboard.writeText(shareUrl);
-      alert("Link copied to clipboard! 📋");
+      try {
+        await navigator.clipboard.writeText(shareUrl);
+        // Tip: You could replace this alert with a temporary toast notification
+        alert("Link copied to clipboard! 📋");
+      } catch (err) {
+        console.error('Failed to copy: ', err);
+      }
     }
   };
 
   return (
     <div 
-      className={`unified-wishlist-card ${isCrowdfund ? 'crowdfund-style' : ''} ${isClaimed ? 'item-claimed' : ''}`} 
+      className={`unified-wishlist-card 
+        ${isCrowdfund ? 'crowdfund-style' : ''} 
+        ${isClaimed ? 'item-claimed' : ''} 
+        ${isHighlighted ? 'card-is-spotlighted' : ''}`} // <--- ADD THIS
       id={`item-${item.id}`}
     >
       

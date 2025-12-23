@@ -296,8 +296,6 @@ export default function ContributeModal({ item, onClose, onSuccess }) {
 
 // Styles
 const fieldGroup = { display: 'flex', flexDirection: 'column', gap: '6px', textAlign: 'left' };
-const overlayStyle = { position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: '20px' };
-const modalStyle = { backgroundColor: 'white', borderRadius: '24px', width: '100%', maxWidth: '420px', overflow: 'hidden', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)' };
 const headerStyle = { padding: '20px', borderBottom: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center' };
 const remainingBox = { padding: '20px', borderRadius: '16px', textAlign: 'center', marginBottom: '10px' };
 const inputContainer = { position: 'relative', display: 'flex', alignItems: 'flex-start' };
@@ -309,6 +307,31 @@ const btnStyle = { width: '100%', padding: '16px', backgroundColor: '#1e293b', c
 const labelStyle = { fontSize: '11px', fontWeight: '800', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' };
 const itemText = { fontSize: '14px', margin: '0 0 16px 0', color: '#475569', textAlign: 'left' };
 const footerStyle = { marginTop: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px', color: '#94a3b8', fontSize: '11px' };
+
+const overlayStyle = { 
+  position: 'fixed', 
+  inset: 0, 
+  // This creates a massive shadow that dims the screen but leaves the center clear
+  boxShadow: '0 0 0 5000px rgba(15, 23, 42, 0.85)', 
+  backdropFilter: 'blur(4px)',
+  display: 'flex', 
+  alignItems: 'center', 
+  justifyContent: 'center', 
+  zIndex: 10000, 
+  padding: '20px' 
+};
+
+const modalStyle = { 
+  backgroundColor: 'white', 
+  borderRadius: '24px', 
+  width: '100%', 
+  maxWidth: '420px', 
+  overflow: 'hidden', 
+  boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)',
+  // Ensure the modal is clickable
+  position: 'relative',
+  zIndex: 10001
+};
 
 const toggleCardStyle = {
   display: 'flex',
