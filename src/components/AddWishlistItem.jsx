@@ -20,7 +20,7 @@ export default function AddWishlistItem({
   const [error, setError] = useState(null);
   const [scrapedData, setScrapedData] = useState(null);
   const [selectedCategory, setSelectedCategory] = useState('');
-  const [ setCurrency, allRates] = useCurrency();
+  const { setCurrency, allRates} = useCurrency();
 
   const [editableData, setEditableData] = useState({
     title: '',
