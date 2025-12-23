@@ -68,14 +68,15 @@ export default function AddWishlistItem({
       // 1. Get the raw text (e.g., "$44.00")
       const rawPriceText = data.price_raw || data.price || "";
       const numericValue = parseFloat(rawPriceText.toString().replace(/[^\d.]/g, '')) || 0;
-
+      console.log('rawPriceText'+rawPriceText);
       // 2. Determine the "Source of Truth"
       let priceInINR = numericValue;
       
       // If the scraper found a $, convert it to your base (INR) first.
       // If it didn't find a $, assume it's already INR.
-      if (rawPriceText.includes('$') || productUrl.includes('.com')) {
+      if (rawPriceText.includes('$') ) {
         priceInINR = numericValue * 90.73; // Use a fixed base rate or an API
+        console.log('converting to rupee');
       }
 
       // 3. Now convert that INR base to whatever the USER wants to see
@@ -123,6 +124,7 @@ export default function AddWishlistItem({
       const updatedData = {
         title: editableData.title,
         price: priceInINR, // This is now safely rounded up
+        currency_code: currency.code,
         url: url,
         image: editableData.image,
         notes: editableData.notes,
@@ -139,7 +141,7 @@ export default function AddWishlistItem({
           await supabase.from('wishlist_items').insert([{ ...updatedData, creator_id: session.user.id }]);
         }
         
-        onItemAdded(); 
+        onItemAdded(); c
         if (!isEditing) resetForm();
 
       } catch (err) {

@@ -42,14 +42,29 @@ export default function ContributeModal({ item, isOwner, onClose, onClaimGift, o
   }, [item.id]);
 
   const handlePayment = async () => {
-    if (!amount || amount <= 0 || !buyerEmail) {
+    // 1. Convert input to a clean number
+    let inputAmount = parseFloat(amount);
+
+    if (!inputAmount || inputAmount <= 0 || !buyerEmail) {
       alert("Please enter a valid amount and email.");
       return;
     }
+
+    // 2. AUTO-CAP & ROUNDING LOGIC
+    // We use a small epsilon or simply round to 2 decimal places to avoid 51.4000000001
+    if (inputAmount > displayRemaining) {
+      // Round down to 2 decimal places to ensure we don't exceed the goal by a fraction
+      inputAmount = Math.floor(displayRemaining * 100) / 100;
+      setAmount(inputAmount.toString()); 
+    }
+
     setLoading(true);
 
     try {
-      const amountInINR = currency.code === 'INR' ? amount : (amount / rate);
+      // 3. Convert to INR for Razorpay
+      const amountInINR = currency.code === 'INR' ? inputAmount : (inputAmount / rate);
+      
+      // Use Math.round here to ensure Paise is a whole integer (Razorpay requirement)
       const amountInPaise = Math.round(amountInINR * 100);
 
       const options = {
@@ -57,7 +72,7 @@ export default function ContributeModal({ item, isOwner, onClose, onClaimGift, o
         amount: amountInPaise, 
         currency: "INR", 
         display_currency: currency.code,
-        display_amount: amount,
+        display_amount: inputAmount,
         name: "WishPeti",
         description: `Contribution for ${item.title}`,
         prefill: {
@@ -65,7 +80,8 @@ export default function ContributeModal({ item, isOwner, onClose, onClaimGift, o
           email: buyerEmail
         },
         handler: async function (response) {
-          await handleContributionRecord(response, amount); 
+          // Pass the clean inputAmount (e.g., 51.41) to the record
+          await handleContributionRecord(response, inputAmount); 
           onSuccess(); 
         },
         theme: { color: "#6366f1" },
@@ -202,6 +218,12 @@ export default function ContributeModal({ item, isOwner, onClose, onClaimGift, o
                     style={inputStyle}
                   />
                 </div>
+                {/* Add this warning message */}
+                {parseFloat(amount) > displayRemaining && (
+                  <span style={{ fontSize: '11px', color: '#6366f1', fontWeight: '600', marginTop: '4px' }}>
+                    ✨ Amount will be capped at {symbol}{displayRemaining.toLocaleString()} to complete the goal.
+                  </span>
+                )}
               </div>
 
               <button 
