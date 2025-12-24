@@ -15,7 +15,7 @@ export default function CartPage() {
   const [senderEmail, setSenderEmail] = useState('');
   const showToast = useToast();
   
-  const { currency, updateCurrency } = useCurrency();
+  const { currency, updateCurrency, loading: currencyLoading } = useCurrency();
 
   const loadCart = () => {
     const savedCart = JSON.parse(localStorage.getItem('wishlist_cart') || '[]');
@@ -27,13 +27,17 @@ export default function CartPage() {
   }, []);
 
   const validateCartItems = async () => {
-    const itemIds = cartItems.map(item => item.id);
-    if (itemIds.length === 0) return;
+    // FIX 1: Filter out surprise items. Only query real DB IDs.
+    const realItemIds = cartItems
+      .filter(item => !item.is_surprise && item.id)
+      .map(item => item.id);
+      
+    if (realItemIds.length === 0) return;
 
     const { data, error } = await supabase
       .from('wishlist_items')
       .select('id, quantity, status, title')
-      .in('id', itemIds);
+      .in('id', realItemIds);
 
     if (error) return;
 
@@ -76,7 +80,11 @@ export default function CartPage() {
     const savedPrice = parseFloat(item.price) || 0;
     const savedCurrency = item.added_currency || 'INR';
     
-    // If the viewing currency matches how it was saved, return raw value
+    if (item.is_surprise) {
+      return item.price;
+    }
+    // FIX 2: THE GOLDEN RULE
+    // If viewing currency matches how it was added (USD -> USD), skip math.
     if (savedCurrency === currency.code) {
       return savedPrice;
     }
@@ -97,10 +105,10 @@ export default function CartPage() {
     return cartItems.reduce((sum, item) => sum + getNormalizedPrice(item), 0);
   };
 
-  // Total payable is now just the sum of items (buffer is already inside item.price)
   const finalPayable = calculateTotal();
 
   const formatPrice = (amount) => {
+    if (currencyLoading) return "...";
     return new Intl.NumberFormat(currency.code === 'INR' ? 'en-IN' : 'en-US', {
       style: 'currency',
       currency: currency.code || 'INR',
@@ -115,6 +123,7 @@ export default function CartPage() {
     if (currency.code === 'INR') {
       amountInPaise = Math.round(finalPayable * 100);
     } else {
+      // Back to INR for Razorpay Gateway
       amountInPaise = Math.round((finalPayable / currency.rate) * 100);
     }
 
@@ -140,39 +149,123 @@ export default function CartPage() {
   const handlePaymentSuccess = async (response) => {
     setLoading(true);
     try {
-      const creatorId = cartItems[0]?.recipient_id || cartItems[0]?.creator_id; 
-      const { rate } = getCurrencyPreference();
-      
-      const { data: orderData, error: orderError } = await supabase
-        .from('orders')
-        .insert([{
-            razorpay_payment_id: response.razorpay_payment_id,
-            buyer_name: senderName,
-            buyer_email: senderEmail,
-            creator_id: creatorId,
-            subtotal: finalPayable, // Full gift value (buffered)
-            total_amount: finalPayable, 
-            currency_code: currency.code,
-            items: cartItems, 
-            payment_status: 'paid',
-            exchange_rate_at_payment: rate,
-            gift_status: 'pending'
-        }])
-        .select();
+        const creatorId = cartItems[0]?.recipient_id || cartItems[0]?.creator_id;
+        const { rate } = getCurrencyPreference();
+        
+        // 1. Calculate Surprise Amount in INR
+        const surpriseTotal = cartItems
+            .filter(item => item.is_surprise)
+            .reduce((sum, item) => sum + parseFloat(item.price), 0);
+        
+        const surpriseInINR = currency.code === 'INR' 
+            ? surpriseTotal 
+            : surpriseTotal / (currency.rate || 1);
 
-      if (orderError) throw orderError;
+        // 2. Insert the Order Record
+        const { data: orderData, error: orderError } = await supabase
+            .from('orders')
+            .insert([{
+                razorpay_payment_id: response.razorpay_payment_id,
+                buyer_name: senderName,
+                buyer_email: senderEmail,
+                creator_id: creatorId,
+                subtotal: finalPayable, 
+                total_amount: finalPayable, 
+                currency_code: currency.code,
+                items: cartItems, 
+                payment_status: 'paid',
+                exchange_rate_at_payment: rate,
+                gift_status: 'pending'
+            }])
+            .select();
 
-      const updatePromises = cartItems.map(item => 
-        supabase.rpc('decrement_item_quantity', { row_id: item.id })
-      );
-      
-      await Promise.all(updatePromises);
-      localStorage.removeItem('wishlist_cart');
-      setCartItems([]);
-      window.dispatchEvent(new Event('cartUpdated'));
-      navigate(`/success/${orderData?.[0]?.id}`);
+        if (orderError) throw orderError;
+
+        const allocationImpact = [];
+
+        // 3. WATERFALL ALLOCATION LOGIC (The Fix)
+        if (surpriseInINR > 0) {
+            let remainingPool = surpriseInINR;
+
+            // Fetch all active items for this creator, ordered by Priority (1 High -> 3 Standard)
+            const { data: allItems } = await supabase
+                .from('wishlist_items')
+                .select('*')
+                .eq('creator_id', creatorId)
+                .eq('status', 'active')
+                .order('priority_level', { ascending: true });
+
+            if (allItems && allItems.length > 0) {
+                for (const item of allItems) {
+                    if (remainingPool <= 0) break;
+
+                    const goalAmount = (item.price || 0) * (item.quantity || 1);
+                    const currentlyRaised = item.amount_raised || 0;
+                    const needed = goalAmount - currentlyRaised;
+
+                    if (needed > 0) {
+                        const contribution = Math.min(remainingPool, needed);
+                        const isNowFullyFunded = (currentlyRaised + contribution) >= goalAmount;
+
+                        // UPDATE DATABASE: Force to crowdfund and add amount
+                        await supabase
+                            .from('wishlist_items')
+                            .update({
+                                is_crowdfund: true,
+                                amount_raised: currentlyRaised + contribution,
+                                status: isNowFullyFunded ? 'claimed' : 'active'
+                            })
+                            .eq('id', item.id);
+
+                        allocationImpact.push({
+                            title: item.title,
+                            amount: contribution,
+                            fullyFunded: isNowFullyFunded
+                        });
+
+                        remainingPool -= contribution;
+                    }
+                }
+            }
+
+            // FALLBACK: If money remains after everything is funded, find/update the General Fund
+            if (remainingPool > 0) {
+                const { data: generalFund } = await supabase
+                    .from('wishlist_items')
+                    .select('*')
+                    .eq('creator_id', creatorId)
+                    .eq('is_general_fund', true)
+                    .single();
+
+                if (generalFund) {
+                    await supabase
+                        .from('wishlist_items')
+                        .update({ amount_raised: (generalFund.amount_raised || 0) + remainingPool })
+                        .eq('id', generalFund.id);
+                    
+                    allocationImpact.push({ title: "Creator Support Fund", amount: remainingPool, isGeneral: true });
+                }
+            }
+        }
+
+        // 4. Standard decrement for physical items (only those NOT converted/surprise)
+        const dbUpdatePromises = cartItems
+            .filter(item => !item.is_surprise)
+            .map(item => supabase.rpc('decrement_item_quantity', { row_id: item.id }));
+        
+        await Promise.all(dbUpdatePromises);
+
+        // 5. Cleanup and Navigate
+        localStorage.removeItem('wishlist_cart');
+        setCartItems([]);
+        window.dispatchEvent(new Event('cartUpdated'));
+        
+        // Pass the impact summary to the success page for the UI
+        navigate(`/success/${orderData?.[0]?.id}`, { state: { impact: allocationImpact } });
+
     } catch (err) {
-        showToast("Payment successful, but record update failed: " + err.message);
+        console.error("Allocation Error:", err);
+        showToast("Payment successful, but order allocation failed. Please contact support.");
     } finally {
         setLoading(false);
     }
@@ -182,7 +275,6 @@ export default function CartPage() {
     <div className="cart-page-wrapper">
       <div className="cart-main-container">
         
-        {/* Left Column: Items */}
         <div className="cart-items-column">
           <div className="cart-header-section">
             <Link to="/" className="back-to-wishlist">
@@ -230,7 +322,6 @@ export default function CartPage() {
           )}
         </div>
 
-        {/* Right Column: Checkout Summary */}
         <div className="cart-summary-column">
           <div className="modern-summary-card">
             <h3>Secure Checkout</h3>

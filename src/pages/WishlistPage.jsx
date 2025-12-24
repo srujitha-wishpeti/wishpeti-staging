@@ -28,7 +28,7 @@ export default function WishlistPage() {
   const [showToast, setShowToast] = useState(false);
   const [toastMsg, setToastMsg] = useState('');
   const [uploading, setUploading] = useState(null); 
-
+  const navigate = useNavigate();
   const isOwner = !username || (session?.user && profile && session.user.id === profile.id);
 
   const [editingProfile, setEditingProfile] = useState(false);
@@ -274,7 +274,15 @@ const totalGiftValue = wishlist.reduce((acc, item) => {
         return;
     }
     
-    const finalPrice = currency.code === 'INR' ? item.price : (item.price * currency.rate).toFixed(2);
+    let finalPrice;
+    
+    if (item.is_surprise) {
+        // Surprise gifts are already in the correct currency format
+        finalPrice = item.price; 
+    } else {
+        // Standard items from DB are in INR, so convert them
+        finalPrice = currency.code === 'INR' ? item.price : (item.price * currency.rate).toFixed(2);
+    }
     const itemWithCurrency = { ...item, price: parseFloat(finalPrice), added_currency: currency.code, added_rate: currency.rate };
     
     localStorage.setItem('wishlist_cart', JSON.stringify([...existingCart, itemWithCurrency]));
@@ -283,15 +291,32 @@ const totalGiftValue = wishlist.reduce((acc, item) => {
     setShowToast(true);
   };
 
-  const handleSurpriseMe = () => {
-    const amount = parseFloat(surpriseAmount);
-    if (!amount || amount <= 0) {
-        setToastMsg("Enter a valid amount! ✨");
-        setShowToast(true);
-        return;
-    }
-    setToastMsg(`Surprise logic ready for ${currency.code} ${amount}! 🎁`);
-    setShowToast(true);
+  // Inside your Wishlist component
+  // Function to handle adding a Surprise Gift to Cart
+  // In your Wishlist Page component
+  const handleAddSurpriseGift = (amount, creatorId, creatorName, currentCode, currentRate) => {
+    const numericAmount = parseFloat(amount) || 0;
+    if (numericAmount <= 0) return;
+
+    const surpriseItem = {
+        id: 'surprise-' + Date.now(),
+        title: "Surprise Gift! 🎁",
+        price: numericAmount.toFixed(2), 
+        image: "/surprise-box.png",
+        is_surprise: true,
+        quantity: 1,
+        // Pass the values directly from the arguments
+        added_currency: currentCode, 
+        added_rate: 1,
+        recipient_id: creatorId, 
+        recipient_name: creatorName,
+        creator_id: creatorId 
+    };
+
+    console.log("Adding gift with manual code pass:", currentCode);
+    handleAddToCart(surpriseItem);
+    setSurpriseAmount(''); 
+    navigate('/cart');
   };
 
   if (loading || !profile) return <div className="loading-state">Loading...</div>;
@@ -410,12 +435,17 @@ const totalGiftValue = wishlist.reduce((acc, item) => {
             <div style={{ display: 'flex', gap: '8px' }}>
                 <input 
                     type="number" 
-                    placeholder="Amt" 
+                    placeholder={`Amount in ${currency.code}`} 
                     value={surpriseAmount}
                     onChange={(e) => setSurpriseAmount(e.target.value)}
                     style={surpriseInputStyle} 
                 />
-                <button onClick={handleSurpriseMe} style={surpriseButtonStyle}>Surprise Me</button>
+                <button 
+                    onClick={() => handleAddSurpriseGift(surpriseAmount, profile?.id, profile?.display_name, currency.code, currency.rate)} 
+                    style={surpriseButtonStyle}
+                >
+                    Surprise Me
+                </button>
             </div>
         </section>
       )}
@@ -495,27 +525,43 @@ const totalGiftValue = wishlist.reduce((acc, item) => {
       <main className="wishlist-display-area">
         <div className={`wishlist-container-${viewMode}`}>
             {wishlist
-                .filter(item => (item.title || "").toLowerCase().includes(searchQuery.toLowerCase()))
-                .sort((a, b) => {
-                    const aClaimed = a.status === 'claimed' || a.status === 'purchased' || a.quantity <= 0;
-                    const bClaimed = b.status === 'claimed' || b.status === 'purchased' || b.quantity <= 0;
-                    // Move claimed items (true) to the end
-                    return aClaimed === bClaimed ? 0 : aClaimed ? 1 : -1;
-                })
-                .map(item => (
-                    <WishlistItemCard 
-                        key={item.id} 
-                        item={item} 
-                        isOwner={isOwner} 
-                        onEdit={handleEditItem} // Now properly defined
-                        onDelete={(id) => deleteWishlistItem(id).then(loadData)} 
-                        onAddToCart={() => handleAddToCart(item)}
-                        username={username || profile?.username}
-                        currencySettings={currency}
-                    />
+            .filter(item => (item.title || "").toLowerCase().includes(searchQuery.toLowerCase()))
+            .sort((a, b) => {
+                const aClaimed = a.status === 'claimed' || a.status === 'purchased' || a.quantity <= 0;
+                const bClaimed = b.status === 'claimed' || b.status === 'purchased' || b.quantity <= 0;
+
+                // 1. If one is claimed and the other isn't, move claimed to the end
+                if (aClaimed !== bClaimed) {
+                return aClaimed ? 1 : -1;
+                }
+
+                // 2. If both are in the same claimed state, sort by Priority Level (1, 2, 3)
+                // We use || 3 to default items without a priority to "Standard"
+                const aPriority = a.priority_level || 3;
+                const bPriority = b.priority_level || 3;
+
+                if (aPriority !== bPriority) {
+                return aPriority - bPriority; // Ascending: 1 (High) comes before 3 (Standard)
+                }
+
+                // 3. If priority is also the same, sort by newest first
+                return new Date(b.created_at) - new Date(a.created_at);
+            })
+            .map(item => (
+                <WishlistItemCard 
+                key={item.id} 
+                item={item} 
+                isOwner={isOwner} 
+                onEdit={handleEditItem} 
+                onUpdate={loadData} // Added this to refresh UI when priority changes
+                onDelete={(id) => deleteWishlistItem(id).then(loadData)} 
+                onAddToCart={() => handleAddToCart(item)}
+                username={username || profile?.username}
+                currencySettings={currency}
+                />
             ))}
         </div>
-      </main>
+        </main>
       {contributingItem && (
         <ContributeModal 
             item={contributingItem}

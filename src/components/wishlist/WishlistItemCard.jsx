@@ -1,6 +1,8 @@
 import React from 'react';
-import { ShoppingBag, Trash2, ExternalLink, Share2, Edit3, Users, CheckCircle, Lock } from 'lucide-react';
-import { formatPrice } from '../../utils/currency'; 
+// Added 'Star' and 'ArrowUp' icons for priority indicators
+import { ShoppingBag, Trash2, ExternalLink, Share2, Edit3, Users, CheckCircle, Lock, Star, ArrowUp } from 'lucide-react';
+import { formatPrice } from '../../utils/currency';
+import { supabase } from '../../services/supabaseClient'; // Ensure this path is correct
 
 export default function WishlistItemCard({ 
   item, 
@@ -10,31 +12,43 @@ export default function WishlistItemCard({
   onEdit, 
   username, 
   isHighlighted,
+  onUpdate, // Passed from parent to refresh list after priority change
   currencySettings = { code: 'INR', rate: 1, symbol: '₹' } 
 }) {
   
   const isCrowdfund = item.is_crowdfund === true;
   const raisedAmount = item.amount_raised || 0;
-  
-  // Logic for "Claimed" status
   const isClaimed = item.status === 'claimed' || item.status === 'purchased' || (item.quantity !== null && item.quantity <= 0);
 
-  // NEW: Calculate dynamic goal based on Unit Price * Quantity
   const unitPrice = item.price || 0;
   const qty = item.quantity || 1;
   const goalAmount = unitPrice * qty;
 
-  // Math for progress bar
   const progressPercent = Math.round((raisedAmount / goalAmount) * 100) || 0;
   const clampedPercentage = Math.min(progressPercent, 100);
   const isFullyFunded = raisedAmount >= goalAmount;
 
-  // Check if item has any contributions (prevents 409 Conflict error on delete)
   const hasContributions = raisedAmount > 0;
   const isLocked = hasContributions || isClaimed;
 
-  // DISPLAY VALUES
-  // For Crowdfunds, we show the Total Goal price. For normal items, we show Unit Price.
+  // PRIORITY LOGIC
+  const priorities = [
+    { value: 1, label: 'High', color: '#ef4444', icon: <ArrowUp size={12} /> },
+    { value: 2, label: 'Medium', color: '#f59e0b', icon: <Star size={12} /> },
+    { value: 3, label: 'Standard', color: '#94a3b8', icon: null }
+  ];
+  const currentPriority = priorities.find(p => p.value === (item.priority_level || 3));
+
+  const handlePriorityChange = async (e) => {
+    const newLevel = parseInt(e.target.value);
+    const { error } = await supabase
+      .from('wishlist_items')
+      .update({ priority_level: newLevel })
+      .eq('id', item.id);
+
+    if (!error && onUpdate) onUpdate(); 
+  };
+
   const displayMainPrice = isCrowdfund 
     ? formatPrice(goalAmount, currencySettings.code, currencySettings.rate)
     : formatPrice(unitPrice, currencySettings.code, currencySettings.rate);
@@ -42,11 +56,11 @@ export default function WishlistItemCard({
   const displayRaised = formatPrice(raisedAmount, currencySettings.code, currencySettings.rate);
   const displayImage = item.image_url || item.image;
 
+  // handleShare code remains same...
   const handleShare = async (e) => {
     e.preventDefault();
     e.stopPropagation();
     const shareUrl = `${window.location.origin}/${username}/item/${item.id}`;
-    
     if (navigator.share) {
       try {
         await navigator.share({
@@ -54,11 +68,10 @@ export default function WishlistItemCard({
           text: `I'd love to receive "${item.title}" from my wishlist!`,
           url: shareUrl,
         });
-      } catch (err) { /* User cancelled or share failed */ }
+      } catch (err) {}
     } else {
       try {
         await navigator.clipboard.writeText(shareUrl);
-        // Tip: You could replace this alert with a temporary toast notification
         alert("Link copied to clipboard! 📋");
       } catch (err) {
         console.error('Failed to copy: ', err);
@@ -71,11 +84,11 @@ export default function WishlistItemCard({
       className={`unified-wishlist-card 
         ${isCrowdfund ? 'crowdfund-style' : ''} 
         ${isClaimed ? 'item-claimed' : ''} 
-        ${isHighlighted ? 'card-is-spotlighted' : ''}`} // <--- ADD THIS
+        ${isHighlighted ? 'card-is-spotlighted' : ''}`}
       id={`item-${item.id}`}
+      style={{ borderTop: isHighlighted ? `4px solid ${currentPriority.color}` : '' }}
     >
       
-      {/* MEDIA SECTION */}
       <div className="card-media-box">
         {displayImage ? (
           <img 
@@ -88,7 +101,15 @@ export default function WishlistItemCard({
           <div className="placeholder-box">🎁</div>
         )}
 
-        {/* GIFTED BADGE */}
+        {/* PRIORITY BADGE (VISIBLE TO FANS) */}
+        {!isClaimed && item.priority_level < 3 && (
+            <div className="priority-badge" style={{ ...priorityBadgeStyle, backgroundColor: currentPriority.color }}>
+                {currentPriority.icon}
+                <span style={{ marginLeft: '4px' }}>{currentPriority.label} Priority</span>
+            </div>
+        )}
+
+        {/* GIFTED/CROWDFUND BADGES remain same... */}
         {isClaimed && !isCrowdfund && (
             <div className="gifted-overlay-badge" style={giftedBadgeStyle}>
                 <CheckCircle size={14} style={{ marginRight: '4px' }} />
@@ -96,28 +117,18 @@ export default function WishlistItemCard({
             </div>
         )}
 
-        {isCrowdfund && (
-            <div className="crowdfund-badge" style={badgeContainerStyle}>
-                <Users size={12} style={{ marginRight: '4px' }} />
-                <span style={{ lineHeight: '1' }}>{isFullyFunded ? 'Goal Met!' : 'Crowdfund Goal'}</span>
-            </div>
-        )}
-        
         <div className="item-actions-pill">
           {isOwner && onEdit && (
             <button onClick={() => onEdit(item)} title="Edit">
               <Edit3 size={16} />
             </button>
           )}
-
           <a href={item.url} target="_blank" rel="noopener noreferrer" title="View Store">
             <ExternalLink size={16} />
           </a>
-
           <button onClick={handleShare} title="Share">
             <Share2 size={16} />
           </button>
-
           {isOwner && onDelete && (
             isLocked ? (
               <div className="locked-action" title="Funded or claimed items cannot be deleted" style={lockContainerStyle}>
@@ -132,10 +143,9 @@ export default function WishlistItemCard({
         </div>
       </div>
 
-      {/* INFO SECTION */}
       <div className="card-info-box">
         <div className="card-meta-top" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div className="brand-group">
+          <div className="brand-group" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
             <span className="brand-tag">{item.brand || item.store || 'Store'}</span>
             {qty > 1 && <span className="qty-tag" style={qtyTagStyle}>Qty: {qty}</span>}
           </div>
@@ -148,7 +158,23 @@ export default function WishlistItemCard({
             {item.title}
         </h3>
 
-        {/* PROGRESS BAR SECTION */}
+        {/* PRIORITY SELECTOR (OWNER ONLY) */}
+        {isOwner && !isClaimed && (
+          <div style={{ marginTop: '12px' }}>
+             <label style={{ fontSize: '10px', fontWeight: '800', color: '#94a3b8', textTransform: 'uppercase', display: 'block', marginBottom: '4px' }}>Set Priority</label>
+             <select 
+               value={item.priority_level || 3} 
+               onChange={handlePriorityChange}
+               style={prioritySelectStyle(currentPriority.color)}
+             >
+               {priorities.map(p => (
+                 <option key={p.value} value={p.value}>{p.label} Priority</option>
+               ))}
+             </select>
+          </div>
+        )}
+
+        {/* PROGRESS BAR SECTION remains same... */}
         {isCrowdfund && (
           <div className="crowdfund-progress-section" style={{ marginTop: '12px' }}>
             <div className="progress-stats" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '6px' }}>
@@ -159,7 +185,6 @@ export default function WishlistItemCard({
                     {displayRaised} of {displayMainPrice}
                 </span>
             </div>
-            
             <div className="progress-track" style={{ height: '8px', backgroundColor: '#e2e8f0', borderRadius: '4px', overflow: 'hidden' }}>
               <div 
                 className="progress-fill" 
@@ -200,59 +225,36 @@ export default function WishlistItemCard({
   );
 }
 
-// STYLES
-const qtyTagStyle = {
-  backgroundColor: '#f1f5f9',
-  color: '#475569',
-  padding: '2px 6px',
-  borderRadius: '4px',
-  fontSize: '10px',
-  fontWeight: '700',
-  marginLeft: '6px',
-  textTransform: 'uppercase'
-};
-
-const badgeContainerStyle = {
+// NEW STYLES
+const priorityBadgeStyle = {
   position: 'absolute',
   top: '12px',
-  left: '12px',
+  left: '12px', // Opposite of the Gifted/Crowdfund badge
   display: 'flex',
   alignItems: 'center',
-  backgroundColor: 'rgba(255, 255, 255, 0.9)',
+  color: 'white',
   padding: '4px 8px',
   borderRadius: '6px',
-  fontSize: '11px',
-  fontWeight: '700',
-  color: '#475569',
-  boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
-  backdropFilter: 'blur(4px)',
-  zIndex: 10
+  fontSize: '10px',
+  fontWeight: '800',
+  textTransform: 'uppercase',
+  zIndex: 10,
+  boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
 };
 
-const lockContainerStyle = {
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  width: '32px',
-  height: '32px',
-  color: '#94a3b8',
-  opacity: 0.6,
-  cursor: 'help'
-};
+const prioritySelectStyle = (color) => ({
+  width: '100%',
+  padding: '6px',
+  borderRadius: '6px',
+  fontSize: '12px',
+  fontWeight: '600',
+  border: `1px solid ${color}`,
+  backgroundColor: 'white',
+  color: '#1e293b',
+  cursor: 'pointer'
+});
 
-const giftedBadgeStyle = {
-    position: 'absolute',
-    top: '12px',
-    left: '12px',
-    display: 'flex',
-    alignItems: 'center',
-    backgroundColor: '#10b981', 
-    color: 'white',
-    padding: '4px 10px',
-    borderRadius: '20px',
-    fontSize: '11px',
-    fontWeight: '800',
-    letterSpacing: '0.05em',
-    boxShadow: '0 4px 12px rgba(16, 185, 129, 0.3)',
-    zIndex: 11
-};
+// ... existing styles ...
+const qtyTagStyle = { backgroundColor: '#f1f5f9', color: '#475569', padding: '2px 6px', borderRadius: '4px', fontSize: '10px', fontWeight: '700', marginLeft: '6px', textTransform: 'uppercase' };
+const lockContainerStyle = { display: 'flex', alignItems: 'center', justifyContent: 'center', width: '32px', height: '32px', color: '#94a3b8', opacity: 0.6, cursor: 'help' };
+const giftedBadgeStyle = { position: 'absolute', top: '12px', left: '12px', display: 'flex', alignItems: 'center', backgroundColor: '#10b981', color: 'white', padding: '4px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: '800', letterSpacing: '0.05em', boxShadow: '0 4px 12px rgba(16, 185, 129, 0.3)', zIndex: 11 };
