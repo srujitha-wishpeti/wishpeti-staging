@@ -28,8 +28,8 @@ export default function CartPage() {
 
   const validateCartItems = async () => {
     const itemIds = cartItems.map(item => item.id);
-    
-    // Fetch fresh data for these specific items
+    if (itemIds.length === 0) return;
+
     const { data, error } = await supabase
       .from('wishlist_items')
       .select('id, quantity, status, title')
@@ -37,14 +37,12 @@ export default function CartPage() {
 
     if (error) return;
 
-    // Check if any item is now out of stock or claimed
     const unavailableItems = data.filter(dbItem => dbItem.quantity <= 0 || dbItem.status === 'claimed');
 
     if (unavailableItems.length > 0) {
       const names = unavailableItems.map(i => i.title).join(', ');
       showToast(`Oops! ${names} was just gifted by someone else.`);
       
-      // Remove unavailable items from cart
       const filteredCart = cartItems.filter(cartItem => 
         !unavailableItems.find(un => un.id === cartItem.id)
       );
@@ -53,7 +51,6 @@ export default function CartPage() {
     }
   };
 
-  // Run this when the page loads
   useEffect(() => {
     if (cartItems.length > 0) {
       validateCartItems();
@@ -63,7 +60,6 @@ export default function CartPage() {
   const handleCurrencyChange = async (newCode) => {
     try {
       await updateCurrency(newCode);
-      console.log("updatecurrency+", newCode);
     } catch (err) {
       console.error("Failed to update currency:", err);
     }
@@ -76,40 +72,33 @@ export default function CartPage() {
     window.dispatchEvent(new Event('cartUpdated'));
   };
 
-  /**
-   * THE CORE FIX: 
-   * This function normalizes the price. If the item was added in USD
-   * but we are viewing in INR, it converts back. If they match, it stays.
-   */
   const getNormalizedPrice = (item) => {
     const savedPrice = parseFloat(item.price) || 0;
     const savedCurrency = item.added_currency || 'INR';
     
-    // 1. If saved currency matches current view, return exactly the saved price.
-    // This is the "Golden Rule" to prevent $70 becoming $65.
+    // If the viewing currency matches how it was saved, return raw value
     if (savedCurrency === currency.code) {
-      console.log("saved currency ",savedCurrency);
       return savedPrice;
     }
 
-   if (currency.code === 'INR') {
-        console.log("item added rate", item.added_rate);
+    // Convert back to base INR first
+    if (currency.code === 'INR') {
         const rateAtTimeOfAdding = item.added_rate || currency.rate || 1;
         return savedPrice / rateAtTimeOfAdding;
-   }
+    }
 
+    // Convert to foreign currency via base INR
     const rateAtTimeOfAdding = item.added_rate || 1;
     const baseINR = savedCurrency === 'INR' ? savedPrice : (savedPrice / rateAtTimeOfAdding);
     return baseINR * (currency.rate || 1);
   };
 
-  const calculateSubtotal = () => {
+  const calculateTotal = () => {
     return cartItems.reduce((sum, item) => sum + getNormalizedPrice(item), 0);
   };
 
-  const subtotal = calculateSubtotal();
-  const platformFee = subtotal * 0.08; 
-  const finalPayable = subtotal + platformFee;
+  // Total payable is now just the sum of items (buffer is already inside item.price)
+  const finalPayable = calculateTotal();
 
   const formatPrice = (amount) => {
     return new Intl.NumberFormat(currency.code === 'INR' ? 'en-IN' : 'en-US', {
@@ -122,8 +111,6 @@ export default function CartPage() {
   const isFormIncomplete = !senderName.trim() || !senderEmail.trim() || !senderEmail.includes('@');
 
   const handleCheckout = async () => {
-    // For Razorpay (INR Base)
-    // We get the subtotal in current view, convert to INR, then to Paise
     let amountInPaise;
     if (currency.code === 'INR') {
       amountInPaise = Math.round(finalPayable * 100);
@@ -155,6 +142,7 @@ export default function CartPage() {
     try {
       const creatorId = cartItems[0]?.recipient_id || cartItems[0]?.creator_id; 
       const { rate } = getCurrencyPreference();
+      
       const { data: orderData, error: orderError } = await supabase
         .from('orders')
         .insert([{
@@ -162,20 +150,18 @@ export default function CartPage() {
             buyer_name: senderName,
             buyer_email: senderEmail,
             creator_id: creatorId,
-            subtotal: subtotal,        // 🎁 The Gift Value
-            platform_fee: platformFee,
+            subtotal: finalPayable, // Full gift value (buffered)
             total_amount: finalPayable, 
             currency_code: currency.code,
             items: cartItems, 
             payment_status: 'paid',
-            exchange_rate_at_payment: rate, // Freeze the rate here!
+            exchange_rate_at_payment: rate,
             gift_status: 'pending'
         }])
         .select();
+
       if (orderError) throw orderError;
 
-      const itemIds = cartItems.map(item => item.id).filter(id => id && id !== 'undefined');
-      
       const updatePromises = cartItems.map(item => 
         supabase.rpc('decrement_item_quantity', { row_id: item.id })
       );
@@ -244,7 +230,7 @@ export default function CartPage() {
           )}
         </div>
 
-        {/* Right Column: Checkout Form & Summary */}
+        {/* Right Column: Checkout Summary */}
         <div className="cart-summary-column">
           <div className="modern-summary-card">
             <h3>Secure Checkout</h3>
@@ -266,28 +252,24 @@ export default function CartPage() {
             </div>
 
             <div className="price-breakdown">
-              <div className="price-row">
-                <span>Gift Subtotal</span>
-                <span>{formatPrice(subtotal)}</span>
-              </div>
-              <div className="price-row">
-                <span>Platform Fee (8%)</span>
-                <span>{formatPrice(platformFee)}</span>
+              <div className="price-row grand-total">
+                <span>Gift Total</span>
+                <span>{formatPrice(finalPayable)}</span>
               </div>
               <div className="price-row shipping">
-                <span>Shipping & Privacy Handling</span>
-                <span className="free-tag">FREE</span>
+                <span>Shipping & Delivery</span>
+                <span className="free-tag">INCLUDED</span>
               </div>
-              <div className="price-row grand-total">
-                <span>Total Payable</span>
-                <span>{formatPrice(finalPayable)}</span>
+              <div className="price-row shipping">
+                <span>Privacy Handling</span>
+                <span className="free-tag">SECURE</span>
               </div>
             </div>
 
             <button 
               className="pay-now-button" 
               onClick={handleCheckout}
-              disabled={isFormIncomplete || loading}
+              disabled={isFormIncomplete || loading || cartItems.length === 0}
             >
               <CreditCard size={18} /> 
               {loading ? 'Processing...' : `Pay ${formatPrice(finalPayable)}`}

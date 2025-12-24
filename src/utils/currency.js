@@ -1,5 +1,24 @@
 // src/utils/currencyHelper.js
 
+/**
+ * Synchronous local converter using cached rates
+ * @param {number} amount - The scraped numeric value
+ * @param {string} symbol - The detected currency symbol ($, £, etc)
+ * @returns {number} - The value converted to base INR
+ */
+export const getBaseInrSync = (amount, symbol) => {
+  const cachedData = localStorage.getItem('wishpeti_rates');
+  if (!cachedData) return amount; // Fallback to raw if no cache
+
+  const { rates } = JSON.parse(cachedData);
+  
+  if (symbol === '$') return amount / (rates['USD'] || 0.011);
+  if (symbol === '£') return amount / (rates['GBP'] || 0.009);
+  if (symbol === '€') return amount / (rates['EUR'] || 0.010);
+  
+  return amount; // Default to INR
+};
+
 export const fetchExchangeRate = async (toCurrency) => {
   if (toCurrency === 'INR') return 1;
 
@@ -23,7 +42,7 @@ export const fetchExchangeRate = async (toCurrency) => {
       // If the API says 1 INR = 0.011 USD, we might want to adjust it 
       // slightly so the creator doesn't lose money on conversion.
       // Example: Reduce the rate by 1% to account for bank spreads.
-      if (toCurrency === 'USD') {
+      if (toCurrency === 'USD' || toCurrency === 'GBP' || toCurrency === 'EUR') {
         rate = rate * 0.99; 
       }
 

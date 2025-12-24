@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Camera, Search, Grid, List, Share2, Pencil } from 'lucide-react';
+import { Camera, Search, Grid, List, Share2, Pencil, Sparkles } from 'lucide-react';
 import AddWishlistItem from '../components/AddWishlistItem';
 import { useAuth } from '../auth/AuthProvider';
 import ContributeModal from './ContributeModal';
@@ -38,7 +38,7 @@ export default function WishlistPage() {
   const { currency, updateCurrency } = useCurrency();
   const [editingItem, setEditingItem] = useState(null);
   const [showGeoNotice, setShowGeoNotice] = useState(false);
-
+  const [surpriseAmount, setSurpriseAmount] = useState('');
   // 1. ADD THIS: Handle Edit Item
   // This opens the AddWishlistItem modal in "edit mode"
   const handleEditItem = (item) => {
@@ -137,30 +137,48 @@ export default function WishlistPage() {
   const loadData = async () => {
     setLoading(true);
     try {
-        let profileData = null;
-        if (username) {
-            const { data } = await supabase
-                .from('creator_profiles')
-                .select('*')
-                .eq('username', username.toLowerCase())
-                .single();
-            profileData = data;
-        } else if (session?.user) {
-            const { data } = await supabase
-                .from('creator_profiles')
-                .select('*')
-                .eq('id', session.user.id)
-                .single();
-            profileData = data;
+        const searchKey = username ? 'username' : 'id';
+        const searchValue = username ? username.toLowerCase() : session?.user?.id;
+
+        if (!searchValue) {
+            setLoading(false);
+            return;
         }
+
+        // INTEGRATED FIX: Use the !fk_item relationship and maybeSingle()
+        const { data: profileData, error: profileError } = await supabase
+        .from('creator_profiles')
+        .select(`
+            *,
+            wishlist_items (
+            *,
+            orders!fk_item (*)
+            )
+        `)
+        .eq(searchKey, searchValue)
+        .maybeSingle();
+
+        if (profileError) throw profileError;
 
         if (profileData) {
             setProfile(profileData);
-            const items = await getWishlistItems(profileData.id);
-            setWishlist(items || []);
+            const processedItems = (profileData.wishlist_items || []).map(item => {
+                const totalRaised = (item.orders || [])
+                .filter(o => o.status === 'completed')
+                .reduce((sum, o) => sum + o.amount, 0);
+                
+                return {
+                ...item,
+                totalRaised,
+                progress: Math.min((totalRaised / item.price) * 100, 100)
+                };
+            });
+            setWishlist(processedItems);
+        } else {
+            setProfile(null);
         }
     } catch (err) {
-        console.error('Error:', err);
+        console.error('Fetch Error:', err);
     } finally {
         setLoading(false);
     }
@@ -262,6 +280,17 @@ const totalGiftValue = wishlist.reduce((acc, item) => {
     localStorage.setItem('wishlist_cart', JSON.stringify([...existingCart, itemWithCurrency]));
     window.dispatchEvent(new Event('cartUpdated'));
     setToastMsg(`Added to cart! 🎁`);
+    setShowToast(true);
+  };
+
+  const handleSurpriseMe = () => {
+    const amount = parseFloat(surpriseAmount);
+    if (!amount || amount <= 0) {
+        setToastMsg("Enter a valid amount! ✨");
+        setShowToast(true);
+        return;
+    }
+    setToastMsg(`Surprise logic ready for ${currency.code} ${amount}! 🎁`);
     setShowToast(true);
   };
 
@@ -368,6 +397,28 @@ const totalGiftValue = wishlist.reduce((acc, item) => {
             </div>
         </div>
       </header>
+
+      {!isOwner && wishlist.length > 0 && (
+        <section className="surprise-me-card" style={surpriseCardStyle}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <div style={iconCircleStyle}><Sparkles size={18} color="#6366f1" /></div>
+                <div>
+                    <h4 style={{ margin: 0, fontSize: '15px', fontWeight: '700' }}>Surprise {profile?.display_name.split(' ')[0]}</h4>
+                    <p style={{ margin: 0, fontSize: '12px', color: '#64748b' }}>We'll split your gift across items closest to their goal.</p>
+                </div>
+            </div>
+            <div style={{ display: 'flex', gap: '8px' }}>
+                <input 
+                    type="number" 
+                    placeholder="Amt" 
+                    value={surpriseAmount}
+                    onChange={(e) => setSurpriseAmount(e.target.value)}
+                    style={surpriseInputStyle} 
+                />
+                <button onClick={handleSurpriseMe} style={surpriseButtonStyle}>Surprise Me</button>
+            </div>
+        </section>
+      )}
 
       {isOwner && (
         <section className="creator-stats-bar" style={dashboardStatsStyle}>
@@ -621,7 +672,11 @@ const statItemStyle = { display: 'flex', flexDirection: 'column', gap: '4px' };
 const statLabelStyle = { fontSize: '11px', fontWeight: '700', color: '#94a3b8', letterSpacing: '0.05em' };
 const statValueStyle = { fontSize: '20px', fontWeight: '800', color: '#1e293b' };
 const statDividerStyle = { width: '1px', height: '30px', background: '#e2e8f0' };
-
+const avatarImageStyle = { width: '130px', height: '130px', borderRadius: '50%', border: '5px solid white', backgroundColor: 'white', objectFit: 'cover', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' };
+const surpriseCardStyle = { maxWidth: '1000px', margin: '25px auto 0', padding: '16px 20px', background: '#f8fafc', borderRadius: '16px', border: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '15px' };
+const iconCircleStyle = { width: '36px', height: '36px', borderRadius: '10px', background: '#eef2ff', display: 'flex', alignItems: 'center', justifyContent: 'center' };
+const surpriseInputStyle = { width: '80px', padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '14px' };
+const surpriseButtonStyle = { background: '#6366f1', color: 'white', padding: '8px 16px', borderRadius: '8px', border: 'none', fontWeight: '700', cursor: 'pointer', fontSize: '14px' };
 const manageGiftsButtonStyle = {
   background: '#1e293b',
   color: 'white',

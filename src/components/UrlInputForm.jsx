@@ -55,7 +55,7 @@ export default function UrlInputForm({
             {error && <div style={{ color: '#ef4444', fontSize: '12px', marginTop: '4px' }}>{error}</div>}
           </div>
 
-          {(scrapedData || isEditing) && (
+          {(scrapedData || isEditing || error) && (
             <>
               {/* Title Section */}
               <div style={{ marginBottom: '1.25rem' }}>
@@ -156,11 +156,13 @@ export default function UrlInputForm({
         {/* Footer */}
         <div style={footerStyle}>
           <button 
-            disabled={(!scrapedData && !isEditing) || loading} 
+            /* Update the disabled condition */
+            disabled={(!scrapedData && !isEditing && !error) || loading} 
             onClick={onContinue} 
             style={{ 
               ...submitButtonStyle, 
-              backgroundColor: (scrapedData || isEditing) ? '#1e293b' : '#cbd5e1',
+              /* Update the color condition */
+              backgroundColor: (scrapedData || isEditing || error) ? '#1e293b' : '#cbd5e1',
               opacity: loading ? 0.7 : 1
             }}
           >
