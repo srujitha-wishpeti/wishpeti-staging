@@ -15,6 +15,7 @@ export default function ContributeModal({ item, onClose, onSuccess, isOwner }) {
   const [isAnonymous, setIsAnonymous] = useState(false);
   
   const [recentGivers, setRecentGivers] = useState([]);
+  const [showGivers, setShowGivers] = useState(isOwner);
 
   const { currency } = useCurrency();
   const symbol = getCurrencySymbol(currency.code);
@@ -43,6 +44,7 @@ export default function ContributeModal({ item, onClose, onSuccess, isOwner }) {
     fetchGivers();
   }, [item.id]);
 
+  // --- CSV EXPORT LOGIC ---
   const handleExportCSV = () => {
     if (recentGivers.length === 0) return;
     const headers = ["Donor Name", "Amount", "Date", "Email", "Message"];
@@ -95,12 +97,8 @@ export default function ContributeModal({ item, onClose, onSuccess, isOwner }) {
           email: buyerEmail
         },
         handler: async function (response) {
-          try {
-            await handleContributionRecord(response, inputAmount); 
-            onSuccess(); 
-          } catch (err) {
-            alert("Payment recorded, but database update failed. Contact support.");
-          }
+          await handleContributionRecord(response, inputAmount); 
+          onSuccess(); 
         },
         theme: { color: "#6366f1" },
         modal: { ondismiss: () => setLoading(false) }
@@ -119,7 +117,6 @@ export default function ContributeModal({ item, onClose, onSuccess, isOwner }) {
       ? parseFloat((paidAmount / rate).toFixed(2)) 
       : paidAmount;
 
-    // 1. Record the Order
     const { error: orderError } = await supabase
         .from('orders')
         .insert([{
@@ -129,7 +126,7 @@ export default function ContributeModal({ item, onClose, onSuccess, isOwner }) {
           total_amount: contributionInINR,
           payment_status: 'paid',
           is_crowdfund: true,
-          gift_status: 'paid', // Changed to paid for funded items
+          gift_status: 'pending',
           buyer_name: isAnonymous ? "Anonymous" : (buyerName || "Kind Supporter"),
           buyer_email: buyerEmail,
           buyer_message: buyerMessage
@@ -137,18 +134,14 @@ export default function ContributeModal({ item, onClose, onSuccess, isOwner }) {
 
     if (orderError) throw orderError;
 
-    // 2. Logic to update the Wishlist Item Status
     const newRaisedTotal = (item.amount_raised || 0) + contributionInINR;
+    const isNowFullyFunded = newRaisedTotal >= (totalGoalBase - 0.05); 
     
-    // Check if fully funded (with a small buffer for currency rounding)
-    const isNowFullyFunded = newRaisedTotal >= (totalGoalBase - 0.50); 
-    
-    const updatePayload = { 
-        amount_raised: newRaisedTotal,
-        // CRITICAL FIX: Update status and quantity here to trigger "Gifted" UI
-        status: isNowFullyFunded ? 'claimed' : 'active',
-        quantity: isNowFullyFunded ? 0 : item.quantity
-    };
+    const updatePayload = { amount_raised: newRaisedTotal };
+    if (isNowFullyFunded) {
+        updatePayload.status = 'claimed';
+        updatePayload.quantity = 0; 
+    }
 
     const { error: updateError } = await supabase
         .from('wishlist_items')
@@ -156,11 +149,10 @@ export default function ContributeModal({ item, onClose, onSuccess, isOwner }) {
         .eq('id', item.id);
 
     if (updateError) throw updateError;
-    
     window.dispatchEvent(new Event('contributionUpdated'));
   };
 
-  const isGoalReached = displayRemaining <= 0.05;
+  const isGoalReached = displayRemaining <= 0.01;
 
   return (
     <div style={overlayStyle}>
@@ -175,6 +167,7 @@ export default function ContributeModal({ item, onClose, onSuccess, isOwner }) {
         <div style={{ padding: '20px', maxHeight: '85vh', overflowY: 'auto' }}>
           <p style={itemText}>Item: <strong>{item.title}</strong></p>
           
+          {/* Progress Bar Section */}
           <div style={{...remainingBox, backgroundColor: '#f8fafc', border: '1px solid #f1f5f9'}}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
                 <span style={labelStyle}>Raised: {symbol}{displayRaised.toFixed(2)}</span>
@@ -186,6 +179,7 @@ export default function ContributeModal({ item, onClose, onSuccess, isOwner }) {
           </div>
 
           {isOwner ? (
+            /* --- OWNER VIEW: Dashboard & History --- */
             <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
                 <div style={ownerStatsGrid}>
                     <div style={statCard}>
@@ -226,6 +220,7 @@ export default function ContributeModal({ item, onClose, onSuccess, isOwner }) {
                 <button onClick={onClose} style={btnStyle}>Done</button>
             </div>
           ) : (
+            /* --- SUPPORTER VIEW: Payment Form --- */
             !isGoalReached && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                 <div style={fieldGroup}>
@@ -258,7 +253,7 @@ export default function ContributeModal({ item, onClose, onSuccess, isOwner }) {
                 </div>
 
                 <div style={fieldGroup}>
-                  <label style={labelStyle}>Message</label>
+                  <label style={labelStyle}>Message for Creator</label>
                   <div style={inputContainer}>
                     <MessageSquare size={16} style={{...iconStyle, top: '12px'}} />
                     <textarea 
@@ -278,10 +273,23 @@ export default function ContributeModal({ item, onClose, onSuccess, isOwner }) {
                     backgroundColor: isAnonymous ? '#f5f3ff' : '#fff',
                   }}
                 >
-                  <input type="checkbox" checked={isAnonymous} readOnly style={{ width: '20px', height: '20px' }} />
+                  {/* Checkbox wrapper to ensure it doesn't shrink */}
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <input 
+                      type="checkbox" 
+                      checked={isAnonymous} 
+                      readOnly 
+                      style={{ width: '20px', height: '20px', cursor: 'pointer', margin: 0 }} 
+                    />
+                  </div>
+
                   <div style={{ display: 'flex', flexDirection: 'column' }}>
-                    <div style={{ fontWeight: '700', fontSize: '14px' }}>Stay Anonymous 👤</div>
-                    <div style={{ fontSize: '12px', color: '#64748b' }}>Hide your name on the public list.</div>
+                    <div style={{ fontWeight: '700', fontSize: '14px', color: '#1e293b', lineHeight: '1.2' }}>
+                      Stay Anonymous 👤
+                    </div>
+                    <div style={{ fontSize: '12px', color: '#64748b', marginTop: '2px' }}>
+                      Hide your name on the public wishlist.
+                    </div>
                   </div>
                 </div>
 
@@ -319,26 +327,39 @@ export default function ContributeModal({ item, onClose, onSuccess, isOwner }) {
   );
 }
 
-// Styles (Priority Badge and layout fixes)
-const overlayStyle = { position: 'fixed', inset: 0, backgroundColor: 'rgba(15, 23, 42, 0.85)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10000, padding: '20px' };
-const modalStyle = { backgroundColor: 'white', borderRadius: '24px', width: '100%', maxWidth: '420px', overflow: 'hidden', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', position: 'relative' };
-const headerStyle = { padding: '20px', borderBottom: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center' };
-const remainingBox = { padding: '20px', borderRadius: '16px', textAlign: 'center', marginBottom: '16px' };
+// Styles
 const progressBarContainer = { width: '100%', height: '8px', backgroundColor: '#e2e8f0', borderRadius: '10px', overflow: 'hidden' };
 const progressBarFill = { height: '100%', backgroundColor: '#6366f1', transition: 'width 0.5s ease-out' };
-
 const ownerStatsGrid = { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' };
-const statCard = { padding: '12px', backgroundColor: '#f8fafc', borderRadius: '12px', border: '1px solid #f1f5f9', display: 'flex', flexDirection: 'column', gap: '4px' };
+const statCard = { padding: '12px', backgroundColor: '#f8fafc', borderRadius: '12px', border: '1px solid #f1f5f9', textAlign: 'left', display: 'flex', flexDirection: 'column', gap: '4px' };
 const ownerGiverRow = { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px', backgroundColor: '#fff', border: '1px solid #f1f5f9', borderRadius: '12px' };
+const exportBtnStyle = { display: 'flex', alignItems: 'center', gap: '4px', background: '#f1f5f9', border: '1px solid #e2e8f0', padding: '4px 10px', borderRadius: '6px', fontSize: '11px', fontWeight: '700', color: '#475569', cursor: 'pointer' };
 
-const inputContainer = { position: 'relative', width: '100%' };
+const fieldGroup = { display: 'flex', flexDirection: 'column', gap: '6px', textAlign: 'left' };
+const headerStyle = { padding: '20px', borderBottom: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center' };
+const remainingBox = { padding: '20px', borderRadius: '16px', textAlign: 'center', marginBottom: '16px' };
+const inputContainer = { position: 'relative', display: 'flex', alignItems: 'flex-start', width: '100%' };
 const iconStyle = { position: 'absolute', left: '14px', top: '14px', color: '#94a3b8' };
-const prefixStyle = { position: 'absolute', left: '16px', top: '16px', fontWeight: '700' };
-const inputStyle = { width: '100%', padding: '14px 12px 14px 40px', borderRadius: '12px', border: '1px solid #e2e8f0', fontSize: '16px' };
-const inputStyleWithIcon = { width: '100%', padding: '12px 12px 12px 42px', borderRadius: '12px', border: '1px solid #e2e8f0', fontSize: '14px' };
-const btnStyle = { width: '100%', padding: '16px', backgroundColor: '#1e293b', color: 'white', borderRadius: '14px', fontWeight: '700', cursor: 'pointer', border: 'none' };
-const labelStyle = { fontSize: '11px', fontWeight: '800', color: '#64748b', textTransform: 'uppercase' };
-const exportBtnStyle = { display: 'flex', gap: '4px', background: '#f1f5f9', border: '1px solid #e2e8f0', padding: '4px 10px', borderRadius: '6px', fontSize: '11px', cursor: 'pointer' };
-const toggleCardStyle = { display: 'flex', gap: '16px', padding: '14px', borderRadius: '14px', border: '2px solid', cursor: 'pointer' };
-const itemText = { fontSize: '14px', margin: '0 0 16px 0', color: '#475569' };
+const prefixStyle = { position: 'absolute', left: '16px', top: '16px', fontWeight: '700', color: '#1e293b' };
+const inputStyle = { width: '100%', padding: '14px 12px 14px 40px', borderRadius: '12px', border: '1px solid #e2e8f0', fontSize: '16px', outline: 'none' };
+const inputStyleWithIcon = { width: '100%', padding: '12px 12px 12px 42px', borderRadius: '12px', border: '1px solid #e2e8f0', fontSize: '14px', outline: 'none' };
+const btnStyle = { width: '100%', padding: '16px', backgroundColor: '#1e293b', color: 'white', border: 'none', borderRadius: '14px', fontWeight: '700', cursor: 'pointer', marginTop: '10px' };
+const labelStyle = { fontSize: '11px', fontWeight: '800', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' };
+const itemText = { fontSize: '14px', margin: '0 0 16px 0', color: '#475569', textAlign: 'left' };
 const footerStyle = { marginTop: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px', color: '#94a3b8', fontSize: '11px' };
+
+const overlayStyle = { position: 'fixed', inset: 0, boxShadow: '0 0 0 5000px rgba(15, 23, 42, 0.85)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10000, padding: '20px' };
+const modalStyle = { backgroundColor: 'white', borderRadius: '24px', width: '100%', maxWidth: '420px', overflow: 'hidden', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', position: 'relative', zIndex: 10001 };
+const toggleCardStyle = {
+  display: 'flex',
+  alignItems: 'center', // This centers them vertically
+  justifyContent: 'flex-start',
+  gap: '16px', // Increased gap slightly for better breathing room
+  padding: '14px 18px',
+  borderRadius: '14px',
+  border: '2px solid',
+  cursor: 'pointer',
+  transition: 'all 0.2s ease',
+  textAlign: 'left',
+  width: '100%' // Ensure it fills the container
+};

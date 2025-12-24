@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, Loader2 } from 'lucide-react';
+import { X, Loader2, Lock } from 'lucide-react';
 
 export default function UrlInputForm({ 
   url, 
@@ -17,8 +17,13 @@ export default function UrlInputForm({
   currencyCode 
 }) {
 
-  const hasFunds = editableData.amount_raised > 0;
+  // SAFETY LOCK: Disable editing critical financial fields if money has been raised
+  const hasFunds = editableData?.amount_raised > 0;
+
   const handleEdit = (field, value) => {
+    if (hasFunds && (field === 'price' || field === 'quantity' || field === 'is_crowdfund')) {
+      return; // Do nothing if field is locked
+    }
     setEditableData(prev => ({ ...prev, [field]: value }));
   };
 
@@ -61,7 +66,7 @@ export default function UrlInputForm({
               <div style={{ marginBottom: '1.25rem' }}>
                 <label style={labelStyle}>Item Name</label>
                 <input 
-                  value={editableData.title} 
+                  value={editableData.title || ''} 
                   onChange={(e) => handleEdit('title', e.target.value)}
                   style={inputStyle}
                   placeholder="What is this gift called?"
@@ -72,20 +77,20 @@ export default function UrlInputForm({
               <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '12px', marginBottom: '1.25rem' }}>
                 <div>
                   <label style={labelStyle}>Price</label>
-                  <div style={priceContainerStyle}>
+                  <div style={{ ...priceContainerStyle, backgroundColor: hasFunds ? '#f8fafc' : '#fff' }}>
                     <div style={currencySideLabel}>{currencyCode}</div>
                     <div style={inputWithSymbolStyle}>
                       <span style={symbolStyle}>{currencySymbol}</span>
                       <input 
                         type="text"
-                        value={editableData.price} 
+                        value={editableData.price || ''} 
                         onChange={(e) => handleEdit('price', e.target.value)}
-                          disabled={editableData.is_crowdfund} // LOCK IF FUNDED
-                          style={{ 
-                            ...blankInputStyle, 
-                            backgroundColor: editableData.is_crowdfund ? '#f8fafc' : 'transparent',
-                            cursor: editableData.is_crowdfund ? 'not-allowed' : 'text'
-                          }}
+                        disabled={hasFunds}
+                        style={{ 
+                          ...blankInputStyle, 
+                          backgroundColor: hasFunds ? '#f8fafc' : 'transparent',
+                          cursor: hasFunds ? 'not-allowed' : 'text'
+                        }}
                         placeholder="0.00"
                       />
                     </div>
@@ -97,37 +102,35 @@ export default function UrlInputForm({
                     type="number" 
                     value={editableData.quantity || 1} 
                     onChange={(e) => handleEdit('quantity', e.target.value)}
-                      disabled={editableData.is_crowdfund} // LOCK IF FUNDED
-                      style={{ 
-                        ...inputStyle, 
-                        backgroundColor: editableData.is_crowdfund ? '#f8fafc' : '#fff',
-                        cursor: editableData.is_crowdfund ? 'not-allowed' : 'pointer'
+                    disabled={hasFunds}
+                    style={{ 
+                      ...inputStyle, 
+                      backgroundColor: hasFunds ? '#f8fafc' : '#fff',
+                      cursor: hasFunds ? 'not-allowed' : 'pointer'
                     }}
                   />
                 </div>
-                {hasFunds && (
-                  <div style={{ color: '#64748b', fontSize: '11px', marginTop: '4px' }}>
-                    🔒 Locked: Contributions have already started.
-                  </div>
-                )}
               </div>
 
-              {/* CROWDFUNDING SECTION - Fixed ReferenceError */}
+              {/* CROWDFUNDING SECTION */}
               <div 
-                onClick={() => handleEdit('is_crowdfund', !editableData.is_crowdfund)}
+                onClick={() => !hasFunds && handleEdit('is_crowdfund', !editableData.is_crowdfund)}
                 style={{
                   ...crowdfundCardStyle,
-                  borderColor: editableData.is_crowdfund ? '#3b82f6' : '#e2e8f0',
-                  backgroundColor: editableData.is_crowdfund ? '#eff6ff' : '#fff',
-                  borderWidth: '2px'
+                  borderColor: editableData.is_crowdfund ? '#6366f1' : '#e2e8f0',
+                  backgroundColor: hasFunds ? '#f8fafc' : (editableData.is_crowdfund ? '#f5f3ff' : '#fff'),
+                  borderWidth: '2px',
+                  cursor: hasFunds ? 'not-allowed' : 'pointer',
+                  opacity: hasFunds ? 0.8 : 1
                 }}
               >
                 <div style={{ display: 'flex', alignItems: 'center' }}>
                    <input 
                     type="checkbox" 
-                    checked={editableData.is_crowdfund}
-                    onChange={() => {}} // Div onClick handles toggle
-                    style={{ width: '18px', height: '18px', cursor: 'pointer' }}
+                    checked={editableData.is_crowdfund || false}
+                    readOnly 
+                    disabled={hasFunds}
+                    style={{ width: '18px', height: '18px', cursor: hasFunds ? 'not-allowed' : 'pointer' }}
                   />
                 </div>
                 <div style={{ flex: 1 }}>
@@ -135,10 +138,19 @@ export default function UrlInputForm({
                     Enable Crowdfunding 💰
                   </div>
                   <div style={{ fontSize: '12px', color: '#64748b', lineHeight: '1.4' }}>
-                    Fans can contribute any amount instead of buying the whole gift.
+                    {hasFunds 
+                      ? "Locked: Contributions have already started for this item." 
+                      : "Fans can contribute any amount instead of buying the whole gift."}
                   </div>
                 </div>
               </div>
+
+              {hasFunds && (
+                <div style={lockNoticeStyle}>
+                  <Lock size={12} />
+                  <span>Funding active: Financial settings are locked.</span>
+                </div>
+              )}
 
               <div style={{ marginBottom: '1rem' }}>
                 <label style={labelStyle}>Notes (Optional)</label>
@@ -156,12 +168,10 @@ export default function UrlInputForm({
         {/* Footer */}
         <div style={footerStyle}>
           <button 
-            /* Update the disabled condition */
             disabled={(!scrapedData && !isEditing && !error) || loading} 
             onClick={onContinue} 
             style={{ 
               ...submitButtonStyle, 
-              /* Update the color condition */
               backgroundColor: (scrapedData || isEditing || error) ? '#1e293b' : '#cbd5e1',
               opacity: loading ? 0.7 : 1
             }}
@@ -248,8 +258,7 @@ const inputWithSymbolStyle = {
   display: 'flex', 
   alignItems: 'center', 
   flex: 1, 
-  paddingLeft: '10px', 
-  backgroundColor: '#fff' 
+  paddingLeft: '10px' 
 };
 
 const symbolStyle = { 
@@ -274,9 +283,22 @@ const crowdfundCardStyle = {
   padding: '16px', 
   borderRadius: '12px', 
   borderStyle: 'solid', 
-  cursor: 'pointer', 
   marginBottom: '1.25rem',
   transition: 'all 0.2s ease'
+};
+
+const lockNoticeStyle = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: '6px',
+  color: '#64748b',
+  fontSize: '11px',
+  fontWeight: '600',
+  marginTop: '-8px',
+  marginBottom: '1.25rem',
+  padding: '8px 12px',
+  backgroundColor: '#f1f5f9',
+  borderRadius: '8px'
 };
 
 const footerStyle = { 
@@ -295,8 +317,7 @@ const submitButtonStyle = {
   border: 'none', 
   fontSize: '15px',
   fontWeight: '700', 
-  cursor: 'pointer',
-  transition: 'transform 0.1s active'
+  cursor: 'pointer'
 };
 
 const closeButtonStyle = { 
@@ -311,7 +332,7 @@ const statusTextStyle = {
   display: 'flex', 
   alignItems: 'center', 
   gap: '6px', 
-  color: '#3b82f6', 
+  color: '#6366f1', 
   fontSize: '12px', 
   marginTop: '8px',
   fontWeight: '500'
