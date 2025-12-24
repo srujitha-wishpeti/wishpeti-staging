@@ -3,7 +3,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import { supabase } from '../services/supabaseClient';
 import { useAuth } from '../auth/AuthProvider';
 import WishlistItemCard from '../components/wishlist/WishlistItemCard';
-import URLInputForm from '../components/URLInputForm';
+import UrlInputForm from '../components/URLInputForm';
 import { 
   ArrowLeft, Loader2, ShoppingBag, ShieldCheck, 
   Heart, Trash2, Settings2, Edit3, Lock, Info
@@ -183,7 +183,7 @@ export default function ItemDetailView() {
                       <span>Edit Gift Details</span>
                     </button>
                   ) : (
-                    <URLInputForm 
+                    <UrlInputForm 
                       isEditing={true} 
                       editableData={item} 
                       setEditableData={setItem} 
