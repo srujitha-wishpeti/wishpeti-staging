@@ -85,6 +85,46 @@
   max-width: 800px; /* Optional: keeps search bar from getting too wide */
   margin-bottom: 30px;
 }
+
+/* View Toggle Pills - Grid/List View Buttons */
+.view-toggle-pills {
+  display: flex;
+  gap: 8px;
+  background: #f1f5f9;
+  padding: 4px;
+  border-radius: 12px;
+  align-items: center;
+}
+
+.view-toggle-pills button {
+  background: transparent;
+  border: none;
+  padding: 10px 14px;
+  border-radius: 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #64748b;
+  transition: all 0.2s ease;
+  font-size: 0;
+}
+
+.view-toggle-pills button:hover {
+  background: #e2e8f0;
+  color: #475569;
+}
+
+.view-toggle-pills button.active {
+  background: #6366f1;
+  color: white;
+  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
+}
+
+.view-toggle-pills button.active:hover {
+  background: #4f46e5;
+  color: white;
+}
 /* Animation for the entrance */
 @keyframes slideInUp {
   from {
