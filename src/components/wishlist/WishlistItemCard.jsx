@@ -24,7 +24,8 @@ const CardInnerContent = ({
   onDelete, 
   handlePriorityChange,
   onAddToCart,
-  priorities
+  priorities,
+  username
 }) => (
   <div className={`unified-wishlist-card ${isCrowdfund ? 'crowdfund-style' : ''} ${isClaimed ? 'item-claimed' : ''}`} style={{ background: 'white', height: '100%', borderRadius: '24px', overflow: 'hidden' }}>
     <div className="card-media-box" style={{ position: 'relative', overflow: 'hidden' }}>
@@ -118,9 +119,29 @@ const CardInnerContent = ({
       )}
       
       <div style={{ marginTop: '16px' }}>
+
         <button 
           className={`btn-main-action ${isClaimed ? 'btn-disabled' : ''}`} 
-          onClick={(e) => { e.stopPropagation(); if(!isClaimed) onAddToCart(item); }}
+          onClick={(e) => { 
+            e.stopPropagation(); 
+            
+            if (isClaimed && !isOwner) return;
+
+            if (isOwner) {
+              if (isCrowdfund) {
+                // For crowdfunds, we trigger the modal (Manage Givers)
+                onAddToCart(item); 
+              } else {
+                // For standard items, we go to the details page
+                const targetUser = username || item.username || 'user';
+                window.location.href = `/${targetUser}/item/${item.id}`;
+              }
+              return; 
+            }
+
+            // Fan logic remains the same
+            onAddToCart(item); 
+          }}
           disabled={isClaimed && !isOwner}
           style={mainBtnStyle(isClaimed && !isOwner)}
         >
@@ -213,7 +234,7 @@ export default function WishlistItemCard({
   const contentProps = {
     item, isOwner, isClaimed, isCrowdfund, displayImage, currentPriority,
     displayMainPrice, qty, isFullyFunded, clampedPercentage, displayRaised,
-    onEdit, handleShare, isLocked, onDelete, handlePriorityChange, onAddToCart, priorities
+    onEdit, handleShare, isLocked, onDelete, handlePriorityChange, onAddToCart, priorities, username
   };
 
   return (

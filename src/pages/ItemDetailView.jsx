@@ -117,11 +117,10 @@ export default function ItemDetailView() {
                   username={username}
                   onUpdate={fetchItem}
                   onAddToCart={() => {
-                    if (isOwner) return; 
                     if (item.is_crowdfund) {
                       setShowContributeModal(true);
                     } else {
-                      handleAddToCart(); // Now this function exists and saves data!
+                      handleAddToCart();
                     }
                   }}
                 />
@@ -249,10 +248,14 @@ export default function ItemDetailView() {
       </main>
 
       {showContributeModal && (
-        <ContributeModal 
-          item={item} 
-          onClose={() => setShowContributeModal(false)} 
-          onSuccess={() => { fetchItem(); setShowContributeModal(false); }} 
+        <ContributeModal
+          item={item}
+          isOwner={isOwner} // This is the most important line!
+          onClose={() => setShowContributeModal(false)}
+          onSuccess={() => {
+            setShowContributeModal(false);
+            fetchItem();
+          }}
         />
       )}
     </div>
