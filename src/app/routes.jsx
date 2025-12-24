@@ -14,7 +14,7 @@ import TrackOrder from '../pages/TrackOrder'
 import SuccessPage from '../pages/SuccessPage'
 import AdminFulfillment from '../pages/AdminFulfillment'
 import ScrollToTop from "../components/ScrollToTop";
-//import ItemDetailView from '../pages/ItemDetailView';
+import ItemDetailView from '../pages/ItemDetailView';
 
 export default function AppRoutes() {
   const { session, loading } = useAuth();
@@ -41,7 +41,7 @@ export default function AppRoutes() {
       />
       
       {/* PUBLIC GIFTING FLOW */}
-      <Route path="/:username/item/:itemId" element={<WishlistPage />} />
+      <Route path="/:username/item/:itemId" element={<ItemDetailView />} />
       <Route path="/:username" element={<WishlistPage />} />
       
       <Route path="/track/:orderId" element={<TrackOrder />} />
