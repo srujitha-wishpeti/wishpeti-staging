@@ -475,99 +475,59 @@ const totalGiftValue = wishlist.reduce((acc, item) => {
                     </div>
 
                     {/* COLUMN 2: IDENTITY & BIO (Takes remaining middle space) */}
-                    <div style={{ flex: 1, minWidth: '0', paddingTop: '10px' }}>
-                        <h1 style={{ margin: 0, fontSize: '28px', fontWeight: 'bold', color: '#1e293b' }}>
+                    <div style={{ 
+                        flex: 1, 
+                        width: '100%', 
+                        minWidth: 0, 
+                        paddingTop: '10px' 
+                    }}>
+                        <h1 style={{ margin: 0, fontSize: '26px', fontWeight: 'bold', color: '#1e293b' }}>
                             {profile?.display_name}
                         </h1>
-                        <p style={{ margin: 0, color: '#64748b', fontSize: '16px' }}>@{profile?.username}</p>
+                        <p style={{ margin: 0, color: '#64748b', fontSize: '15px' }}>@{profile?.username}</p>
                         
                         <div style={{ margin: '12px 0' }}>
                             <p style={{ 
                                 margin: 0, 
-                                fontSize: '15px', 
+                                fontSize: '14px', 
                                 color: '#475569', 
-                                lineHeight: '1.6',
-                                whiteSpace: 'pre-wrap'
+                                lineHeight: '1.5'
                             }}>
-                                {profile?.bio 
-                                    ? (isBioExpanded || profile.bio.length <= 160 
-                                        ? profile.bio 
-                                        : `${profile.bio.substring(0, 160)}...`)
-                                    : "No bio added yet ✨"}
+                                {profile?.bio ? (isBioExpanded ? profile.bio : `${profile.bio.substring(0, 100)}${profile.bio.length > 100 ? '...' : ''}`) : "No bio added yet ✨"}
                             </p>
-                            {profile?.bio?.length > 160 && (
-                                <button 
-                                    onClick={() => setIsBioExpanded(!isBioExpanded)}
-                                    style={{ background: 'none', border: 'none', color: '#6366f1', padding: 0, fontSize: '13px', fontWeight: '700', cursor: 'pointer', marginTop: '4px' }}
-                                >
-                                    {isBioExpanded ? 'Show Less ↑' : 'Read More ↓'}
+                            {profile?.bio?.length > 100 && (
+                                <button onClick={() => setIsBioExpanded(!isBioExpanded)} style={{ background: 'none', border: 'none', color: '#6366f1', fontSize: '12px', fontWeight: '700', padding: 0, cursor: 'pointer' }}>
+                                    {isBioExpanded ? 'Show Less' : 'Read More'}
                                 </button>
                             )}
                         </div>
-
-                        <div style={{ display: 'flex', gap: '16px', alignItems: 'center', fontSize: '14px', fontWeight: '600', color: '#64748b' }}>
+                        
+                        <div style={{ display: 'flex', gap: '16px', fontSize: '13px', fontWeight: '600', color: '#64748b' }}>
                             <span>{wishlist.length} items</span>
                             <span>•</span>
-                            <span>
-                                {currency.code === 'INR' ? '₹' : (currency.symbol || currency.code + ' ')}
-                                {(wishlist.reduce((acc, item) => acc + (parseFloat(item.price) || 0), 0) * currency.rate).toLocaleString(undefined, { 
-                                    minimumFractionDigits: 2, 
-                                    maximumFractionDigits: 2 
-                                })}
-                            </span>
+                            <span>{getCurrencySymbol(currency.code)}{(wishlist.reduce((acc, item) => acc + (parseFloat(item.price) || 0), 0) * currency.rate).toLocaleString()}</span>
                         </div>
                     </div>
 
                     {/* COLUMN 3: GOAL CARD & BUTTONS (Aligned Right) */}
+                    {/* COLUMN 3: GOAL CARD & CONTROLS */}
                     <div style={{ 
-                        flex: '1 1 100%', // On mobile, this forces it to its own line
-                        maxWidth: '100%',
                         display: 'flex', 
                         flexDirection: 'column', 
-                        gap: '12px',
-                        // On Desktop (min-width 1024px logic), we limit width
-                        width: window.innerWidth > 1024 ? '320px' : '100%'
-                      }}>
+                        gap: '12px', 
+                        width: window.innerWidth < 1024 ? '100%' : '320px',
+                        flexShrink: 0 
+                    }}>
                         {nearestItem && (
-                            <div 
-                                onClick={() => navigate(`/${profile?.username}/item/${nearestItem.id}`)} 
-                                style={{ 
-                                    width: '100%',
-                                    cursor: 'pointer',
-                                    transition: 'transform 0.2s ease',
-                                }}
-                            >
+                            <div onClick={() => navigate(`/${profile?.username}/item/${nearestItem.id}`)} style={{ cursor: 'pointer' }}>
                                 <div style={{...statCardHighlight, width: '100%', boxSizing: 'border-box'}}>
-                                    <label style={tinyLabelStyle}>Closest to Goal 🚀</label>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginTop: '8px' }}>
-                                        <img 
-                                            src={nearestItem.image || nearestItem.image_url} 
-                                            style={{ 
-                                                width: '44px', 
-                                                height: '44px', 
-                                                borderRadius: '10px', 
-                                                objectFit: 'cover', 
-                                                flexShrink: 0, // Keep image from squishing
-                                                background: '#f1f5f9' 
-                                            }} 
-                                        />
-                                        <div style={{ flex: 1, minWidth: 0 }}> {/* minWidth: 0 is vital for text wrapping in flex */}
-                                            <div style={{ 
-                                                fontSize: '14px', 
-                                                fontWeight: '700', 
-                                                color: '#1e293b', 
-                                                lineHeight: '1.2',
-                                                whiteSpace: 'nowrap',
-                                                overflow: 'hidden',
-                                                textOverflow: 'ellipsis' // Prevents long titles from breaking layout
-                                            }}>
-                                                {nearestItem.title}
-                                            </div>
-                                            <div style={{ fontSize: '12px', color: '#6366f1', fontWeight: '800', marginTop: '2px' }}>
-                                                Only {currency.code === 'INR' ? '₹' : (currency.symbol || currency.code + ' ')}
-                                                {(( (parseFloat(nearestItem.price) || 0) * (nearestItem.quantity || 1) - (nearestItem.amount_raised || 0)) * currency.rate).toLocaleString(undefined, { 
-                                                    maximumFractionDigits: currency.code === 'INR' ? 0 : 2 
-                                                })} left!
+                                    <label style={tinyLabelStyle}>CLOSEST TO GOAL 🚀</label>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                        <img src={nearestItem.image || nearestItem.image_url} style={{ width: '40px', height: '40px', borderRadius: '8px', objectFit: 'cover' }} />
+                                        <div style={{ flex: 1, minWidth: 0 }}>
+                                            <div style={{ fontSize: '14px', fontWeight: '700', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{nearestItem.title}</div>
+                                            <div style={{ fontSize: '12px', color: '#6366f1', fontWeight: '800' }}>
+                                                Only {getCurrencySymbol(currency.code)}{(( (parseFloat(nearestItem.price) - (nearestItem.amount_raised || 0)) * currency.rate).toLocaleString())} left!
                                             </div>
                                         </div>
                                     </div>
@@ -575,36 +535,13 @@ const totalGiftValue = wishlist.reduce((acc, item) => {
                             </div>
                         )}
 
-                        {/* Controls Row */}
-                        <div style={{ 
-                            display: 'flex', 
-                            gap: '8px', 
-                            width: '100%', 
-                            flexWrap: 'wrap', // Allows buttons to stack if the screen is very narrow
-                            justifyContent: 'flex-start' // Standardize alignment for mobile-first
-                        }}>
-                            <select 
-                                className="currency-dropdown-minimal"
-                                value={currency.code}
-                                onChange={(e) => handleCurrencyChange(e.target.value)}
-                                style={{ 
-                                    flex: 1, // Let it grow to fill space on mobile
-                                    minWidth: '100px',
-                                    padding: '8px 12px', 
-                                    borderRadius: '8px', 
-                                    border: '1px solid #e2e8f0', 
-                                    backgroundColor: 'white' 
-                                }}
-                            >
+                        <div style={{ display: 'flex', gap: '8px' }}>
+                            <select value={currency.code} onChange={(e) => handleCurrencyChange(e.target.value)} style={{ flex: 1, padding: '8px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
                                 <option value="INR">INR (₹)</option>
                                 <option value="USD">USD ($)</option>
-                                <option value="GBP">GBP (£)</option>
-                                <option value="EUR">EUR (€)</option>
                             </select>
-                            
                             <button className="modern-share-btn" style={{...shareButtonStyle, flex: 2}} onClick={() => {
-                                const shareUrl = `${window.location.origin}/${profile?.username}`;
-                                navigator.clipboard.writeText(shareUrl);
+                                navigator.clipboard.writeText(window.location.href);
                                 setToastMsg("Link copied! 🔗");
                                 setShowToast(true);
                             }}>
