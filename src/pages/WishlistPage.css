@@ -880,6 +880,20 @@
   font-weight: 600;
 }
 
+.goal-card {
+  width: 100%; /* Default to full width on mobile */
+  background: white;
+  border-radius: 12px;
+  padding: 16px;
+  box-sizing: border-box; /* Prevents padding from adding to width */
+}
+
+@media (min-width: 768px) {
+  .goal-card {
+    width: 48%; /* Side-by-side on tablets and desktops */
+  }
+}
+
 @keyframes slideUp {
   from { bottom: -100px; }
   to { bottom: 20px; }

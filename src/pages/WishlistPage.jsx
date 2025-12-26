@@ -523,11 +523,11 @@ const totalGiftValue = wishlist.reduce((acc, item) => {
                         display: 'flex', 
                         flexDirection: 'column', 
                         gap: '16px', 
-                        minWidth: '320px', 
-                        flexShrink: 0,
-                        alignItems: window.innerWidth < 1024 ? 'flex-start' : 'flex-end',
+                        width: '100%', // Use 100% instead of fixed minWidth
+                        maxWidth: '400px', // Optional: prevents it from getting TOO wide on desktop
+                        alignItems: 'stretch', // Let children fill the width, internal text handles alignment
                         paddingTop: '10px'
-                    }}>
+                      }}>
                         {nearestItem && (
                             <div 
                                 onClick={() => navigate(`/${profile?.username}/item/${nearestItem.id}`)} 
@@ -537,15 +537,32 @@ const totalGiftValue = wishlist.reduce((acc, item) => {
                                     transition: 'transform 0.2s ease',
                                 }}
                             >
-                                <div style={statCardHighlight}>
+                                <div style={{...statCardHighlight, width: '100%', boxSizing: 'border-box'}}>
                                     <label style={tinyLabelStyle}>Closest to Goal 🚀</label>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginTop: '8px' }}>
                                         <img 
                                             src={nearestItem.image || nearestItem.image_url} 
-                                            style={{ width: '44px', height: '44px', borderRadius: '10px', objectFit: 'cover', background: '#f1f5f9' }} 
+                                            style={{ 
+                                                width: '44px', 
+                                                height: '44px', 
+                                                borderRadius: '10px', 
+                                                objectFit: 'cover', 
+                                                flexShrink: 0, // Keep image from squishing
+                                                background: '#f1f5f9' 
+                                            }} 
                                         />
-                                        <div style={{ flex: 1 }}>
-                                            <div style={{ fontSize: '14px', fontWeight: '700', color: '#1e293b', lineHeight: '1.2' }}>{nearestItem.title}</div>
+                                        <div style={{ flex: 1, minWidth: 0 }}> {/* minWidth: 0 is vital for text wrapping in flex */}
+                                            <div style={{ 
+                                                fontSize: '14px', 
+                                                fontWeight: '700', 
+                                                color: '#1e293b', 
+                                                lineHeight: '1.2',
+                                                whiteSpace: 'nowrap',
+                                                overflow: 'hidden',
+                                                textOverflow: 'ellipsis' // Prevents long titles from breaking layout
+                                            }}>
+                                                {nearestItem.title}
+                                            </div>
                                             <div style={{ fontSize: '12px', color: '#6366f1', fontWeight: '800', marginTop: '2px' }}>
                                                 Only {currency.code === 'INR' ? '₹' : (currency.symbol || currency.code + ' ')}
                                                 {(( (parseFloat(nearestItem.price) || 0) * (nearestItem.quantity || 1) - (nearestItem.amount_raised || 0)) * currency.rate).toLocaleString(undefined, { 
@@ -558,12 +575,26 @@ const totalGiftValue = wishlist.reduce((acc, item) => {
                             </div>
                         )}
 
-                        <div style={{ display: 'flex', gap: '8px', width: '100%', justifyContent: window.innerWidth < 1024 ? 'flex-start' : 'flex-end' }}>
+                        {/* Controls Row */}
+                        <div style={{ 
+                            display: 'flex', 
+                            gap: '8px', 
+                            width: '100%', 
+                            flexWrap: 'wrap', // Allows buttons to stack if the screen is very narrow
+                            justifyContent: 'flex-start' // Standardize alignment for mobile-first
+                        }}>
                             <select 
                                 className="currency-dropdown-minimal"
                                 value={currency.code}
                                 onChange={(e) => handleCurrencyChange(e.target.value)}
-                                style={{ padding: '8px 12px', borderRadius: '8px', border: '1px solid #e2e8f0', backgroundColor: 'white' }}
+                                style={{ 
+                                    flex: 1, // Let it grow to fill space on mobile
+                                    minWidth: '100px',
+                                    padding: '8px 12px', 
+                                    borderRadius: '8px', 
+                                    border: '1px solid #e2e8f0', 
+                                    backgroundColor: 'white' 
+                                }}
                             >
                                 <option value="INR">INR (₹)</option>
                                 <option value="USD">USD ($)</option>
@@ -571,7 +602,7 @@ const totalGiftValue = wishlist.reduce((acc, item) => {
                                 <option value="EUR">EUR (€)</option>
                             </select>
                             
-                            <button className="modern-share-btn" style={shareButtonStyle} onClick={() => {
+                            <button className="modern-share-btn" style={{...shareButtonStyle, flex: 2}} onClick={() => {
                                 const shareUrl = `${window.location.origin}/${profile?.username}`;
                                 navigator.clipboard.writeText(shareUrl);
                                 setToastMsg("Link copied! 🔗");
