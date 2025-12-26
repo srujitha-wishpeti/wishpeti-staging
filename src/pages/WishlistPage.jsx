@@ -16,6 +16,7 @@ import './WishlistPage.css';
 import Toast from '../components/ui/Toast';
 import { useCurrency } from '../context/CurrencyContext';
 import { useToast } from '../context/ToastContext';
+import { getCurrencySymbol } from '../utils/currency';
 export default function WishlistPage() {  
   const { username } = useParams();
   const { session } = useAuth();
@@ -587,26 +588,49 @@ const totalGiftValue = wishlist.reduce((acc, item) => {
 
       {!isOwner && wishlist.length > 0 && (
         <section className="surprise-me-card" style={surpriseCardStyle}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1 }}>
                 <div style={iconCircleStyle}><Sparkles size={18} color="#6366f1" /></div>
                 <div>
-                    <h4 style={{ margin: 0, fontSize: '15px', fontWeight: '700' }}>Surprise {profile?.display_name.split(' ')[0]}</h4>
-                    <p style={{ margin: 0, fontSize: '12px', color: '#64748b' }}>We'll split your gift across items closest to their goal.</p>
+                    <h4 style={{ margin: 0, fontSize: '15px', fontWeight: '700' }}>
+                        Surprise {profile?.display_name.split(' ')[0]}
+                    </h4>
+                    {/* Updated explanation for clarity on funds/withdrawals */}
+                    <p style={{ margin: 0, fontSize: '12px', color: '#64748b', lineHeight: '1.4' }}>
+                        Send a cash gift that {profile?.display_name.split(' ')[0]} can use to fund any item in their Peti.
+                    </p>
                 </div>
             </div>
-            <div style={{ display: 'flex', gap: '8px' }}>
-                <input 
-                    type="number" 
-                    placeholder={`Amount in ${currency.code}`} 
-                    value={surpriseAmount}
-                    onChange={(e) => setSurpriseAmount(e.target.value)}
-                    style={surpriseInputStyle} 
-                />
+
+            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                {/* Input with inline currency symbol */}
+                <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                    <span style={{ 
+                        position: 'absolute', 
+                        left: '12px', 
+                        fontSize: '14px', 
+                        color: '#94a3b8', 
+                        fontWeight: '600' 
+                    }}>
+                        {currency.symbol || getCurrencySymbol(currency.code)}
+                    </span>
+                    <input 
+                        type="number" 
+                        placeholder="0.00" 
+                        value={surpriseAmount}
+                        onChange={(e) => setSurpriseAmount(e.target.value)}
+                        style={{
+                            ...surpriseInputStyle,
+                            paddingLeft: '28px', // Space for the symbol
+                            width: '110px'
+                        }} 
+                    />
+                </div>
+
                 <button 
                     onClick={() => handleAddSurpriseGift(surpriseAmount, profile?.id, profile?.display_name, currency.code, currency.rate)} 
                     style={surpriseButtonStyle}
                 >
-                    Surprise Me
+                    Send Gift
                 </button>
             </div>
         </section>
