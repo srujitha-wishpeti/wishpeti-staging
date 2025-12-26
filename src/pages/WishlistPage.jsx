@@ -43,6 +43,10 @@ export default function WishlistPage() {
   const [isBioExpanded, setIsBioExpanded] = useState(false);
   const BIO_LIMIT = 160; // Characters before truncating
 
+  const [page, setPage] = useState(0);
+  const [hasMore, setHasMore] = useState(true);
+  const ITEMS_PER_PAGE = 12;
+
   // 1. ADD THIS: Handle Edit Item
   // This opens the AddWishlistItem modal in "edit mode"
   const handleEditItem = (item) => {
@@ -156,9 +160,43 @@ const nearestItem = getNearestGoal();
         setShowToast(true);
     }
   };
+  const fetchPaginatedItems = async (profileId, isInitial = true) => {
+    const PAGE_SIZE = 10;
+    const start = isInitial ? 0 : wishlist.length;
+    const end = start + PAGE_SIZE - 1;
 
-  const loadData = async () => {
-    setLoading(true);
+    // KEEP THE INTEGRATED FIX: Use !fk_item relationship inside the items query
+    const { data, error } = await supabase
+        .from('wishlist_items')
+        .select(`
+            *,
+            orders!fk_item (*)
+        `)
+        .eq('creator_id', profileId)
+        .order('priority_level', { ascending: true }) // <--- Sort by Priority (1 first)
+        .order('amount_raised', { ascending: false })
+        .order('created_at', { ascending: false })
+        .range(start, end);
+
+    if (error) throw error;
+
+    const processedItems = (data || []).map(item => {
+        const totalRaised = (item.orders || [])
+            .filter(o => o.status === 'completed')
+            .reduce((sum, o) => sum + o.amount, 0);
+        
+        return {
+            ...item,
+            totalRaised,
+            progress: Math.min((totalRaised / item.price) * 100, 100)
+        };
+    });
+
+    setWishlist(prev => isInitial ? processedItems : [...prev, ...processedItems]);
+  };
+
+  const loadData = async (isInitial = true) => {
+    if (isInitial) setLoading(true);
     try {
         const searchKey = username ? 'username' : 'id';
         const searchValue = username ? username.toLowerCase() : session?.user?.id;
@@ -168,44 +206,29 @@ const nearestItem = getNearestGoal();
             return;
         }
 
-        // INTEGRATED FIX: Use the !fk_item relationship and maybeSingle()
+        // KEEP THE INTEGRATED FIX: Fetch profile data
+        // We remove 'wishlist_items' from here to handle them with paging separately
         const { data: profileData, error: profileError } = await supabase
-        .from('creator_profiles')
-        .select(`
-            *,
-            wishlist_items (
-            *,
-            orders!fk_item (*)
-            )
-        `)
-        .eq(searchKey, searchValue)
-        .maybeSingle();
+            .from('creator_profiles')
+            .select(`*`) 
+            .eq(searchKey, searchValue)
+            .maybeSingle();
 
         if (profileError) throw profileError;
 
         if (profileData) {
             setProfile(profileData);
-            const processedItems = (profileData.wishlist_items || []).map(item => {
-                const totalRaised = (item.orders || [])
-                .filter(o => o.status === 'completed')
-                .reduce((sum, o) => sum + o.amount, 0);
-                
-                return {
-                ...item,
-                totalRaised,
-                progress: Math.min((totalRaised / item.price) * 100, 100)
-                };
-            });
-            setWishlist(processedItems);
+            // Now fetch items for this specific profile with paging
+            await fetchPaginatedItems(profileData.id, isInitial);
         } else {
             setProfile(null);
         }
     } catch (err) {
         console.error('Fetch Error:', err);
     } finally {
-        setLoading(false);
+        if (isInitial) setLoading(false);
     }
-  };
+};
 
 const totalGiftValue = wishlist.reduce((acc, item) => {
     // Only add to the total if the item is NOT claimed/purchased
@@ -377,30 +400,43 @@ const totalGiftValue = wishlist.reduce((acc, item) => {
                 <div style={{ display: 'flex', alignItems: 'flex-start', gap: '32px' }}>
                     
                     {/* COLUMN 1: LARGER AVATAR */}
-                    <div style={{ marginTop: '-80px', flexShrink: 0, zIndex: 10 }}>
+                    <div style={{ 
+                        marginTop: '-80px', 
+                        flexShrink: 0, 
+                        zIndex: 10,
+                        position: 'relative', // CRITICAL: This keeps the button pinned to the avatar
+                        width: '160px',       // Matches image width to keep the "box" tight
+                        height: '160px' 
+                    }}>
                         <img 
                             src={profile?.avatar_url || `https://api.dicebear.com/7.x/initials/svg?seed=${profile?.display_name}`} 
                             style={{
-                                width: '160px', // Increased from 130px
-                                height: '160px', // Increased from 130px
+                                width: '100%', 
+                                height: '100%', 
                                 borderRadius: '50%', 
-                                border: '6px solid white', // Thicker border for better contrast
+                                border: '6px solid white', 
                                 backgroundColor: 'white', 
                                 objectFit: 'cover',
-                                boxShadow: '0 8px 20px rgba(0,0,0,0.15)' // Deeper shadow for depth
+                                boxShadow: '0 8px 20px rgba(0,0,0,0.15)' 
                             }}
                             alt="Profile"
                         />
+                        
                         {isOwner && (
                             <button 
                                 className="avatar-edit-pencil" 
                                 onClick={() => setEditingProfile(true)} 
                                 style={{
                                     ...avatarPencilStyle,
+                                    position: 'absolute', // Ensures it uses the parent's relative position
                                     width: '32px',
                                     height: '32px',
                                     bottom: '12px',
-                                    right: '12px'
+                                    right: '12px',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    zIndex: 11
                                 }}
                             >
                                 <Pencil size={16} color="white" />
@@ -659,7 +695,16 @@ const totalGiftValue = wishlist.reduce((acc, item) => {
                 />
             ))}
         </div>
+        {wishlist.length > 0 && (
+            <button 
+                onClick={() => fetchPaginatedItems(profile.id, false)}
+                style={{ margin: '20px auto', display: 'block' }}
+            >
+                Load More
+            </button>
+        )}
         </main>
+
       {contributingItem && (
         <ContributeModal 
             item={contributingItem}
