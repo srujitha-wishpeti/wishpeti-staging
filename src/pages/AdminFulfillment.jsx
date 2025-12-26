@@ -177,6 +177,8 @@ useEffect(() => {
 
   const { rate: currentGlobalRate } = getCurrencyPreference(); //
 
+  const PLATFORM_FEE_PERCENT = 0.05; // 5% commission
+
   const stats = tasks.reduce((acc, order) => {
     if (order.payment_status === 'paid') {
         const rawAmount = Number(order.total_amount || 0);
@@ -190,7 +192,17 @@ useEffect(() => {
         : rawAmount;
 
         acc.totalRevenue += amountInINR;
-        acc.totalSpend += Number(order.actual_purchase_cost || 0);
+        if (order.is_surprise || order.is_gift_fund) {
+            // Calculate commission and what actually goes to the creator
+            const commission = amountInINR * PLATFORM_FEE_PERCENT;
+            const netToCreator = amountInINR - commission;
+
+            acc.platformEarnings += commission;
+            acc.withdrawableFunds += netToCreator;
+        } else {
+            // Standard items: Revenue is the total, Spend is what you paid to buy it
+            acc.totalSpend += Number(order.actual_purchase_cost || 0);
+        }
     }
     return acc;
   }, { totalRevenue: 0, totalSpend: 0 });

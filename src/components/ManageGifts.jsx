@@ -7,12 +7,22 @@ export default function ManageGifts() {
   const [gifts, setGifts] = useState([]);
   const [loading, setLoading] = useState(true);
   const showToast = useToast();
-  
+  const [balance, setBalance] = useState(0);
+
   // 1. Fetch orders linked to this creator
   const fetchGifts = async () => {
     setLoading(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
+
+      // Fetch Profile Balance
+      const { data: profile } = await supabase
+        .from('creator_profiles')
+        .select('withdrawable_balance')
+        .eq('id', user.id)
+        .single();
+      
+      if (profile) setBalance(profile.withdrawable_balance || 0);
       
       const { data, error } = await supabase
         .from('orders')
@@ -38,7 +48,7 @@ export default function ManageGifts() {
   }, []);
 
   // 2. Update the status in the Database
-  const handleAction = async (id, newStatus) => {
+  const handleAction = async (gift, newStatus) => {
     if (newStatus === 'rejected') {
       const confirm = window.confirm("Rejecting will refund the fan via Razorpay (5-7 days). Proceed?");
       if (!confirm) return;
@@ -48,12 +58,46 @@ export default function ManageGifts() {
       const { error } = await supabase
         .from('orders')
         .update({ gift_status: newStatus })
-        .eq('id', id);
+        .eq('id', gift.id);
 
       if (error) throw error;
 
+      const { data: { user } } = await supabase.auth.getUser();
+      // Inside handleAction when newStatus === 'accepted' and gift.is_surprise is true
+      if (newStatus === 'accepted' && gift.is_surprise) {
+          const PLATFORM_FEE = 0.05; 
+          const rateUsed = gift.exchange_rate_at_payment || 1;
+          
+          // 1. Calculate the Net INR amount
+          const grossINR = gift.currency_code !== 'INR' 
+              ? (Number(gift.total_amount) / rateUsed) 
+              : Number(gift.total_amount);
+          const netToCreator = grossINR * (1 - PLATFORM_FEE);
+
+          // 2. Fetch the current balance first
+          const { data: profile } = await supabase
+              .from('creator_profiles')
+              .select('withdrawable_balance')
+              .eq('id', user.id)
+              .single();
+
+          const currentBalance = profile?.withdrawable_balance || 0;
+
+          console.log(profile?.withdrawable_balance);
+          console.log(netToCreator);
+          // 3. Perform the update
+          const { error: balanceError } = await supabase
+              .from('creator_profiles')
+              .update({ withdrawable_balance: currentBalance + netToCreator })
+              .eq('id', user.id);
+
+          if (balanceError) throw balanceError;
+          
+          // Update local state for the UI balance display
+          setBalance(currentBalance + netToCreator);
+        }
       // Update local state
-      setGifts(prev => prev.map(g => g.id === id ? { ...g, gift_status: newStatus } : g));
+      setGifts(prev => prev.map(g => g.id === gift.id ? { ...g, gift_status: newStatus } : g));
       showToast(`Gift marked as ${newStatus}!`);
     } catch (err) {
       console.error("Update failed:", err.message);
@@ -82,6 +126,53 @@ export default function ManageGifts() {
         </h1>
         <p style={{ color: '#64748b' }}>Review and manage your fan gifts and track deliveries.</p>
       </header>
+
+      <div style={{ 
+          background: 'linear-gradient(135deg, #6366f1 0%, #4338ca 100%)', 
+          padding: '32px', 
+          borderRadius: '24px', 
+          color: 'white', 
+          marginBottom: '32px',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          boxShadow: '0 20px 25px -5px rgba(67, 56, 202, 0.2)'
+      }}>
+          <div>
+              <p style={{ margin: 0, opacity: 0.9, fontSize: '14px', fontWeight: '600' }}>Available Balance</p>
+              <h2 style={{ margin: '4px 0 0 0', fontSize: '36px', fontWeight: '800' }}>
+                  {new Intl.NumberFormat('en-IN', {
+                      style: 'currency',
+                      currency: 'INR',
+                      maximumFractionDigits: 0
+                  }).format(balance)}
+              </h2>
+          </div>
+          <button 
+              onClick={() => {/* Trigger Payout Modal */}}
+              style={{
+                  background: 'white',
+                  color: '#4338ca',
+                  border: 'none',
+                  padding: '12px 24px',
+                  borderRadius: '12px',
+                  fontWeight: '700',
+                  cursor: 'pointer',
+                  fontSize: '15px',
+                  transition: 'transform 0.2s'
+              }}
+          >
+              Withdraw Funds
+          </button>
+      </div>
+      <p style={{ 
+          fontSize: '12px', 
+          color: '#94a3b8', 
+          marginTop: '8px', 
+          textAlign: 'left' 
+      }}>
+          *Balance shown is after the 5% Peti service fee.
+      </p>
 
       <div style={{ display: 'grid', gap: '20px' }}>
         {gifts.length === 0 ? (
@@ -184,7 +275,7 @@ export default function ManageGifts() {
                   {gift.gift_status === 'pending' && !isCrowdfund && (
                     <div style={{ display: 'flex', gap: '8px' }}>
                       <button 
-                        onClick={() => handleAction(gift.id, 'accepted')} 
+                        onClick={() => handleAction(gift, 'accepted')} 
                         style={{ 
                             background: '#6366f1', 
                             color: 'white', 
@@ -200,7 +291,7 @@ export default function ManageGifts() {
                         Accept
                       </button>
                       <button 
-                        onClick={() => handleAction(gift.id, 'rejected')} 
+                        onClick={() => handleAction(gift, 'rejected')} 
                         style={{ 
                             background: 'white', 
                             color: '#ef4444', 

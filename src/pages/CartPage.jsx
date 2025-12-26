@@ -152,16 +152,17 @@ export default function CartPage() {
         const creatorId = cartItems[0]?.recipient_id || cartItems[0]?.creator_id;
         const { rate } = getCurrencyPreference();
         
-        // 1. Calculate Surprise Amount in INR
+        // 1. Calculate Surprise Amount (Funds)
         const surpriseTotal = cartItems
             .filter(item => item.is_surprise)
             .reduce((sum, item) => sum + parseFloat(item.price), 0);
         
+        // Convert to INR for the record (Net balance calculation happens on 'Accept')
         const surpriseInINR = currency.code === 'INR' 
             ? surpriseTotal 
             : surpriseTotal / (currency.rate || 1);
 
-        // 2. Insert the Order Record
+        // 2. Insert the Order Record (Now with is_surprise flag)
         const { data: orderData, error: orderError } = await supabase
             .from('orders')
             .insert([{
@@ -175,97 +176,36 @@ export default function CartPage() {
                 items: cartItems, 
                 payment_status: 'paid',
                 exchange_rate_at_payment: rate,
-                gift_status: 'pending'
+                gift_status: 'pending',
+                is_surprise: surpriseTotal > 0, // Critical flag for Manage Gifts page
+                surprise_amount_in_inr: surpriseInINR
             }])
             .select();
 
         if (orderError) throw orderError;
 
-        const allocationImpact = [];
-
-        // 3. WATERFALL ALLOCATION LOGIC (The Fix)
-        if (surpriseInINR > 0) {
-            let remainingPool = surpriseInINR;
-
-            // Fetch all active items for this creator, ordered by Priority (1 High -> 3 Standard)
-            const { data: allItems } = await supabase
-                .from('wishlist_items')
-                .select('*')
-                .eq('creator_id', creatorId)
-                .eq('status', 'active')
-                .order('priority_level', { ascending: true });
-
-            if (allItems && allItems.length > 0) {
-                for (const item of allItems) {
-                    if (remainingPool <= 0) break;
-
-                    const goalAmount = (item.price || 0) * (item.quantity || 1);
-                    const currentlyRaised = item.amount_raised || 0;
-                    const needed = goalAmount - currentlyRaised;
-
-                    if (needed > 0) {
-                        const contribution = Math.min(remainingPool, needed);
-                        const isNowFullyFunded = (currentlyRaised + contribution) >= goalAmount;
-
-                        // UPDATE DATABASE: Force to crowdfund and add amount
-                        await supabase
-                            .from('wishlist_items')
-                            .update({
-                                is_crowdfund: true,
-                                amount_raised: currentlyRaised + contribution,
-                                status: isNowFullyFunded ? 'claimed' : 'active'
-                            })
-                            .eq('id', item.id);
-
-                        allocationImpact.push({
-                            title: item.title,
-                            amount: contribution,
-                            fullyFunded: isNowFullyFunded
-                        });
-
-                        remainingPool -= contribution;
-                    }
-                }
-            }
-
-            // FALLBACK: If money remains after everything is funded, find/update the General Fund
-            if (remainingPool > 0) {
-                const { data: generalFund } = await supabase
-                    .from('wishlist_items')
-                    .select('*')
-                    .eq('creator_id', creatorId)
-                    .eq('is_general_fund', true)
-                    .single();
-
-                if (generalFund) {
-                    await supabase
-                        .from('wishlist_items')
-                        .update({ amount_raised: (generalFund.amount_raised || 0) + remainingPool })
-                        .eq('id', generalFund.id);
-                    
-                    allocationImpact.push({ title: "Creator Support Fund", amount: remainingPool, isGeneral: true });
-                }
-            }
+        // 3. Decrement quantity only for physical items
+        // (Surprise gifts don't have inventory to decrement)
+        const physicalItems = cartItems.filter(item => !item.is_surprise);
+        
+        if (physicalItems.length > 0) {
+            const dbUpdatePromises = physicalItems.map(item => 
+                supabase.rpc('decrement_item_quantity', { row_id: item.id })
+            );
+            await Promise.all(dbUpdatePromises);
         }
 
-        // 4. Standard decrement for physical items (only those NOT converted/surprise)
-        const dbUpdatePromises = cartItems
-            .filter(item => !item.is_surprise)
-            .map(item => supabase.rpc('decrement_item_quantity', { row_id: item.id }));
-        
-        await Promise.all(dbUpdatePromises);
-
-        // 5. Cleanup and Navigate
+        // 4. Cleanup and Navigate
         localStorage.removeItem('wishlist_cart');
         setCartItems([]);
         window.dispatchEvent(new Event('cartUpdated'));
         
-        // Pass the impact summary to the success page for the UI
-        navigate(`/success/${orderData?.[0]?.id}`, { state: { impact: allocationImpact } });
+        // Redirect to success page
+        navigate(`/success/${orderData?.[0]?.id}`);
 
     } catch (err) {
-        console.error("Allocation Error:", err);
-        showToast("Payment successful, but order allocation failed. Please contact support.");
+        console.error("Post-Payment Error:", err);
+        showToast("Payment recorded, but we had trouble updating the wishlist. Don't worry, your gift is safe!");
     } finally {
         setLoading(false);
     }

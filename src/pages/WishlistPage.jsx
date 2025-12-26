@@ -16,7 +16,7 @@ import './WishlistPage.css';
 import Toast from '../components/ui/Toast';
 import { useCurrency } from '../context/CurrencyContext';
 import { useToast } from '../context/ToastContext';
-import { getCurrencySymbol } from '../utils/currency';
+import { fetchExchangeRate, getCurrencySymbol } from '../utils/currency';
 export default function WishlistPage() {  
   const { username } = useParams();
   const { session } = useAuth();
@@ -366,7 +366,7 @@ const totalGiftValue = wishlist.reduce((acc, item) => {
         quantity: 1,
         // Pass the values directly from the arguments
         added_currency: currentCode, 
-        added_rate: 1,
+        added_rate: currentRate,
         recipient_id: creatorId, 
         recipient_name: creatorName,
         creator_id: creatorId 
