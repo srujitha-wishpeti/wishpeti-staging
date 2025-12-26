@@ -39,11 +39,34 @@ export default function WishlistPage() {
   const [editingItem, setEditingItem] = useState(null);
   const [showGeoNotice, setShowGeoNotice] = useState(false);
   const [surpriseAmount, setSurpriseAmount] = useState('');
+
+  const [isBioExpanded, setIsBioExpanded] = useState(false);
+  const BIO_LIMIT = 160; // Characters before truncating
+
   // 1. ADD THIS: Handle Edit Item
   // This opens the AddWishlistItem modal in "edit mode"
   const handleEditItem = (item) => {
     setEditingItem(item); // This will pass the item data to your AddWishlistItem component
   };
+
+  const getNearestGoal = () => {
+    const crowdfunds = wishlist.filter(item => 
+        item.is_crowdfund && 
+        (item.amount_raised || 0) > 0 && 
+        (item.amount_raised < (item.price * (item.quantity || 1)))
+    );
+
+    if (crowdfunds.length === 0) return null;
+
+    // Sort by highest percentage raised
+    return crowdfunds.sort((a, b) => {
+        const pctA = (a.amount_raised / (a.price * (a.quantity || 1)));
+        const pctB = (b.amount_raised / (b.price * (b.quantity || 1)));
+        return pctB - pctA;
+    })[0];
+  };
+
+const nearestItem = getNearestGoal();
 
   useEffect(() => {
     // If the currency is not INR (our default) and the user hasn't dismissed the notice
@@ -323,14 +346,20 @@ const totalGiftValue = wishlist.reduce((acc, item) => {
 
   return (
     <div className="wishlist-modern-page">
-      <header className="wishlist-hero-card">
+      <header className="wishlist-hero-card" style={{ 
+            padding: '0', 
+            overflow: 'hidden', 
+            borderRadius: '24px', // Keeps the card corners rounded
+            backgroundColor: 'white',
+            boxShadow: '0 4px 20px rgba(0,0,0,0.05)'
+        }}>
         <div className="profile-header-container" style={{ width: '100%', background: 'white' }}>
             
             {/* BANNER SECTION */}
-            <div className="banner-wrapper group" style={{ position: 'relative', width: '100%', height: '250px' }}>
+            <div className="banner-wrapper group" style={{ position: 'relative', width: '100%', height: '250px', margin: 0, padding: 0 }}>
                 <img 
                     src={profile?.banner_url || 'https://images.unsplash.com/photo-1557683316-973673baf926'} 
-                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                    style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
                 />
                 {isOwner && (
                     <button 
@@ -344,78 +373,146 @@ const totalGiftValue = wishlist.reduce((acc, item) => {
             </div>
 
             {/* PROFILE INFO SECTION */}
-            <div className="profile-content" style={{ maxWidth: '1000px', margin: '0 auto', padding: '0 20px', position: 'relative' }}>
-                <div style={{ display: 'flex', alignItems: 'flex-end', gap: '20px', flexWrap: 'wrap' }}>
+            <div className="profile-content" style={{ padding: '0 24px 24px 24px' }}>
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '32px' }}>
                     
-                    {/* AVATAR */}
-                    <div className="profile-avatar-wrapper" style={{ marginTop: '-60px', position: 'relative' }}>
+                    {/* COLUMN 1: LARGER AVATAR */}
+                    <div style={{ marginTop: '-80px', flexShrink: 0, zIndex: 10 }}>
                         <img 
                             src={profile?.avatar_url || `https://api.dicebear.com/7.x/initials/svg?seed=${profile?.display_name}`} 
                             style={{
-                                width: '130px', height: '130px',
-                                borderRadius: '50%', border: '5px solid white',
-                                backgroundColor: 'white', objectFit: 'cover',
-                                boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+                                width: '160px', // Increased from 130px
+                                height: '160px', // Increased from 130px
+                                borderRadius: '50%', 
+                                border: '6px solid white', // Thicker border for better contrast
+                                backgroundColor: 'white', 
+                                objectFit: 'cover',
+                                boxShadow: '0 8px 20px rgba(0,0,0,0.15)' // Deeper shadow for depth
                             }}
+                            alt="Profile"
                         />
                         {isOwner && (
-                            <button className="avatar-edit-pencil" onClick={() => setEditingProfile(true)} style={avatarPencilStyle}>
-                                <Pencil size={14} color="white" />
+                            <button 
+                                className="avatar-edit-pencil" 
+                                onClick={() => setEditingProfile(true)} 
+                                style={{
+                                    ...avatarPencilStyle,
+                                    width: '32px',
+                                    height: '32px',
+                                    bottom: '12px',
+                                    right: '12px'
+                                }}
+                            >
+                                <Pencil size={16} color="white" />
                             </button>
                         )}
                     </div>
 
-                    {/* RESTORED BIO AND STATS */}
-                    <div style={{ paddingBottom: '15px', flex: 1 }}>
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '15px' }}>
-                            <div>
-                                <h1 style={{ margin: 0, fontSize: '24px', fontWeight: 'bold', color: '#1e293b' }}>
-                                    {profile?.display_name}
-                                </h1>
-                                <p style={{ margin: 0, color: '#64748b' }}>@{profile?.username}</p>
-                                <p style={{ margin: '8px 0', fontSize: '15px', color: '#475569', maxWidth: '600px' }}>
-                                    {profile?.bio || "No bio added yet ✨"}
-                                </p>
-                                
-                                <div className="hero-stats" style={{ display: 'flex', gap: '15px', fontSize: '14px', fontWeight: '600', color: '#64748b' }}>
-                                    <span>{wishlist.length || 0} items</span>
-                                    <span style={{ color: '#cbd5e1' }}>•</span>
-                                    <span>
-                                        {currency.code === 'INR' ? '₹' : currency.code + ' '}
-                                        {(wishlist.reduce((acc, item) => {
-                                            const price = typeof item.price === 'string' 
-                                                ? parseFloat(item.price.replace(/[^0-9.]/g, '')) 
-                                                : item.price;
-                                            return acc + (isNaN(price) ? 0 : price);
-                                        }, 0) * currency.rate).toLocaleString(undefined, { 
-                                            minimumFractionDigits: currency.code === 'INR' ? 0 : 2 
-                                        })}
-                                    </span>
+                    {/* COLUMN 2: IDENTITY & BIO (Takes remaining middle space) */}
+                    <div style={{ flex: 1, minWidth: '0', paddingTop: '10px' }}>
+                        <h1 style={{ margin: 0, fontSize: '28px', fontWeight: 'bold', color: '#1e293b' }}>
+                            {profile?.display_name}
+                        </h1>
+                        <p style={{ margin: 0, color: '#64748b', fontSize: '16px' }}>@{profile?.username}</p>
+                        
+                        <div style={{ margin: '12px 0' }}>
+                            <p style={{ 
+                                margin: 0, 
+                                fontSize: '15px', 
+                                color: '#475569', 
+                                lineHeight: '1.6',
+                                whiteSpace: 'pre-wrap'
+                            }}>
+                                {profile?.bio 
+                                    ? (isBioExpanded || profile.bio.length <= 160 
+                                        ? profile.bio 
+                                        : `${profile.bio.substring(0, 160)}...`)
+                                    : "No bio added yet ✨"}
+                            </p>
+                            {profile?.bio?.length > 160 && (
+                                <button 
+                                    onClick={() => setIsBioExpanded(!isBioExpanded)}
+                                    style={{ background: 'none', border: 'none', color: '#6366f1', padding: 0, fontSize: '13px', fontWeight: '700', cursor: 'pointer', marginTop: '4px' }}
+                                >
+                                    {isBioExpanded ? 'Show Less ↑' : 'Read More ↓'}
+                                </button>
+                            )}
+                        </div>
+
+                        <div style={{ display: 'flex', gap: '16px', alignItems: 'center', fontSize: '14px', fontWeight: '600', color: '#64748b' }}>
+                            <span>{wishlist.length} items</span>
+                            <span>•</span>
+                            <span>
+                                {currency.code === 'INR' ? '₹' : (currency.symbol || currency.code + ' ')}
+                                {(wishlist.reduce((acc, item) => acc + (parseFloat(item.price) || 0), 0) * currency.rate).toLocaleString(undefined, { 
+                                    minimumFractionDigits: 2, 
+                                    maximumFractionDigits: 2 
+                                })}
+                            </span>
+                        </div>
+                    </div>
+
+                    {/* COLUMN 3: GOAL CARD & BUTTONS (Aligned Right) */}
+                    <div style={{ 
+                        display: 'flex', 
+                        flexDirection: 'column', 
+                        gap: '16px', 
+                        minWidth: '320px', 
+                        flexShrink: 0,
+                        alignItems: window.innerWidth < 1024 ? 'flex-start' : 'flex-end',
+                        paddingTop: '10px'
+                    }}>
+                        {nearestItem && (
+                            <div 
+                                onClick={() => navigate(`/${profile?.username}/item/${nearestItem.id}`)} 
+                                style={{ 
+                                    width: '100%',
+                                    cursor: 'pointer',
+                                    transition: 'transform 0.2s ease',
+                                }}
+                            >
+                                <div style={statCardHighlight}>
+                                    <label style={tinyLabelStyle}>Closest to Goal 🚀</label>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginTop: '8px' }}>
+                                        <img 
+                                            src={nearestItem.image || nearestItem.image_url} 
+                                            style={{ width: '44px', height: '44px', borderRadius: '10px', objectFit: 'cover', background: '#f1f5f9' }} 
+                                        />
+                                        <div style={{ flex: 1 }}>
+                                            <div style={{ fontSize: '14px', fontWeight: '700', color: '#1e293b', lineHeight: '1.2' }}>{nearestItem.title}</div>
+                                            <div style={{ fontSize: '12px', color: '#6366f1', fontWeight: '800', marginTop: '2px' }}>
+                                                Only {currency.code === 'INR' ? '₹' : (currency.symbol || currency.code + ' ')}
+                                                {(( (parseFloat(nearestItem.price) || 0) * (nearestItem.quantity || 1) - (nearestItem.amount_raised || 0)) * currency.rate).toLocaleString(undefined, { 
+                                                    maximumFractionDigits: currency.code === 'INR' ? 0 : 2 
+                                                })} left!
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
+                        )}
 
-                            <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-                                <select 
-                                    className="currency-dropdown-minimal"
-                                    value={currency.code}
-                                    onChange={(e) => handleCurrencyChange(e.target.value)}
-                                >
-                                    <option value="INR">INR (₹)</option>
-                                    <option value="USD">USD ($)</option>
-                                    <option value="GBP">GBP (£)</option>
-                                    <option value="EUR">EUR (€)</option>
-                                </select>
-                                
-                                {/* RESTORED SHARE URL LOGIC */}
-                                <button className="modern-share-btn" style={shareButtonStyle} onClick={() => {
-                                    const shareUrl = `${window.location.origin}/${profile?.username}`;
-                                    navigator.clipboard.writeText(shareUrl);
-                                    setToastMsg("Link copied! 🔗");
-                                    setShowToast(true);
-                                }}>
-                                    <Share2 size={16} /> Share List
-                                </button>
-                            </div>
+                        <div style={{ display: 'flex', gap: '8px', width: '100%', justifyContent: window.innerWidth < 1024 ? 'flex-start' : 'flex-end' }}>
+                            <select 
+                                className="currency-dropdown-minimal"
+                                value={currency.code}
+                                onChange={(e) => handleCurrencyChange(e.target.value)}
+                                style={{ padding: '8px 12px', borderRadius: '8px', border: '1px solid #e2e8f0', backgroundColor: 'white' }}
+                            >
+                                <option value="INR">INR (₹)</option>
+                                <option value="USD">USD ($)</option>
+                                <option value="GBP">GBP (£)</option>
+                                <option value="EUR">EUR (€)</option>
+                            </select>
+                            
+                            <button className="modern-share-btn" style={shareButtonStyle} onClick={() => {
+                                const shareUrl = `${window.location.origin}/${profile?.username}`;
+                                navigator.clipboard.writeText(shareUrl);
+                                setToastMsg("Link copied! 🔗");
+                                setShowToast(true);
+                            }}>
+                                <Share2 size={16} /> Share List
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -733,4 +830,29 @@ const manageGiftsButtonStyle = {
   fontSize: '14px',
   cursor: 'pointer',
   boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+};
+const tinyLabelStyle = { 
+  fontSize: '10px', 
+  fontWeight: '800', 
+  color: '#94a3b8', 
+  textTransform: 'uppercase', 
+  display: 'block', 
+  marginBottom: '4px' 
+};
+
+const statCardHighlight = {
+  background: '#ffffff',
+  padding: '16px',
+  borderRadius: '16px',
+  border: '1px solid #e2e8f0',
+  boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)',
+  minWidth: '240px'
+};
+
+const statCardStyle = {
+  background: '#f8fafc',
+  padding: '12px 16px',
+  borderRadius: '12px',
+  border: '1px solid #e2e8f0',
+  minWidth: '200px'
 };

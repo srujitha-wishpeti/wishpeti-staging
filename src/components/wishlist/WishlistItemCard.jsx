@@ -27,8 +27,14 @@ const CardInnerContent = ({
   priorities,
   username
 }) => (
-  <div className={`unified-wishlist-card ${isCrowdfund ? 'crowdfund-style' : ''} ${isClaimed ? 'item-claimed' : ''}`} style={{ background: 'white', height: '100%', borderRadius: '24px', overflow: 'hidden' }}>
-    <div className="card-media-box" style={{ position: 'relative', overflow: 'hidden' }}>
+  <div className={`unified-wishlist-card ${isCrowdfund ? 'crowdfund-style' : ''} ${isClaimed ? 'item-claimed' : ''}`} style={{ background: 'white', height: '100%', borderRadius: '20px', overflow: 'hidden' }}>
+    <div className="card-media-box" style={{ 
+      position: 'relative', 
+      width: '100%',
+      aspectRatio: '1 / 1', // Forces square shape regardless of image size
+      backgroundColor: '#f8fafc',
+      overflow: 'hidden'
+    }}>
       {displayImage ? (
         <img 
           src={displayImage} 
@@ -36,18 +42,19 @@ const CardInnerContent = ({
           loading="lazy" 
           style={{ 
               width: '100%', 
-              display: 'block',
+              height: '100%',
+              objectFit: 'contain', // Shows full product without cropping
+              padding: '12px', // Inset look makes it look premium
               filter: isClaimed ? 'grayscale(1) opacity(0.6)' : 'none' 
-          }} 
+          }}
         />
       ) : (
         <div className="placeholder-box" style={{ height: '200px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f8fafc' }}>🎁</div>
       )}
 
       {!isClaimed && item.priority_level < 3 && (
-        <div style={{ ...priorityBadgeStyle, backgroundColor: currentPriority.color }}>
-          {currentPriority.icon}
-          <span style={{ marginLeft: '4px' }}>{currentPriority.label}</span>
+        <div style={{ ...priorityBadgeStyle, backgroundColor: currentPriority.color, fontSize: '9px', padding: '2px 6px' }}>
+          {currentPriority.label}
         </div>
       )}
 
@@ -58,7 +65,7 @@ const CardInnerContent = ({
         </div>
       )}
 
-      <div className="item-actions-pill" onClick={(e) => e.stopPropagation()}>
+      <div className="item-actions-pill" style={{ opacity: 0.9 }} onClick={(e) => e.stopPropagation()}>
         {isOwner && onEdit && (
           <button onClick={() => onEdit(item)} title="Edit"><Edit3 size={16} /></button>
         )}
@@ -76,44 +83,78 @@ const CardInnerContent = ({
       </div>
     </div>
 
-    <div className="card-info-box" style={{ padding: '16px' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-          <span className="brand-tag">{item.brand || item.store || 'Store'}</span>
-          {qty > 1 && <span style={qtyTagStyle}>Qty: {qty}</span>}
-        </div>
-        <span style={{ fontWeight: '800', color: '#1e293b' }}>{displayMainPrice}</span>
+    <div className="card-info-box" style={{ padding: '12px', flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '4px' }}>
+        <span style={{ fontSize: '11px', fontWeight: '700', color: '#94a3b8', textTransform: 'uppercase' }}>
+          {item.brand || item.store || 'Store'}
+        </span>
+        <span style={{ fontWeight: '800', color: '#1e293b', fontSize: '14px' }}>{displayMainPrice}</span>
       </div>
       
-      <h3 style={{ color: isClaimed ? '#94a3b8' : '#1e293b', marginTop: '8px', fontSize: '16px', fontWeight: '700' }}>
+      <h3 style={{ 
+          color: isClaimed ? '#94a3b8' : '#1e293b', 
+          fontSize: '14px', 
+          fontWeight: '600',
+          lineHeight: '1.3',
+          margin: '0 0 8px 0',
+          // Line clamping prevents one card from being taller than others
+          display: '-webkit-box',
+          WebkitLineClamp: '2',
+          WebkitBoxOrient: 'vertical',
+          overflow: 'hidden',
+          minHeight: '36px' 
+      }}>
         {item.title}
       </h3>
 
       {isOwner && !isClaimed && (
-        <div style={{ marginTop: '12px' }} onClick={(e) => e.stopPropagation()}>
-           <label style={tinyLabelStyle}>Set Priority</label>
-           <select 
-             value={item.priority_level || 3} 
-             onChange={handlePriorityChange}
-             style={prioritySelectStyle(currentPriority.color)}
-           >
-             {priorities.map(p => (
-               <option key={p.value} value={p.value}>{p.label} Priority</option>
-             ))}
-           </select>
+        <div style={{ marginTop: '10px' }} onClick={(e) => e.stopPropagation()}>
+          <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+            <select 
+              value={item.priority_level || 3} 
+              onChange={handlePriorityChange}
+              style={{
+                width: '100%',
+                padding: '4px 8px',
+                fontSize: '11px', // Smaller font to save space
+                fontWeight: '700',
+                borderRadius: '8px',
+                cursor: 'pointer',
+                appearance: 'none', // Removes default browser styling
+                backgroundColor: `${currentPriority.color}10`, // 10% opacity background of priority color
+                color: currentPriority.color,
+                border: `1px solid ${currentPriority.color}40`,
+                outline: 'none',
+                textAlign: 'center'
+              }}
+            >
+              {priorities.map(p => (
+                <option key={p.value} value={p.value}>
+                  {p.label} Priority
+                </option>
+              ))}
+            </select>
+            
+            {/* Small indicator dot to show it's a dropdown */}
+            <div style={{ 
+              position: 'absolute', 
+              right: '10px', 
+              pointerEvents: 'none', 
+              fontSize: '8px',
+              color: currentPriority.color 
+            }}>▼</div>
+          </div>
         </div>
       )}
 
       {isCrowdfund && (
-        <div style={{ marginTop: '12px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
-              <span style={{ fontSize: '12px', fontWeight: '800', color: isFullyFunded ? '#22c55e' : '#6366f1' }}>
-                  {clampedPercentage}% Raised
-              </span>
-              <span style={{ fontSize: '11px', color: '#64748b' }}>{displayRaised} of {displayMainPrice}</span>
+        <div style={{ marginBottom: '12px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px', fontSize: '10px' }}>
+              <span style={{ fontWeight: '800', color: '#6366f1' }}>{clampedPercentage}% Raised</span>
+              <span style={{ color: '#94a3b8' }}>{displayRaised}</span>
           </div>
-          <div style={progressTrackStyle}>
-            <div style={{ ...progressFillStyle, width: `${clampedPercentage}%`, backgroundColor: isFullyFunded ? '#22c55e' : '#6366f1' }} />
+          <div style={{ ...progressTrackStyle, height: '6px' }}>
+            <div style={{ ...progressFillStyle, width: `${clampedPercentage}%`, backgroundColor: '#6366f1' }} />
           </div>
         </div>
       )}
