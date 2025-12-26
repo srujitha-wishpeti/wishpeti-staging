@@ -184,6 +184,22 @@ export default function CartPage() {
 
         if (orderError) throw orderError;
 
+        // 3. Log the Transaction (Using your specific table schema)
+        const { error: transError } = await supabase
+            .from('transactions')
+            .insert([{
+                creator_id: creatorId,
+                order_id: orderData.id,
+                razorpay_payment_id: response.razorpay_payment_id,
+                amount_inr: totalInINR,
+                currency_from: currency.code,
+                exchange_rate: rate,
+                type: 'gift_purchase', // As per your CHECK constraint
+                status: 'success'
+            }]);
+
+        if (transError) console.error("Transaction log failed:", transError.message);
+
         // 3. Decrement quantity only for physical items
         // (Surprise gifts don't have inventory to decrement)
         const physicalItems = cartItems.filter(item => !item.is_surprise);
