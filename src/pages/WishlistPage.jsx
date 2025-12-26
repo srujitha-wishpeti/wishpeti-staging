@@ -520,13 +520,13 @@ const totalGiftValue = wishlist.reduce((acc, item) => {
 
                     {/* COLUMN 3: GOAL CARD & BUTTONS (Aligned Right) */}
                     <div style={{ 
+                        flex: '1 1 100%', // On mobile, this forces it to its own line
+                        maxWidth: '100%',
                         display: 'flex', 
                         flexDirection: 'column', 
-                        gap: '12px', 
-                        width: window.innerWidth < 1024 ? '100%' : '320px',
-                        maxWidth: '400px', // Optional: prevents it from getting TOO wide on desktop
-                        alignItems: 'stretch', // Let children fill the width, internal text handles alignment
-                        paddingTop: '10px'
+                        gap: '12px',
+                        // On Desktop (min-width 1024px logic), we limit width
+                        width: window.innerWidth > 1024 ? '320px' : '100%'
                       }}>
                         {nearestItem && (
                             <div 
