@@ -29,7 +29,8 @@ export default function AddWishlistItem({
     notes: '',
     selectedSize: '',
     selectedColor: '',
-    is_crowdfund: false
+    is_crowdfund: false,
+    amount_raised: 0
   });
 
   // Sync state when entering Edit Mode
@@ -57,7 +58,8 @@ export default function AddWishlistItem({
         notes: initialData.notes || '',
         selectedSize: initialData.variants?.selectedSize || '',
         selectedColor: initialData.variants?.selectedColor || '',
-        is_crowdfund: initialData.is_crowdfund || false
+        is_crowdfund: initialData.is_crowdfund || false,
+        amount_raised: initialData.amount_raised || 0
       });
     }
   }, [initialData, isEditing, currency.rate]);
