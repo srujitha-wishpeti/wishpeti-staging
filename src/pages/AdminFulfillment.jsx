@@ -113,7 +113,7 @@ useEffect(() => {
             address_line2,
             city,
             state,
-            zip_code,
+            postal_code,
             country
           )
         `)
@@ -261,7 +261,7 @@ useEffect(() => {
                     <div style={{ fontSize: '12px', color: '#475569', lineHeight: '1.4' }}>
                     <strong>{order.creator_profiles.address_line1}</strong><br/>
                     {order.creator_profiles.address_line2 && <>{order.creator_profiles.address_line2}<br/></>}
-                    {order.creator_profiles.city}, {order.creator_profiles.state} {order.creator_profiles.zip_code}<br/>
+                    {order.creator_profiles.city}, {order.creator_profiles.state} {order.creator_profiles.postal_code}<br/>
                     {order.creator_profiles.country}
                     </div>
                 ) : (
