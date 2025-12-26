@@ -79,28 +79,42 @@ export default function AppRoutes() {
       <Route 
         path="/terms" 
         element={<PolicyPage title="Terms & Conditions" content={`<div class="policy-text">
-    <p>Last updated on <strong>December 20, 2025</strong></p>
-    <p>Welcome to <strong>WishPeti</strong>. By using our website and services, you agree to comply with and be bound by the following terms and conditions.</p>
+          <p>Last updated on <strong>December 27, 2025</strong></p>
+          <p>Welcome to <strong>WishPeti</strong>. By using our website and services, you agree to comply with and be bound by the following terms and conditions.</p>
 
-    <h3>1. Service Overview</h3>
-    <p><strong>WishPeti</strong> provides a platform that allows users ("Fans") to purchase gifts for third-party individuals ("Creators"). We act as a facilitator between the Fan and third-party merchants who fulfill and ship the items.</p>
+          <h3>1. Service Overview</h3>
+          <p><strong>WishPeti</strong> provides a platform that allows users ("Fans" or "Supporters") to purchase gifts or contribute to crowdfunding goals for third-party individuals ("Creators"). We act as a facilitator between the Fan and the Creator or third-party merchants who fulfill the items.</p>
 
-    <h3>2. Payments and Fees</h3>
-    <ul>
-        <li>All payments are processed securely through <strong>Razorpay</strong>.</li>
-        <li>Users agree to pay the total amount shown at checkout, which includes the item subtotal and a <strong>8% Platform Service Fee</strong>.</li>
-    </ul>
+          <h3>2. Payments and Pricing</h3>
+          <ul>
+              <li>All payments are processed securely through <strong>Razorpay</strong>.</li>
+              <li><strong>Total Display Price:</strong> The price shown at checkout is the final price inclusive of the item cost, shipping, applicable taxes, and a Peti convenience fee.</li>
+              <li><strong>Non-Refundable Fees:</strong> By completing a purchase, the Fan acknowledges that convenience fees and processing charges are non-refundable in the event of a gift rejection.</li>
+          </ul>
 
-    <h3>3. Order Fulfillment</h3>
-    <ul>
-        <li>Items are shipped directly from third-party merchants to the recipient.</li>
-        <li>Delivery timelines are typically <strong>7-10 working days</strong>.</li>
-    </ul>
+          <h3>3. Order Rejections and Refunds</h3>
+          <ul>
+              <li>Creators reserve the right to accept or reject any gift.</li>
+              <li>If a gift is rejected, a refund of the item cost (excluding non-refundable fees) will be initiated to the original payment method.</li>
+              <li>Refunds typically take <strong>5-7 business days</strong> to reflect in the Supporter's account.</li>
+          </ul>
 
-    <h3>4. Contact Information</h3>
-    <p>Email: <strong>support@wishpeti.com</strong><br>
-    Address: <strong>Vidya Nagar 1st cross, Bellary, Karnataka - 583104</strong></p>
-</div>`} />} 
+          <h3>4. Crowdfunding and Contributions</h3>
+          <ul>
+              <li>Contributions to crowdfunded goals are tracked in real-time on the Creator's profile.</li>
+              <li>Once a goal is reached, the Creator is responsible for the allocation of those funds toward the specified item.</li>
+          </ul>
+
+          <h3>5. Order Fulfillment</h3>
+          <ul>
+              <li>Items are shipped directly from third-party merchants to the recipient.</li>
+              <li>Delivery timelines are typically <strong>7-10 working days</strong>, subject to merchant availability.</li>
+          </ul>
+
+          <h3>6. Contact Information</h3>
+          <p>Email: <strong>support@wishpeti.com</strong><br>
+          Address: <strong>Vidya Nagar 1st cross, Bellary, Karnataka - 583104</strong></p>
+      </div>`} />} 
       />
 
       <Route 
