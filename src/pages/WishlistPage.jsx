@@ -555,7 +555,8 @@ const totalGiftValue = wishlist.reduce((acc, item) => {
                 <span style={statValueStyle}>
                 {currency.code === 'INR' ? '₹' : currency.code + ' '}
                 {(totalGiftValue * currency.rate).toLocaleString(undefined, { 
-                    minimumFractionDigits: currency.code === 'INR' ? 0 : 2 
+                    minimumFractionDigits: currency.code === 'INR' ? 0 : 2,
+                    maximumFractionDigits: 2
                 })}
                 </span>
             </div>
