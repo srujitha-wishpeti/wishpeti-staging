@@ -539,6 +539,8 @@ const totalGiftValue = wishlist.reduce((acc, item) => {
                             <select value={currency.code} onChange={(e) => handleCurrencyChange(e.target.value)} style={{ flex: 1, padding: '8px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
                                 <option value="INR">INR (₹)</option>
                                 <option value="USD">USD ($)</option>
+                                <option value="GBP">GBP (£)</option>
+                                <option value="EUR">EUR (€)</option>
                             </select>
                             <button className="modern-share-btn" style={{...shareButtonStyle, flex: 2}} onClick={() => {
                                 navigator.clipboard.writeText(window.location.href);
