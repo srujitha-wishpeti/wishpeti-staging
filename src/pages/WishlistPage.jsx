@@ -44,8 +44,8 @@ export default function WishlistPage() {
   const BIO_LIMIT = 160; // Characters before truncating
 
   const [page, setPage] = useState(0);
-  const [hasMore, setHasMore] = useState(true);
-  const ITEMS_PER_PAGE = 12;
+  const [totalItems, setTotalItems] = useState(0);
+  const ITEMS_PER_PAGE = 9;
 
   // 1. ADD THIS: Handle Edit Item
   // This opens the AddWishlistItem modal in "edit mode"
@@ -160,39 +160,51 @@ const nearestItem = getNearestGoal();
         setShowToast(true);
     }
   };
+
   const fetchPaginatedItems = async (profileId, isInitial = true) => {
-    const PAGE_SIZE = 10;
+    const PAGE_SIZE = 9;
     const start = isInitial ? 0 : wishlist.length;
     const end = start + PAGE_SIZE - 1;
 
-    // KEEP THE INTEGRATED FIX: Use !fk_item relationship inside the items query
-    const { data, error } = await supabase
-        .from('wishlist_items')
-        .select(`
-            *,
-            orders!fk_item (*)
-        `)
-        .eq('creator_id', profileId)
-        .order('priority_level', { ascending: true }) // <--- Sort by Priority (1 first)
-        .order('amount_raised', { ascending: false })
-        .order('created_at', { ascending: false })
-        .range(start, end);
+    try {
+        // 1. You must add { count: 'exact' } to the select call
+        // 2. You must destructure 'count' from the result object
+        const { data, error, count } = await supabase
+            .from('wishlist_items')
+            .select(`
+                *,
+                orders!fk_item (*)
+            `, { count: 'exact' }) // <--- REQUIRED FOR PAGINATION
+            .eq('creator_id', profileId)
+            .order('priority_level', { ascending: true })
+            .order('amount_raised', { ascending: false })
+            .order('created_at', { ascending: false })
+            .range(start, end);
 
-    if (error) throw error;
+        if (error) throw error;
 
-    const processedItems = (data || []).map(item => {
-        const totalRaised = (item.orders || [])
-            .filter(o => o.status === 'completed')
-            .reduce((sum, o) => sum + o.amount, 0);
+        // Update your totalItems state if this is the initial load
+        if (isInitial && count !== null) {
+            setTotalItems(count);
+        }
+
+        const processedItems = (data || []).map(item => {
+            const totalRaised = (item.orders || [])
+                .filter(o => o.status === 'completed')
+                .reduce((sum, o) => sum + o.amount, 0);
+            
+            return {
+                ...item,
+                totalRaised,
+                progress: Math.min((totalRaised / item.price) * 100, 100)
+            };
+        });
+
+        setWishlist(prev => isInitial ? processedItems : [...prev, ...processedItems]);
         
-        return {
-            ...item,
-            totalRaised,
-            progress: Math.min((totalRaised / item.price) * 100, 100)
-        };
-    });
-
-    setWishlist(prev => isInitial ? processedItems : [...prev, ...processedItems]);
+    } catch (err) {
+        console.error('fetchPaginatedItems Error:', err);
+    }
   };
 
   const loadData = async (isInitial = true) => {
@@ -228,7 +240,7 @@ const nearestItem = getNearestGoal();
     } finally {
         if (isInitial) setLoading(false);
     }
-};
+  };
 
 const totalGiftValue = wishlist.reduce((acc, item) => {
     // Only add to the total if the item is NOT claimed/purchased
@@ -363,6 +375,23 @@ const totalGiftValue = wishlist.reduce((acc, item) => {
     handleAddToCart(surpriseItem);
     setSurpriseAmount(''); 
     navigate('/cart');
+  };
+
+  const confirmDelete = async (id) => {
+    // Simple confirmation
+    const isConfirmed = window.confirm("Delete this item?");
+    
+    if (isConfirmed) {
+        try {
+        await deleteWishlistItem(id);
+        setToastMsg("Item removed! 👋");
+        setShowToast(true);
+        loadData(); // Refresh the list
+        } catch (err) {
+        setToastMsg("Failed to delete item.");
+        setShowToast(true);
+        }
+    }
   };
 
   if (loading || !profile) return <div className="loading-state">Loading...</div>;
@@ -688,20 +717,31 @@ const totalGiftValue = wishlist.reduce((acc, item) => {
                 isOwner={isOwner} 
                 onEdit={handleEditItem} 
                 onUpdate={loadData} // Added this to refresh UI when priority changes
-                onDelete={(id) => deleteWishlistItem(id).then(loadData)} 
+                onDelete={() => confirmDelete(item.id)}
                 onAddToCart={() => handleAddToCart(item)}
                 username={username || profile?.username}
                 currencySettings={currency}
                 />
             ))}
         </div>
-        {wishlist.length > 0 && (
-            <button 
-                onClick={() => fetchPaginatedItems(profile.id, false)}
-                style={{ margin: '20px auto', display: 'block' }}
-            >
-                Load More
-            </button>
+        {/* Only show if we haven't loaded everything yet */}
+        {wishlist.length < totalItems && (
+            <div style={{ textAlign: 'center', padding: '30px 0' }}>
+                <button 
+                    onClick={() => fetchPaginatedItems(profile.id, false)}
+                    className="load-more-btn"
+                    style={{
+                        padding: '10px 24px',
+                        borderRadius: '10px',
+                        border: '1px solid #e2e8f0',
+                        background: 'white',
+                        fontWeight: '600',
+                        cursor: 'pointer'
+                    }}
+                >
+                    Load More
+                </button>
+            </div>
         )}
         </main>
 
