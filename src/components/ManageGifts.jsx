@@ -8,7 +8,36 @@ export default function ManageGifts() {
   const [loading, setLoading] = useState(true);
   const showToast = useToast();
   const [balance, setBalance] = useState(0);
+  const [hasLinkedBank, setHasLinkedBank] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [payoutType, setPayoutType] = useState('upi'); // 'upi' or 'bank'
+  const [payoutData, setPayoutData] = useState({ upiId: '', accName: '', accNum: '', ifsc: '' });
 
+  const handleSavePayout = async () => {
+      try {
+          const { data: { user } } = await supabase.auth.getUser();
+          
+          const details = payoutType === 'upi' 
+              ? { type: 'upi', id: payoutData.upiId }
+              : { type: 'bank', name: payoutData.accName, number: payoutData.accNum, ifsc: payoutData.ifsc };
+
+          const { error } = await supabase
+              .from('creator_profiles')
+              .update({ 
+                  bank_linked: true,
+                  payout_details: details // Store as JSONB in your DB
+              })
+              .eq('id', user.id);
+
+          if (error) throw error;
+          
+          setHasLinkedBank(true);
+          setIsModalOpen(false);
+          showToast("Payout details saved! Funds will settle automatically.");
+      } catch (err) {
+          showToast("Error saving details: " + err.message, "error");
+      }
+  };
   // 1. Fetch orders linked to this creator
   const fetchGifts = async () => {
     setLoading(true);
@@ -18,11 +47,14 @@ export default function ManageGifts() {
       // Fetch Profile Balance
       const { data: profile } = await supabase
         .from('creator_profiles')
-        .select('withdrawable_balance')
+        .select('withdrawable_balance, bank_linked')
         .eq('id', user.id)
         .single();
       
-      if (profile) setBalance(profile.withdrawable_balance || 0);
+      if (profile) {
+            setBalance(profile.withdrawable_balance || 0);
+            setHasLinkedBank(profile.bank_linked || false);
+      }
       
       const { data, error } = await supabase
         .from('orders')
@@ -128,42 +160,50 @@ export default function ManageGifts() {
       </header>
 
       <div style={{ 
-          background: 'linear-gradient(135deg, #6366f1 0%, #4338ca 100%)', 
-          padding: '32px', 
-          borderRadius: '24px', 
-          color: 'white', 
-          marginBottom: '32px',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          boxShadow: '0 20px 25px -5px rgba(67, 56, 202, 0.2)'
-      }}>
-          <div>
-              <p style={{ margin: 0, opacity: 0.9, fontSize: '14px', fontWeight: '600' }}>Available Balance</p>
-              <h2 style={{ margin: '4px 0 0 0', fontSize: '36px', fontWeight: '800' }}>
-                  {new Intl.NumberFormat('en-IN', {
-                      style: 'currency',
-                      currency: 'INR',
-                      maximumFractionDigits: 0
-                  }).format(balance)}
-              </h2>
-          </div>
-          <button 
-              onClick={() => {/* Trigger Payout Modal */}}
-              style={{
-                  background: 'white',
-                  color: '#4338ca',
-                  border: 'none',
-                  padding: '12px 24px',
-                  borderRadius: '12px',
-                  fontWeight: '700',
-                  cursor: 'pointer',
-                  fontSize: '15px',
-                  transition: 'transform 0.2s'
-              }}
-          >
-              Withdraw Funds
-          </button>
+            background: '#f8fafc', 
+            border: '1px solid #e2e8f0', 
+            padding: '24px', 
+            borderRadius: '24px', 
+            marginBottom: '32px' 
+        }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div>
+                    <p style={{ margin: 0, color: '#64748b', fontSize: '13px', fontWeight: '600' }}>
+                        Total Earned (Settling Soon)
+                    </p>
+                    <h2 style={{ fontSize: '32px', fontWeight: '800', margin: '4px 0 0 0', color: '#1e293b' }}>
+                        ₹{new Intl.NumberFormat('en-IN').format(balance)}
+                    </h2>
+                </div>
+
+                {!hasLinkedBank ? (
+                    <button 
+                        onClick={() => setIsModalOpen(true)}
+                        style={{
+                            background: '#6366f1',
+                            color: 'white',
+                            border: 'none',
+                            padding: '12px 20px',
+                            borderRadius: '12px',
+                            fontWeight: '700',
+                            cursor: 'pointer',
+                            fontSize: '14px'
+                        }}
+                    >
+                        Setup Payouts
+                    </button>
+                ) : (
+                    <div style={{ textAlign: 'right' }}>
+                        <span style={{ color: '#16a34a', fontSize: '14px', fontWeight: '700', display: 'block' }}>
+                            ✓ Bank Account Linked
+                        </span>
+                        <p style={{ margin: 0, fontSize: '11px', color: '#94a3b8' }}>Auto-payouts active</p>
+                    </div>
+                )}
+            </div>
+            <p style={{ fontSize: '12px', color: '#94a3b8', marginTop: '16px', borderTop: '1px solid #f1f5f9', paddingTop: '12px' }}>
+                ℹ️ <strong>RBI Compliance:</strong> Funds are settled to your bank account within T+3 days of acceptance.
+            </p>
       </div>
       <p style={{ 
           fontSize: '12px', 
@@ -173,6 +213,48 @@ export default function ManageGifts() {
       }}>
           *Balance shown is after the 5% Peti service fee.
       </p>
+      
+
+      {isModalOpen && (
+          <div style={modalOverlayStyle}>
+              <div style={modalContentStyle}>
+                  <h3 style={{ marginTop: 0 }}>Setup Your Payouts 💸</h3>
+                  <p style={{ fontSize: '13px', color: '#64748b', lineHeight: '1.5' }}>
+                      To comply with <strong>RBI regulations</strong>, Peti cannot hold funds in a wallet. 
+                      Your earnings are transferred directly to you.
+                  </p>
+
+                  <div style={{ display: 'flex', gap: '10px', marginBottom: '20px' }}>
+                      <button 
+                          onClick={() => setPayoutType('upi')}
+                          style={payoutType === 'upi' ? activeTabStyle : inactiveTabStyle}>UPI ID</button>
+                      <button 
+                          onClick={() => setPayoutType('bank')}
+                          style={payoutType === 'bank' ? activeTabStyle : inactiveTabStyle}>Bank Account</button>
+                  </div>
+
+                  {payoutType === 'upi' ? (
+                      <input 
+                          placeholder="vpa@bankname" 
+                          value={payoutData.upiId}
+                          onChange={(e) => setPayoutData({...payoutData, upiId: e.target.value})}
+                          style={inputStyle} 
+                      />
+                  ) : (
+                      <div style={{ display: 'grid', gap: '10px' }}>
+                          <input placeholder="Account Holder Name" onChange={(e) => setPayoutData({...payoutData, accName: e.target.value})} style={inputStyle} />
+                          <input placeholder="Account Number" onChange={(e) => setPayoutData({...payoutData, accNum: e.target.value})} style={inputStyle} />
+                          <input placeholder="IFSC Code" onChange={(e) => setPayoutData({...payoutData, ifsc: e.target.value})} style={inputStyle} />
+                      </div>
+                  )}
+
+                  <div style={{ marginTop: '24px', display: 'flex', gap: '10px' }}>
+                      <button onClick={handleSavePayout} style={saveButtonStyle}>Save & Enable Payouts</button>
+                      <button onClick={() => setIsModalOpen(false)} style={cancelButtonStyle}>Maybe Later</button>
+                  </div>
+              </div>
+          </div>
+      )}
 
       <div style={{ display: 'grid', gap: '20px' }}>
         {gifts.length === 0 ? (
@@ -329,3 +411,56 @@ export default function ManageGifts() {
     </div>
   );
 }
+
+// Styles for the Payout Modal
+  const modalOverlayStyle = {
+    position: 'fixed',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    display: 'flex',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 1000,
+    padding: '20px'
+  };
+
+  const modalContentStyle = {
+    background: 'white',
+    padding: '32px',
+    borderRadius: '24px',
+    maxWidth: '450px',
+    width: '100%',
+    boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)'
+  };
+
+  const inputStyle = {
+    width: '100%',
+    padding: '12px',
+    borderRadius: '10px',
+    border: '1px solid #e2e8f0',
+    fontSize: '14px',
+    boxSizing: 'border-box'
+  };
+
+  const activeTabStyle = {
+    flex: 1, padding: '10px', borderRadius: '8px', border: 'none',
+    background: '#6366f1', color: 'white', fontWeight: 'bold', cursor: 'pointer'
+  };
+
+  const inactiveTabStyle = {
+    flex: 1, padding: '10px', borderRadius: '8px', border: '1px solid #e2e8f0',
+    background: 'white', color: '#64748b', cursor: 'pointer'
+  };
+
+  const saveButtonStyle = {
+    flex: 2, background: '#6366f1', color: 'white', border: 'none',
+    padding: '12px', borderRadius: '10px', fontWeight: 'bold', cursor: 'pointer'
+  };
+
+  const cancelButtonStyle = {
+    flex: 1, background: '#f1f5f9', color: '#64748b', border: 'none',
+    padding: '12px', borderRadius: '10px', fontWeight: 'bold', cursor: 'pointer'
+  };
