@@ -427,16 +427,16 @@ const totalGiftValue = wishlist.reduce((acc, item) => {
 
             {/* PROFILE INFO SECTION */}
             <div className="profile-content" style={{ padding: '0 24px 24px 24px' }}>
-                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '32px' }}>
+                <div style={{ display: 'flex',flexDirection: window.innerWidth < 1024 ? 'column' : 'row', alignItems: 'flex-start', gap: window.innerWidth < 1024 ? '16px' : '32px' }}>
                     
                     {/* COLUMN 1: LARGER AVATAR */}
                     <div style={{ 
-                        marginTop: '-80px', 
+                        marginTop: '-60px', 
                         flexShrink: 0, 
                         zIndex: 10,
                         position: 'relative', // CRITICAL: This keeps the button pinned to the avatar
-                        width: '160px',       // Matches image width to keep the "box" tight
-                        height: '160px' 
+                        width: window.innerWidth < 1024 ? '120px' : '140px', 
+                        height: window.innerWidth < 1024 ? '120px' : '140px' 
                     }}>
                         <img 
                             src={profile?.avatar_url || `https://api.dicebear.com/7.x/initials/svg?seed=${profile?.display_name}`} 
@@ -522,8 +522,8 @@ const totalGiftValue = wishlist.reduce((acc, item) => {
                     <div style={{ 
                         display: 'flex', 
                         flexDirection: 'column', 
-                        gap: '16px', 
-                        width: '100%', // Use 100% instead of fixed minWidth
+                        gap: '12px', 
+                        width: window.innerWidth < 1024 ? '100%' : '320px',
                         maxWidth: '400px', // Optional: prevents it from getting TOO wide on desktop
                         alignItems: 'stretch', // Let children fill the width, internal text handles alignment
                         paddingTop: '10px'
