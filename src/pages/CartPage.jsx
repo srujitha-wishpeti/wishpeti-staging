@@ -187,15 +187,17 @@ export default function CartPage() {
 
         // 3. Log the Transaction (Using your specific table schema)
         const { error: transError } = await supabase
-            .from('transactions')
-            .insert([{
-                creator_id: creatorId,
-                order_id: orderData.id,
-                razorpay_payment_id: response.razorpay_payment_id,
-                amount_inr: finalPayable,
-                currency_from: currency.code,
-                exchange_rate: rate,
-            }]);
+          .from('transactions')
+          .insert([{
+              creator_id: item.creator_id,
+              order_id: orderData.id,
+              provider_payment_id: response.razorpay_payment_id, // Renamed
+              amount_inr: finalPayable,
+              currency: currency.code, // Renamed from currency_from
+              type: 'gift_payment', // Added to match transactions_type_check constraint
+              status: 'success',
+              currency_rate: currency.rate
+          }]);
 
         if (transError) console.error("Transaction log failed:", transError.message);
 
