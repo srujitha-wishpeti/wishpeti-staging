@@ -3,6 +3,7 @@ import { X, ShieldCheck, Mail, User, MessageSquare, Heart, TrendingUp, Download 
 import { supabase } from '../services/supabaseClient';
 import { useCurrency } from '../context/CurrencyContext';
 import { getCurrencySymbol } from '../utils/currency';
+import {logSupportEvent} from '../utils/supportLogger';
 
 export default function ContributeModal({ item, onClose, onSuccess, isOwner }) {
   const [amount, setAmount] = useState('');
@@ -117,6 +118,7 @@ export default function ContributeModal({ item, onClose, onSuccess, isOwner }) {
       ? parseFloat((paidAmount / rate).toFixed(2)) 
       : paidAmount;
 
+    logSupportEvent('contribution_to_crowdfund', item.creator_id, { amount: contributionInINR });
     const { data: newOrder, error: orderError } = await supabase
         .from('orders')
         .insert([{
@@ -124,6 +126,7 @@ export default function ContributeModal({ item, onClose, onSuccess, isOwner }) {
           item_id: item.id,
           creator_id: item.creator_id,
           total_amount: contributionInINR,
+          exchange_rate_at_payment:currency.rate,
           payment_status: 'paid',
           is_crowdfund: true,
           gift_status: 'pending',

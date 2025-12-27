@@ -6,6 +6,7 @@ import './CartPage.css';
 import { useToast } from '../context/ToastContext';
 import { useCurrency } from '../context/CurrencyContext';
 import { getCurrencyPreference } from '../utils/currency';
+import {logSupportEvent} from '../utils/supportLogger';
 
 export default function CartPage() {
   const navigate = useNavigate();
@@ -127,6 +128,7 @@ export default function CartPage() {
       amountInPaise = Math.round((finalPayable / currency.rate) * 100);
     }
 
+    await logSupportEvent('checkout_initiated', username, { cart_total: finalPayable });
     const options = {
       key: "rzp_test_RtgvVK9ZMU6pKm", 
       amount: amountInPaise, 
@@ -139,7 +141,13 @@ export default function CartPage() {
         await handlePaymentSuccess(response);
       },
       prefill: { name: senderName, email: senderEmail },
-      theme: { color: "#6366f1" }
+      theme: { color: "#6366f1" },
+      modal: {
+        ondismiss: () => {
+          logSupportEvent('payment_modal_closed', username, { reason: 'User cancelled' });
+        }
+      }
+
     };
 
     const rzp = new window.Razorpay(options);

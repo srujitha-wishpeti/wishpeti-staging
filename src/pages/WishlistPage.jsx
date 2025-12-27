@@ -17,7 +17,7 @@ import Toast from '../components/ui/Toast';
 import { useCurrency } from '../context/CurrencyContext';
 import { useToast } from '../context/ToastContext';
 import { fetchExchangeRate, getCurrencySymbol } from '../utils/currency';
-
+import {logSupportEvent} from '../utils/supportLogger';
 
 export default function WishlistPage() {  
   const { username } = useParams();
@@ -349,9 +349,11 @@ const totalGiftValue = wishlist.reduce((acc, item) => {
   // Function to handle adding a Surprise Gift to Cart
   // In your Wishlist Page component
   const handleAddSurpriseGift = (amount, creatorId, creatorName, currentCode, currentRate) => {
+    
     const numericAmount = parseFloat(amount) || 0;
     if (numericAmount <= 0) return;
 
+    logSupportEvent('surprise_fund_intent', username, { amount: numericAmount });
     const surpriseItem = {
         id: 'surprise-' + Date.now(),
         title: "Surprise Gift! 🎁",
