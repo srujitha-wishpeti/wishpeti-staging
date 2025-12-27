@@ -180,8 +180,7 @@ export default function CartPage() {
                 is_surprise: surpriseTotal > 0, // Critical flag for Manage Gifts page
                 surprise_amount_in_inr: surpriseInINR
             }])
-            .select()
-            .single();
+            .select();
 
         if (orderError) throw orderError;
 
@@ -189,8 +188,8 @@ export default function CartPage() {
         const { error: transError } = await supabase
           .from('transactions')
           .insert([{
-              creator_id: item.creator_id,
-              order_id: orderData.id,
+              creator_id: cartItems?.[0]?.creator_id,
+              order_id: orderData?.[0]?.id,
               provider_payment_id: response.razorpay_payment_id, // Renamed
               amount_inr: finalPayable,
               currency: currency.code, // Renamed from currency_from
