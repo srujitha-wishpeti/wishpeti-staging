@@ -1,6 +1,8 @@
-import React from 'react';
+import React, { useState } from 'react'; // Added useState
 import { X, Loader2, Lock } from 'lucide-react';
 import { useCurrency } from '../context/CurrencyContext';
+import { supabase } from '../services/supabaseClient';
+import { useToast } from '../context/ToastContext';
 
 export default function UrlInputForm({ 
   url, 
@@ -18,6 +20,8 @@ export default function UrlInputForm({
   currencyCode 
 }) {
 
+  const showToast = useToast();
+  const [uploading, setUploading] = useState(false);
   // SAFETY LOCK: Disable editing critical financial fields if money has been raised
   const hasFunds = editableData?.amount_raised > 0;
 
@@ -329,15 +333,16 @@ const headerStyle = {
   alignItems: 'center' 
 };
 
-const modalOverlayStyle = {
-  position: 'fixed',
-  inset: 0,
-  backgroundColor: 'rgba(0, 0, 0, 0.5)',
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  zIndex: 1000,
-  padding: '20px'
+const modalOverlayStyle = { 
+  position: 'fixed', 
+  inset: 0, 
+  backgroundColor: 'rgba(0,0,0,0.5)', 
+  display: 'flex', 
+  alignItems: 'flex-start', // Change from center to flex-start
+  justifyContent: 'center', 
+  zIndex: 99999, 
+  padding: '40px 20px', // Add more vertical padding
+  overflowY: 'auto' // Allow the overlay itself to scroll if the modal is tall
 };
 
 const modalContainerStyle = {
