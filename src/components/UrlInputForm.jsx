@@ -1,5 +1,5 @@
 import React, { useState } from 'react'; // Added useState
-import { X, Loader2, Lock } from 'lucide-react';
+import { Sparkles, X, Loader2, Lock } from 'lucide-react';
 import { useCurrency } from '../context/CurrencyContext';
 import { supabase } from '../services/supabaseClient';
 import { useToast } from '../context/ToastContext';
@@ -180,23 +180,26 @@ export default function UrlInputForm({
 
               {/* Price & Quantity Grid */}
               <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '12px', marginBottom: '1.25rem' }}>
+                {/* Price & Quantity Grid */}
                 <div>
-                  <label style={labelStyle}>Price</label>
+                  <label style={labelStyle}>Price (Original Cost)</label>
                   <div style={{ ...priceContainerStyle, backgroundColor: hasFunds ? '#f8fafc' : '#fff' }}>
                     <div style={currencySideLabel}>{currencyCode}</div>
                     <div style={inputWithSymbolStyle}>
                       <span style={symbolStyle}>{currencySymbol}</span>
                       <input 
-                        type="text"
-                        value={scrapedData ? editableData.price : formatPrice(editableData.price) || ''} 
-                        onChange={(e) => handleEdit('price', e.target.value)}
-                        disabled={hasFunds}
-                        style={{ 
-                          ...blankInputStyle, 
-                          backgroundColor: hasFunds ? '#f8fafc' : 'transparent',
-                          cursor: hasFunds ? 'not-allowed' : 'text'
+                        type="number"
+                        // FIX: Use the raw value, not the formatted string
+                        value={editableData.price || ''} 
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          // Only parse if it's a valid number string or empty
+                          handleEdit('price', val === '' ? '' : parseFloat(val));
                         }}
+                        disabled={hasFunds}
+                        style={blankInputStyle}
                         placeholder="0.00"
+                        step="0.01" // Allows decimals
                       />
                     </div>
                   </div>
@@ -215,6 +218,22 @@ export default function UrlInputForm({
                     }}
                   />
                 </div>
+              </div>
+
+              {/* PRICE TRANSPARENCY BOX - Integrated to prevent layout shifting */}
+              <div style={{ 
+                  marginBottom: '1.25rem', 
+                  padding: '12px', 
+                  backgroundColor: '#f8fafc', 
+                  borderRadius: '12px', 
+                  border: '1px solid #e2e8f0' 
+              }}>
+                <div style={{ fontSize: '11px', color: '#6366f1', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '5px', marginBottom: '4px' }}>
+                  <Sparkles size={12} /> PRICE TRANSPARENCY
+                </div>
+                <p style={{ fontSize: '12px', color: '#475569', margin: 0, lineHeight: '1.4' }}>
+                  The fan price is auto-calculated to include estimated <strong>taxes, shipping, and fees</strong>.
+                </p>
               </div>
 
               {/* CROWDFUNDING SECTION */}

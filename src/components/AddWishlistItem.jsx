@@ -36,7 +36,7 @@ export default function AddWishlistItem({
   // Sync state when entering Edit Mode
   useEffect(() => {
     if (initialData && isEditing) {
-      const BUFFER_MULTIPLIER = 1.18;
+      const BUFFER_MULTIPLIER = 1.18; //includes platform fee of 18%
     
       // 1. Get the stored buffered price (which is always in base INR)
       const rawPrice = parseFloat(initialData.price) || 0;

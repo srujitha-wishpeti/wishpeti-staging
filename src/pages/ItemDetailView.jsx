@@ -2,8 +2,9 @@ import React, { useEffect, useState, useMemo } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { supabase } from '../services/supabaseClient';
 import { useAuth } from '../auth/AuthProvider';
-import { useCurrency } from '../context/CurrencyContext'; // Added
-import { useToast } from '../context/ToastContext'; // Added for feedback
+import { useCurrency } from '../context/CurrencyContext';
+import { getCurrencySymbol, getBaseInrSync } from '../utils/currency';
+import { useToast } from '../context/ToastContext'; 
 import WishlistItemCard from '../components/wishlist/WishlistItemCard';
 import UrlInputForm from '../components/UrlInputForm';
 import { 
@@ -20,11 +21,12 @@ export default function ItemDetailView() {
   const showToast = useToast();
   const navigate = useNavigate();
 
+  const BUFFER_MULTIPLIER = 1.18; //pltform fee
   const [item, setItem] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showContributeModal, setShowContributeModal] = useState(false);
   const [isEditingMode, setIsEditingMode] = useState(false);
-
+  const [editDraft, setEditDraft] = useState(null);
   const isOwner = useMemo(() => {
     const currentUserId = user?.id || session?.user?.id;
     if (!currentUserId || !item?.creator_id) return false;
@@ -41,6 +43,7 @@ export default function ItemDetailView() {
       .from('wishlist_items')
       .select('*')
       .eq('id', itemId)
+      
       .single();
 
     if (data) setItem(data);
@@ -186,31 +189,67 @@ export default function ItemDetailView() {
                   )}
 
                   <div style={divider} />
-                  
-                  {!isEditingMode ? (
-                    <button 
-                      style={editToggleBtn} 
-                      onClick={() => setIsEditingMode(true)}
-                    >
-                      <Edit3 size={16} />
-                      <span>Edit Gift Details</span>
-                    </button>
-                  ) : (
-                    <UrlInputForm 
-                      isEditing={true} 
-                      editableData={item} 
-                      setEditableData={setItem} 
-                      onContinue={async () => {
-                        const { error } = await supabase.from('wishlist_items').update(item).eq('id', item.id);
-                        if (!error) {
-                          fetchItem();
-                          setIsEditingMode(false); 
-                          showToast("Gift updated!");
-                        }
-                      }}
-                      onCancel={() => setIsEditingMode(false)}
-                    />
-                  )}
+                    // 2. Update your Edit Toggle Button to initialize the draft
+                    {!isEditingMode ? (
+                      <button 
+                        style={editToggleBtn} 
+                        onClick={() => {
+                          // 1. Get the raw buffered price from DB (which is in INR)
+                          const rawPrice = parseFloat(item.price) || 0; 
+                          
+                          // 2. Remove the 18% buffer to get the original base INR price
+                          const originalBaseInr = rawPrice / BUFFER_MULTIPLIER;
+
+                          // 3. Convert that original price to the current viewing currency
+                          const displayPrice = (originalBaseInr * currency.rate).toFixed(2);
+
+                          // 4. Update local state for the form
+                          setItem({ ...item, price: displayPrice });
+                          setIsEditingMode(true);
+                        }}
+                      >
+                        <Edit3 size={16} />
+                        <span>Edit Gift Details</span>
+                      </button>
+                    ) : (
+                      <UrlInputForm 
+                        isEditing={true} 
+                        editableData={item} 
+                        setEditableData={setItem} 
+                        currencySymbol={getCurrencySymbol(currency.code)} // Pass symbol from context
+                        currencyCode={currency.code} // Pass code from context
+                        onContinue={async () => {
+                          // 1. Get the price the user entered in their currency
+                          const inputPrice = parseFloat(item.price) || 0;
+
+                          // 2. Convert back to base INR (divide by current rate)
+                          const basePriceINR = currency.code !== 'INR' 
+                              ? inputPrice / currency.rate 
+                              : inputPrice;
+
+                          // 3. Re-apply the 18% Buffer for database storage
+                          const finalBufferedPrice = parseFloat((basePriceINR * BUFFER_MULTIPLIER).toFixed(2));
+
+                          const { error } = await supabase
+                            .from('wishlist_items')
+                            .update({ 
+                              ...item, 
+                              price: finalBufferedPrice // Always save the buffered INR value
+                            })
+                            .eq('id', item.id);
+
+                          if (!error) {
+                            fetchItem();
+                            setIsEditingMode(false); 
+                            showToast("Gift updated!");
+                          }
+                        }}
+                        onCancel={() => {
+                          setIsEditingMode(false);
+                          fetchItem(); // Reset to DB state
+                        }}
+                      />
+                    )}
                   
                   <div style={dangerZone}>
                     {hasFunds && (
