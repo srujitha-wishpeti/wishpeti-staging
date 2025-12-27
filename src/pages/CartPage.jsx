@@ -191,7 +191,7 @@ export default function CartPage() {
                 creator_id: creatorId,
                 order_id: orderData.id,
                 razorpay_payment_id: response.razorpay_payment_id,
-                amount_inr: totalInINR,
+                amount_inr: finalPayable,
                 currency_from: currency.code,
                 exchange_rate: rate,
                 type: 'gift_purchase', // As per your CHECK constraint
