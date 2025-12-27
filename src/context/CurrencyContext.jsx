@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { getCurrencyPreference, saveCurrencyPreference, fetchExchangeRate } from '../utils/currency';
 import { detectUserCurrency } from '../utils/geo';
+import { formatPrice } from '../utils/currency';
 
 // 1. Create the Context
 export const CurrencyContext = createContext(null);
@@ -9,6 +10,10 @@ export const CurrencyContext = createContext(null);
 export function CurrencyProvider({ children }) {
   const [currency, setCurrency] = useState(getCurrencyPreference());
   const [loading, setLoading] = useState(true); // Added to help UI handling
+
+  const globalFormatPrice = (amount) => {
+    return formatPrice(amount, currency.code, currency.rate);
+  };
 
   useEffect(() => {
     const initCurrency = async () => {
@@ -50,7 +55,7 @@ export function CurrencyProvider({ children }) {
   };
 
   return (
-    <CurrencyContext.Provider value={{ currency, updateCurrency, loading }}>
+    <CurrencyContext.Provider value={{ currency, updateCurrency, loading, formatPrice: globalFormatPrice }}>
       {children}
     </CurrencyContext.Provider>
   );

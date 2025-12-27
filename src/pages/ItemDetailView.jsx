@@ -2,11 +2,13 @@ import React, { useEffect, useState, useMemo } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { supabase } from '../services/supabaseClient';
 import { useAuth } from '../auth/AuthProvider';
+import { useCurrency } from '../context/CurrencyContext'; // Added
+import { useToast } from '../context/ToastContext'; // Added for feedback
 import WishlistItemCard from '../components/wishlist/WishlistItemCard';
 import UrlInputForm from '../components/UrlInputForm';
 import { 
   ArrowLeft, Loader2, ShoppingBag, ShieldCheck, 
-  Heart, Trash2, Settings2, Edit3, Lock, Info
+  Heart, Trash2, Edit3, Info, Settings2
 } from 'lucide-react';
 
 import ContributeModal from './ContributeModal';
@@ -14,12 +16,13 @@ import ContributeModal from './ContributeModal';
 export default function ItemDetailView() {
   const { username, itemId } = useParams();
   const { user, session, loading: authLoading } = useAuth();
+  const { currency, formatPrice, convertPrice } = useCurrency(); // Added currency logic
+  const showToast = useToast();
   const navigate = useNavigate();
 
   const [item, setItem] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showContributeModal, setShowContributeModal] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [isEditingMode, setIsEditingMode] = useState(false);
 
   const isOwner = useMemo(() => {
@@ -48,41 +51,49 @@ export default function ItemDetailView() {
   const hasFunds = (item?.amount_raised || 0) > 0;
 
   const handleAddToCart = () => {
-    // 1. Changed key to 'wishlist_cart' to match CartPage.jsx
     const cartKey = 'wishlist_cart'; 
-    
     const existingCart = JSON.parse(localStorage.getItem(cartKey) || '[]');
-    
     const isDuplicate = existingCart.find(cartItem => cartItem.id === item.id);
     
-    if (!isDuplicate) {
-      const cartItem = {
-        ...item,
-        quantity: 1, 
-        added_at: new Date().toISOString(),
-        added_currency: 'INR', // Helpful for your Cart's price logic
-        added_rate: 1 
-      };
-      
-      localStorage.setItem(cartKey, JSON.stringify([...existingCart, cartItem]));
+    if (isDuplicate) {
+        showToast("Already in your basket! 🛒", "info");
+        navigate('/cart');
+        return;
     }
 
+    const cartItem = {
+      ...item,
+      quantity: 1, 
+      added_at: new Date().toISOString(),
+      // We store the original database price (INR) and the rate at which it was added
+      base_price: item.price,
+      added_currency: currency.code,
+      added_rate: currency.rate 
+    };
+    
+    localStorage.setItem(cartKey, JSON.stringify([...existingCart, cartItem]));
+    window.dispatchEvent(new Event('cartUpdated')); // Sync navbar count
+    showToast("Added to basket! 🎁");
     navigate('/cart');
   };
 
   const handleDelete = async () => {
     if (hasFunds) {
-      alert("This item cannot be deleted because fans have already contributed to it.");
+      showToast("Cannot delete: Funding has already started.", "error");
       return;
     }
     if (!window.confirm("Remove this gift from your wishlist?")) return;
     const { error } = await supabase.from('wishlist_items').delete().eq('id', itemId);
-    if (!error) navigate(`/${username}`);
+    if (!error) {
+        showToast("Item removed");
+        navigate(`/${username}`);
+    }
   };
 
   if (loading || authLoading) return <div style={centerStyle}><Loader2 className="animate-spin" size={40} color="#6366f1" /></div>;
   if (!item) return <div style={centerStyle}><h2>Gift not found</h2><Link to={`/${username}`}>Return</Link></div>;
 
+  // Unified Price Calculations using the Context
   const totalGoal = item.price * (item.quantity || 1);
   const raised = item.amount_raised || 0;
   const progressPercent = Math.min(Math.round((raised / totalGoal) * 100), 100);
@@ -145,11 +156,13 @@ export default function ItemDetailView() {
                       <div style={statsGrid}>
                         <div style={statBox}>
                           <span style={statLabel}>Raised</span>
-                          <span style={statValue}>₹{raised.toLocaleString()}</span>
+                          {/* CONVERTED PRICE */}
+                          <span style={statValue}>{formatPrice(raised)}</span>
                         </div>
                         <div style={statBox}>
                           <span style={statLabel}>Target</span>
-                          <span style={statValue}>₹{totalGoal.toLocaleString()}</span>
+                          {/* CONVERTED PRICE */}
+                          <span style={statValue}>{formatPrice(totalGoal)}</span>
                         </div>
                       </div>
 
@@ -192,6 +205,7 @@ export default function ItemDetailView() {
                         if (!error) {
                           fetchItem();
                           setIsEditingMode(false); 
+                          showToast("Gift updated!");
                         }
                       }}
                       onCancel={() => setIsEditingMode(false)}
@@ -227,19 +241,23 @@ export default function ItemDetailView() {
                   <p style={formSub}>
                     {item.is_crowdfund 
                       ? "This is a crowdfunded gift. Contribute any amount to help reach the goal!" 
-                      : "Add this gift to your cart to checkout."}
+                      : `Add this gift to your cart to checkout.`}
                   </p>
                   
                   <button 
                     style={primaryBtn} 
-                    /* RIGHT: Calls your logic that saves to localStorage */
                     onClick={() => item.is_crowdfund ? setShowContributeModal(true) : handleAddToCart()}
                   >
                     <ShoppingBag size={20} />
-                    <span>{item.is_crowdfund ? 'Contribute Now' : 'Add to Cart'}</span>
+                    <span>
+                        {item.is_crowdfund ? 'Contribute Now' : `Add to Cart • ${globalFormatPrice(item.price)}`}
+                    </span>
                   </button>
 
-                  <div style={trustNote}><ShieldCheck size={14} color="#10b981" /><span>Secure Checkout via WishPeti</span></div>
+                  <div style={trustNote}>
+                    <ShieldCheck size={14} color="#10b981" />
+                    <span>Secure Checkout via WishPeti</span>
+                  </div>
                 </>
               )}
             </div>
@@ -250,7 +268,7 @@ export default function ItemDetailView() {
       {showContributeModal && (
         <ContributeModal
           item={item}
-          isOwner={isOwner} // This is the most important line!
+          isOwner={isOwner}
           onClose={() => setShowContributeModal(false)}
           onSuccess={() => {
             setShowContributeModal(false);
@@ -262,7 +280,7 @@ export default function ItemDetailView() {
   );
 }
 
-// --- STYLES ---
+// --- STYLES (Kept exactly as per your request) ---
 const pageWrapper = { minHeight: '100vh', backgroundColor: '#f8fafc' };
 const navStyle = { backgroundColor: '#fff', borderBottom: '1px solid #e2e8f0', padding: '16px 0', position: 'sticky', top: 0, zIndex: 100 };
 const navContent = { maxWidth: '1100px', margin: '0 auto', padding: '0 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' };

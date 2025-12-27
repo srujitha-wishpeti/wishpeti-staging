@@ -1,5 +1,6 @@
 import React from 'react';
 import { X, Loader2, Lock } from 'lucide-react';
+import { useCurrency } from '../context/CurrencyContext';
 
 export default function UrlInputForm({ 
   url, 
@@ -20,6 +21,8 @@ export default function UrlInputForm({
   // SAFETY LOCK: Disable editing critical financial fields if money has been raised
   const hasFunds = editableData?.amount_raised > 0;
 
+  const { currency, formatPrice, convertPrice } = useCurrency(); // Added currency logic
+  
   const handleEdit = (field, value) => {
     if (hasFunds && (field === 'price' || field === 'quantity' || field === 'is_crowdfund')) {
       return; // Do nothing if field is locked
@@ -83,7 +86,7 @@ export default function UrlInputForm({
                       <span style={symbolStyle}>{currencySymbol}</span>
                       <input 
                         type="text"
-                        value={editableData.price || ''} 
+                        value={formatPrice(editableData.price) || ''} 
                         onChange={(e) => handleEdit('price', e.target.value)}
                         disabled={hasFunds}
                         style={{ 

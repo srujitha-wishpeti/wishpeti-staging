@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { ShoppingBag, Trash2, ExternalLink, Share2, Edit3, Lock, Star, ArrowUp, CheckCircle, X } from 'lucide-react';
-import { formatPrice } from '../../utils/currency';
+import { useCurrency } from '../../context/CurrencyContext';
 import { supabase } from '../../services/supabaseClient';
 import SpotlightPortal from '../ui/SpotlightPortal';
+import { useToast} from '.././../context/ToastContext';
 
 // --- SUB-COMPONENT: CARD CONTENT ---
 // Defined outside to prevent re-mounting issues during Spotlight toggle
@@ -226,6 +227,8 @@ export default function WishlistItemCard({
   const hasContributions = raisedAmount > 0;
   const isLocked = hasContributions || isClaimed;
 
+  const { formatPrice } = useCurrency();
+  
   const priorities = [
     { value: 1, label: 'High', color: '#ef4444', icon: <ArrowUp size={12} /> },
     { value: 2, label: 'Medium', color: '#f59e0b', icon: <Star size={12} /> },
