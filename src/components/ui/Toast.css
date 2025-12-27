@@ -6,3 +6,48 @@
   transform: translateX(-50%);
   z-index: 9999; /* Higher than Navbar (2000) */
 }
+
+/* Container for stacking */
+.toast-stack-container {
+  display: flex;
+  flex-direction: column-reverse;
+  gap: 12px;
+  pointer-events: none; /* Allows clicking things behind the stack area */
+}
+
+.toast-notification {
+  pointer-events: auto; /* Re-enable clicking for the toast itself */
+  min-width: 300px;
+  max-width: 450px;
+  background: white;
+  border-radius: 12px;
+  padding: 16px;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 
+              0 8px 10px -6px rgba(0, 0, 0, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  animation: toast-slide-in 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  transition: all 0.3s ease;
+}
+
+/* Slide in from the right with a slight bounce */
+@keyframes toast-slide-in {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+/* Error specific styling */
+.toast-notification.error-toast {
+  border-left: 4px solid #ef4444;
+}
+
+.toast-notification.success-toast {
+  border-left: 4px solid #10b981;
+}

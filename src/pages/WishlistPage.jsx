@@ -28,8 +28,6 @@ export default function WishlistPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [viewMode, setViewMode] = useState('grid');
   const [profile, setProfile] = useState(null);
-  const [showToast, setShowToast] = useState(false);
-  const [toastMsg, setToastMsg] = useState('');
   const [uploading, setUploading] = useState(null); 
   const navigate = useNavigate();
   const isOwner = !username || (session?.user && profile && session.user.id === profile.id);
@@ -131,12 +129,10 @@ const nearestItem = getNearestGoal();
 
         setProfile(prev => ({ ...prev, [dbColumn]: publicUrl }));
         setTempProfile(prev => ({ ...prev, [dbColumn]: publicUrl }));
-        setToastMsg(`${type.charAt(0).toUpperCase() + type.slice(1)} updated! 📸`);
-        setShowToast(true);
+        showToast(`${type.charAt(0).toUpperCase() + type.slice(1)} updated! 📸`);
     } catch (err) {
         console.error(err);
-        setToastMsg("Upload failed.");
-        setShowToast(true);
+        showToast("Upload failed.");
     } finally {
         setUploading(null);
     }
@@ -156,11 +152,9 @@ const nearestItem = getNearestGoal();
 
         setProfile({ ...profile, ...tempProfile }); 
         setEditingProfile(false);
-        setToastMsg("Profile updated! ✨");
-        setShowToast(true);
+        showToast("Profile updated! ✨");
     } catch (err) {
-        setToastMsg("Error updating profile.");
-        setShowToast(true);
+        showToast("Error updating profile.");
     }
   };
 
@@ -303,8 +297,7 @@ const totalGiftValue = wishlist.reduce((acc, item) => {
             .eq('id', item.id);
 
         loadData(); 
-        setToastMsg("Gift claimed!");
-        setShowToast(true);
+        showToast("Gift claimed!");
         setContributingItem(null);
         
     } catch (err) {
@@ -330,8 +323,7 @@ const totalGiftValue = wishlist.reduce((acc, item) => {
     // Standard "Gift This" logic
     const existingCart = JSON.parse(localStorage.getItem('wishlist_cart') || '[]');
     if (existingCart.find(cartItem => cartItem.id === item.id)) {
-        setToastMsg("Already in cart! 🛒");
-        setShowToast(true);
+        showToast("Already in cart! 🛒");
         return;
     }
     
@@ -348,8 +340,7 @@ const totalGiftValue = wishlist.reduce((acc, item) => {
     
     localStorage.setItem('wishlist_cart', JSON.stringify([...existingCart, itemWithCurrency]));
     window.dispatchEvent(new Event('cartUpdated'));
-    setToastMsg(`Added to cart! 🎁`);
-    setShowToast(true);
+    showToast(`Added to cart! 🎁`);
   };
 
   // Inside your Wishlist component
@@ -387,12 +378,10 @@ const totalGiftValue = wishlist.reduce((acc, item) => {
     if (isConfirmed) {
         try {
         await deleteWishlistItem(id);
-        setToastMsg("Item removed! 👋");
-        setShowToast(true);
+        showToast("Item removed! 👋");
         loadData(); // Refresh the list
         } catch (err) {
-        setToastMsg("Failed to delete item.");
-        setShowToast(true);
+        showToast("Failed to delete item.");
         }
     }
   };
@@ -401,10 +390,7 @@ const totalGiftValue = wishlist.reduce((acc, item) => {
 
   return (
     <div className="wishlist-modern-page">
-        <RealtimeAlerts 
-            setMsg={setToastMsg} 
-            setShow={setShowToast} 
-            />
+        <RealtimeAlerts />
       <header className="wishlist-hero-card" style={{ 
             padding: '0', 
             overflow: 'hidden', 
@@ -550,8 +536,7 @@ const totalGiftValue = wishlist.reduce((acc, item) => {
                             </select>
                             <button className="modern-share-btn" style={{...shareButtonStyle, flex: 2}} onClick={() => {
                                 navigator.clipboard.writeText(window.location.href);
-                                setToastMsg("Link copied! 🔗");
-                                setShowToast(true);
+                                showToast("Link copied! 🔗");
                             }}>
                                 <Share2 size={16} /> Share List
                             </button>
@@ -641,7 +626,7 @@ const totalGiftValue = wishlist.reduce((acc, item) => {
             
             <button 
             style={manageGiftsButtonStyle} 
-            onClick={() => setToastMsg("Order history coming soon! 📦")}
+            onClick={() => showToast("Order history coming soon! 📦")}
             >
             View Recent Givers
             </button>
@@ -833,8 +818,6 @@ const totalGiftValue = wishlist.reduce((acc, item) => {
             </div>
         </div>
       )}
-
-      {showToast && <Toast message={toastMsg} onClose={() => setShowToast(false)} />}
     </div>
   );
 }
@@ -865,8 +848,7 @@ function RealtimeAlerts({ setMsg, setShow }) {
           // Format the message
           const message = `${buyer} just sent a ${symbol}${rawAmount.toLocaleString()} gift! 🎁`;
           
-          setMsg(message);
-          setShow(true);
+          showToast(message);
         }
       )
       .subscribe();
