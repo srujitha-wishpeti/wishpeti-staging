@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../services/supabaseClient';
 import { Package, Truck, CheckCircle, ExternalLink, Users } from 'lucide-react'; 
 import { useToast } from '../context/ToastContext';
+import CelebrationModal from '../pages/CelebrationModal';
+import { useParams } from 'react-router-dom';
 
 export default function ManageGifts() {
   const [gifts, setGifts] = useState([]);
@@ -12,7 +14,10 @@ export default function ManageGifts() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [payoutType, setPayoutType] = useState('upi'); // 'upi' or 'bank'
   const [payoutData, setPayoutData] = useState({ upiId: '', accName: '', accNum: '', ifsc: '' });
-
+  const [showCelebration, setShowCelebration] = useState(false);
+  const [celebrationItem, setCelebrationItem] = useState(null);
+  const [username, setUsername] = useState('');
+  
   const handleSavePayout = async () => {
       try {
           const { data: { user } } = await supabase.auth.getUser();
@@ -47,13 +52,14 @@ export default function ManageGifts() {
       // Fetch Profile Balance
       const { data: profile } = await supabase
         .from('creator_profiles')
-        .select('withdrawable_balance, bank_linked')
+        .select('withdrawable_balance, bank_linked, username')
         .eq('id', user.id)
         .single();
       
       if (profile) {
             setBalance(profile.withdrawable_balance || 0);
             setHasLinkedBank(profile.bank_linked || false);
+            setUsername(profile.username || '');
       }
       
       const { data, error } = await supabase
@@ -127,6 +133,17 @@ export default function ManageGifts() {
           
           // Update local state for the UI balance display
           setBalance(currentBalance + netToCreator);
+          console.log(gift);
+        }
+
+        if(newStatus === 'accepted'){
+          const itemData = {
+            title: gift.items?.[0]?.title || "Gift",
+            image_url: gift.items?.[0]?.image || "",
+            sender: gift.buyer_name // Pass the name here
+          };
+          setCelebrationItem(itemData);
+          setShowCelebration(true);
         }
       // Update local state
       setGifts(prev => prev.map(g => g.id === gift.id ? { ...g, gift_status: newStatus } : g));
@@ -260,7 +277,16 @@ export default function ManageGifts() {
         {gifts.length === 0 ? (
            <div style={{ textAlign: 'center', color: '#94a3b8', padding: '60px', border: '2px dashed #e2e8f0', borderRadius: '16px', background: '#f8fafc' }}>
              <Package size={48} style={{ margin: '0 auto 16px', opacity: 0.5 }} />
-             <p>No gifts received yet. Share your link to get started!</p>
+             <p>No gifts received yet.</p>
+             <button 
+                onClick={() => {
+                  navigator.clipboard.writeText(`wishpeti.com/${username}`);
+                  showToast("Link copied!");
+                }}
+                style={copyLinkBtnStyle}
+              >
+                Copy My Wishlist Link
+              </button>
            </div>
         ) : (
           gifts.map((gift, index) => {
@@ -408,9 +434,42 @@ export default function ManageGifts() {
           })
         )}
       </div>
+      {showCelebration && (
+          <CelebrationModal 
+            item={celebrationItem}
+            username={username}
+            onClose={() => setShowCelebration(false)}
+          />
+        )}
     </div>
   );
 }
+
+const emptyStateStyle = { 
+  textAlign: 'center', 
+  color: '#94a3b8', 
+  padding: '60px', 
+  border: '2px dashed #e2e8f0', 
+  borderRadius: '24px', 
+  background: '#f8fafc',
+  display: 'flex',
+  flexDirection: 'column',
+  alignItems: 'center',
+  gap: '16px'
+};
+
+const copyLinkBtnStyle = {
+  background: '#6366f1',
+  color: 'white',
+  border: 'none',
+  padding: '12px 24px',
+  borderRadius: '12px',
+  fontWeight: '700',
+  cursor: 'pointer',
+  fontSize: '14px',
+  transition: 'transform 0.2s',
+  boxShadow: '0 4px 12px rgba(99, 102, 241, 0.2)'
+};
 
 // Styles for the Payout Modal
   const modalOverlayStyle = {

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Trash2, ShoppingCart, ArrowLeft, CreditCard, Lock, ShieldCheck } from 'lucide-react';
+import { Trash2, ShoppingCart, ArrowLeft, CreditCard, Lock, ShieldCheck, Phone } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '../services/supabaseClient';
 import './CartPage.css';
@@ -15,7 +15,7 @@ export default function CartPage() {
   const [senderName, setSenderName] = useState('');
   const [senderEmail, setSenderEmail] = useState('');
   const showToast = useToast();
-  
+  const [isAnonymous, setIsAnonymous] = useState(false); // New state
   const { currency, updateCurrency, loading: currencyLoading } = useCurrency();
 
   const loadCart = () => {
@@ -140,7 +140,7 @@ export default function CartPage() {
       handler: async function (response) {
         await handlePaymentSuccess(response);
       },
-      prefill: { name: senderName, email: senderEmail },
+      prefill: { name: senderName, email: senderEmail, contat: "+919972769491" }, //contact number default for better conversion rate
       theme: { color: "#6366f1" },
       modal: {
         ondismiss: () => {
@@ -159,6 +159,7 @@ export default function CartPage() {
     try {
         const { rate } = getCurrencyPreference();
         
+        const displayName = isAnonymous ? 'Anonymous' : senderName;
         // 1. Map through cart items to create individual Order rows
         // This ensures every item triggers a separate Realtime Alert toast
         const orderPromises = cartItems.map(item => {
@@ -174,7 +175,7 @@ export default function CartPage() {
                 .from('orders')
                 .insert([{
                     razorpay_payment_id: response.razorpay_payment_id,
-                    buyer_name: senderName,
+                    buyer_name: displayName,
                     buyer_email: senderEmail,
                     creator_id: item.recipient_id || item.creator_id,
                     item_id: isSurprise? null : item.id, // Link to the specific item
@@ -312,6 +313,14 @@ export default function CartPage() {
               />
             </div>
 
+            {/* ANONYMOUS TOGGLE */}
+              <div className="anonymous-checkbox-container" onClick={() => setIsAnonymous(!isAnonymous)}>
+                <div className={`custom-checkbox ${isAnonymous ? 'checked' : ''}`}>
+                  {isAnonymous && <div className="checkbox-tick" />}
+                </div>
+                <span className="checkbox-label-text">Remain Anonymous to creator</span>
+              </div>
+              
             <div className="price-breakdown">
               <div className="price-row grand-total">
                 <span>Gift Total</span>
@@ -347,3 +356,12 @@ export default function CartPage() {
     </div>
   );
 }
+
+const toggleRowStyle = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: '8px',
+  margin: '4px 0 12px 0',
+  cursor: 'pointer',
+  padding: '4px'
+};

@@ -1,3 +1,84 @@
+.modern-checkout-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-bottom: 24px;
+  width: 100%;
+}
+
+.checkout-sub-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #64748b;
+  margin: 0 0 -4px 0;
+}
+
+.checkout-field-group {
+  width: 100%;
+}
+
+.checkout-input-field {
+  width: 100%;
+  padding: 12px 16px;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  font-size: 14px;
+  outline: none;
+  background: #ffffff;
+  box-sizing: border-box; /* Crucial to prevent overflow */
+}
+
+.checkout-input-field:focus {
+  border-color: #6366f1;
+  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.1);
+}
+
+.checkout-input-field:disabled {
+  background: #f8fafc;
+  color: #94a3b8;
+  cursor: not-allowed;
+}
+
+.anonymous-checkbox-container {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  padding: 4px 0;
+  width: fit-content;
+}
+
+.custom-checkbox {
+  width: 20px;
+  height: 20px;
+  border: 2px solid #cbd5e1;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  background: white;
+}
+
+.custom-checkbox.checked {
+  background: #6366f1;
+  border-color: #6366f1;
+}
+
+.checkbox-tick {
+  width: 10px;
+  height: 5px;
+  border-left: 2px solid white;
+  border-bottom: 2px solid white;
+  transform: rotate(-45deg) translate(1px, -1px);
+}
+
+.checkbox-label-text {
+  font-size: 14px;
+  color: #475569;
+  user-select: none;
+}
+
 .cart-page-container {
   max-width: 1100px;
   margin: 100px auto;
