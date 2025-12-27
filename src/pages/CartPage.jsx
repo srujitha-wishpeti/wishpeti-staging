@@ -180,7 +180,8 @@ export default function CartPage() {
                 is_surprise: surpriseTotal > 0, // Critical flag for Manage Gifts page
                 surprise_amount_in_inr: surpriseInINR
             }])
-            .select();
+            .select()
+            .single();
 
         if (orderError) throw orderError;
 
@@ -194,8 +195,6 @@ export default function CartPage() {
                 amount_inr: finalPayable,
                 currency_from: currency.code,
                 exchange_rate: rate,
-                type: 'gift_purchase', // As per your CHECK constraint
-                status: 'success'
             }]);
 
         if (transError) console.error("Transaction log failed:", transError.message);

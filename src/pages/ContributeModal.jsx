@@ -117,7 +117,7 @@ export default function ContributeModal({ item, onClose, onSuccess, isOwner }) {
       ? parseFloat((paidAmount / rate).toFixed(2)) 
       : paidAmount;
 
-    const { error: orderError } = await supabase
+    const { data: newOrder, error: orderError } = await supabase
         .from('orders')
         .insert([{
           razorpay_payment_id: response.razorpay_payment_id,
@@ -130,9 +130,25 @@ export default function ContributeModal({ item, onClose, onSuccess, isOwner }) {
           buyer_name: isAnonymous ? "Anonymous" : (buyerName || "Kind Supporter"),
           buyer_email: buyerEmail,
           buyer_message: buyerMessage
-        }]);
+        }])
+        .select() // <--- CRITICAL: This allows you to get the ID
+        .single();
 
     if (orderError) throw orderError;
+
+    // 3. LOG THE TRANSACTION (Matching your existing table)
+    const { error: transError } = await supabase
+        .from('transactions')
+        .insert([{
+            creator_id: item.creator_id,
+            order_id: newOrder.id,
+            razorpay_payment_id: response.razorpay_payment_id,
+            amount_inr: contributionInINR,
+            currency_from: currency.code,
+            exchange_rate: rate,
+        }]);
+
+    if (transError) console.error("Transaction log failed:", transError.message);
 
     const newRaisedTotal = (item.amount_raised || 0) + contributionInINR;
     const isNowFullyFunded = newRaisedTotal >= (totalGoalBase - 0.05); 

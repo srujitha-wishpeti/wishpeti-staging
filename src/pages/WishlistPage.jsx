@@ -4,7 +4,7 @@ import { Camera, Search, Grid, List, Share2, Pencil, Sparkles } from 'lucide-rea
 import AddWishlistItem from '../components/AddWishlistItem';
 import { useAuth } from '../auth/AuthProvider';
 import ContributeModal from './ContributeModal';
-
+import toast, { Toaster } from 'react-hot-toast';
 import { 
   getWishlistItems, 
   deleteWishlistItem, 
@@ -17,6 +17,8 @@ import Toast from '../components/ui/Toast';
 import { useCurrency } from '../context/CurrencyContext';
 import { useToast } from '../context/ToastContext';
 import { fetchExchangeRate, getCurrencySymbol } from '../utils/currency';
+
+
 export default function WishlistPage() {  
   const { username } = useParams();
   const { session } = useAuth();
@@ -399,6 +401,10 @@ const totalGiftValue = wishlist.reduce((acc, item) => {
 
   return (
     <div className="wishlist-modern-page">
+        <RealtimeAlerts 
+            setMsg={setToastMsg} 
+            setShow={setShowToast} 
+            />
       <header className="wishlist-hero-card" style={{ 
             padding: '0', 
             overflow: 'hidden', 
@@ -832,6 +838,72 @@ const totalGiftValue = wishlist.reduce((acc, item) => {
     </div>
   );
 }
+
+function RealtimeAlerts({ setMsg, setShow }) {
+  useEffect(() => {
+    const channel = supabase
+      .channel('live-orders')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'orders'
+          // Filter removed as per your change
+        },
+        (payload) => {
+          console.log("New order row:", payload.new);
+          
+          // Use "new" values but provide "Fallbacks" for anything missing
+          const buyer = payload.new.buyer_name || 'A Kind Supporter';
+          
+          // Check if amount exists, otherwise use 0 or a placeholder
+          const rawAmount = payload.new.total_amount || 0;
+          const currency = payload.new.currency_code || 'INR';
+          const symbol = getCurrencySymbol(currency);
+
+          // Format the message
+          const message = `${buyer} just sent a ${symbol}${rawAmount.toLocaleString()} gift! 🎁`;
+          
+          setMsg(message);
+          setShow(true);
+        }
+      )
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [setMsg, setShow]);
+
+  return null;
+}
+
+// Minimalist Alert Styles
+const alertStyle = (visible) => ({
+  transform: visible ? 'translateX(0)' : 'translateX(-100%)',
+  opacity: visible ? 1 : 0,
+  transition: 'all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
+  background: 'white',
+  padding: '16px',
+  borderRadius: '20px',
+  display: 'flex',
+  alignItems: 'center',
+  gap: '15px',
+  minWidth: '280px',
+  boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
+  border: '1px solid #e2e8f0',
+});
+
+const iconStyle = {
+  fontSize: '20px',
+  background: '#f0fdf4',
+  width: '45px',
+  height: '45px',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  borderRadius: '14px',
+  border: '1px solid #bbf7d0'
+};
 
 // STYLES
 const bannerPencilStyle = { 
