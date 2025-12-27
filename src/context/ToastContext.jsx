@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useCallback } from 'react';
 import Toast from '../components/ui/Toast';
+import './ToastContext.css';
 
 const ToastContext = createContext();
 
@@ -7,8 +8,12 @@ export const ToastProvider = ({ children }) => {
   const [toasts, setToasts] = useState([]); // Changed to an Array
 
   const showToast = useCallback((message, type = 'success') => {
-    const id = Date.now(); // Unique ID for filtering
-    setToasts((prev) => [...prev, { id, message, type }]);
+    const id = Date.now() + Math.random(); // Add random to prevent identical IDs
+  
+    setToasts((prevToasts) => {
+      // This ensures we always have the latest list, even if 5 calls happen at once
+      return [...prevToasts, { id, message, type }];
+    });
   }, []);
 
   const hideToast = useCallback((id) => {

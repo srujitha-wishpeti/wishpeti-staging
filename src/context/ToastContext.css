@@ -1,0 +1,16 @@
+/* ToastContext.js inline style or CSS file */
+.toast-container {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 10000; /* Higher than any navbar or card */
+  display: flex;
+  flex-direction: column-reverse; /* Newest at the bottom */
+  gap: 12px;
+  pointer-events: none; /* Allows clicking through the empty space */
+}
+
+.toast-notification {
+  pointer-events: auto; /* Re-enables clicking on the toast button */
+  /* Remove 'position: fixed' or 'bottom' from here! */
+}

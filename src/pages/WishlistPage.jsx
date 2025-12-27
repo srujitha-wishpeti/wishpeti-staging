@@ -48,6 +48,7 @@ export default function WishlistPage() {
   const [totalItems, setTotalItems] = useState(0);
   const ITEMS_PER_PAGE = 9;
 
+  const showToast = useToast();
   // 1. ADD THIS: Handle Edit Item
   // This opens the AddWishlistItem modal in "edit mode"
   const handleEditItem = (item) => {
@@ -323,6 +324,7 @@ const totalGiftValue = wishlist.reduce((acc, item) => {
     // Standard "Gift This" logic
     const existingCart = JSON.parse(localStorage.getItem('wishlist_cart') || '[]');
     if (existingCart.find(cartItem => cartItem.id === item.id)) {
+        console.log("Found duplicate, calling toast...");
         showToast("Already in cart! 🛒");
         return;
     }
