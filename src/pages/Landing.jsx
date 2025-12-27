@@ -1,6 +1,28 @@
-import { supabase } from '../services/supabaseClient'
+import { supabase } from '../services/supabaseClient';
+import { useToast } from '../context/ToastContext';
+import React, { useEffect, useState } from 'react';
 
 export default function Landing() {
+  const showToast = useToast();
+
+  useEffect(() => {
+    const channel = supabase
+      .channel('public-activity')
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'orders' },
+        (payload) => {
+          // We don't need to show the exact amount for privacy on a landing page
+          // Just a "Someone just sent a gift" message
+          const name = payload.new.is_anonymous ? "Someone" : (payload.new.buyer_name || "A fan");
+          showToast(`✨ ${name} just fulfilled a gift for a creator!`);
+        }
+      )
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [showToast]);
+
   const login = async () => {
     await supabase.auth.signInWithOAuth({
       provider: 'google',
