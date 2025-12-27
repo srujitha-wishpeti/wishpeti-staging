@@ -22,7 +22,7 @@ export default function UrlInputForm({
   const hasFunds = editableData?.amount_raised > 0;
 
   const { currency, formatPrice, convertPrice } = useCurrency(); // Added currency logic
-  
+
   const handleEdit = (field, value) => {
     if (hasFunds && (field === 'price' || field === 'quantity' || field === 'is_crowdfund')) {
       return; // Do nothing if field is locked
@@ -30,10 +30,36 @@ export default function UrlInputForm({
     setEditableData(prev => ({ ...prev, [field]: value }));
   };
 
+  const handleImageUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    setUploading(true);
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${Math.random()}.${fileExt}`;
+    const filePath = `item-uploads/${fileName}`;
+
+    // 1. Upload to Supabase Storage
+    const { error: uploadError } = await supabase.storage
+      .from('item-images')
+      .upload(filePath, file);
+
+    if (uploadError) {
+      showToast("Image upload failed");
+    } else {
+      // 2. Get Public URL
+      const { data } = supabase.storage.from('item-images').getPublicUrl(filePath);
+      // 3. Update the editableData so the form shows the new image
+      setEditableData(prev => ({ ...prev, image_url: data.publicUrl }));
+    }
+    setUploading(false);
+  };
+
   return (
     <div style={modalOverlayStyle}>
       <div style={modalContentStyle}>
-        {/* Header */}
+        
+        {/* FIXED HEADER */}
         <div style={headerStyle}>
           <h2 style={{ fontSize: '1.1rem', fontWeight: '700', margin: 0, color: '#1e293b' }}>
             {isEditing ? 'Edit Item' : 'Add New Item'}
@@ -43,7 +69,9 @@ export default function UrlInputForm({
           </button>
         </div>
 
-        <div style={{ padding: '1.25rem' }}>
+        {/* SCROLLABLE BODY (Preserving all logic) */}
+        <div style={scrollableBodyStyle}>
+          
           {/* URL Section */}
           <div style={{ marginBottom: '1.25rem' }}>
             <label style={labelStyle}>Product Link</label>
@@ -76,6 +104,76 @@ export default function UrlInputForm({
                 />
               </div>
 
+              {/* Image Section - Conditional Rendering */}
+              <div style={{ marginBottom: '1.25rem' }}>
+                <label style={labelStyle}>Item Image</label>
+                
+                {!editableData.image_url || editableData.image_url === '/placeholder.png' ? (
+                  // CASE A: No Image - Show Big Upload Button
+                  <div style={{
+                    border: '2px dashed #e2e8f0',
+                    borderRadius: '12px',
+                    padding: '20px',
+                    textAlign: 'center',
+                    backgroundColor: '#f8fafc',
+                    cursor: 'pointer',
+                    position: 'relative'
+                  }}>
+                    <div style={{ color: '#64748b', fontSize: '13px' }}>
+                      <p style={{ margin: '0 0 4px 0', fontWeight: '600' }}>No image found</p>
+                      <p style={{ margin: 0 }}>Click to upload a photo</p>
+                    </div>
+                    <input 
+                      type="file" 
+                      accept="image/*" 
+                      onChange={handleImageUpload}
+                      style={{
+                        position: 'absolute',
+                        inset: 0,
+                        opacity: 0,
+                        cursor: 'pointer',
+                        width: '100%'
+                      }}
+                    />
+                  </div>
+                ) : (
+                  // CASE B: Image Exists - Show Preview with small 'Edit' option
+                  <div style={{ 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    gap: '12px', 
+                    padding: '8px', 
+                    border: '1px solid #e2e8f0', 
+                    borderRadius: '8px' 
+                  }}>
+                    <img 
+                      src={editableData.image_url} 
+                      alt="Preview"
+                      style={{ width: '48px', height: '48px', objectFit: 'cover', borderRadius: '6px' }} 
+                    />
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: '12px', fontWeight: '600', color: '#1e293b' }}>Image Loaded</div>
+                      <label style={{ 
+                        fontSize: '11px', 
+                        color: '#6366f1', 
+                        cursor: 'pointer', 
+                        fontWeight: '700',
+                        textDecoration: 'underline'
+                      }}>
+                        Replace Image
+                        <input type="file" accept="image/*" onChange={handleImageUpload} hidden />
+                      </label>
+                    </div>
+                  </div>
+                )}
+                
+                {uploading && (
+                  <div style={{ ...statusTextStyle, marginTop: '8px' }}>
+                    <Loader2 size={12} className="animate-spin" /> Uploading to server...
+                  </div>
+                )}
+              </div>
+
               {/* Price & Quantity Grid */}
               <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '12px', marginBottom: '1.25rem' }}>
                 <div>
@@ -86,7 +184,7 @@ export default function UrlInputForm({
                       <span style={symbolStyle}>{currencySymbol}</span>
                       <input 
                         type="text"
-                        value={formatPrice(editableData.price) || ''} 
+                        value={scrapedData ? editableData.price : formatPrice(editableData.price) || ''} 
                         onChange={(e) => handleEdit('price', e.target.value)}
                         disabled={hasFunds}
                         style={{ 
@@ -124,11 +222,12 @@ export default function UrlInputForm({
                   backgroundColor: hasFunds ? '#f8fafc' : (editableData.is_crowdfund ? '#f5f3ff' : '#fff'),
                   borderWidth: '2px',
                   cursor: hasFunds ? 'not-allowed' : 'pointer',
-                  opacity: hasFunds ? 0.8 : 1
+                  opacity: hasFunds ? 0.8 : 1,
+                  marginBottom: '1.25rem'
                 }}
               >
                 <div style={{ display: 'flex', alignItems: 'center' }}>
-                   <input 
+                  <input 
                     type="checkbox" 
                     checked={editableData.is_crowdfund || false}
                     readOnly 
@@ -136,31 +235,32 @@ export default function UrlInputForm({
                     style={{ width: '18px', height: '18px', cursor: hasFunds ? 'not-allowed' : 'pointer' }}
                   />
                 </div>
-                <div style={{ flex: 1 }}>
+                <div style={{ flex: 1, marginLeft: '12px' }}>
                   <div style={{ fontWeight: '700', fontSize: '14px', color: '#1e293b' }}>
                     Enable Crowdfunding 💰
                   </div>
                   <div style={{ fontSize: '12px', color: '#64748b', lineHeight: '1.4' }}>
                     {hasFunds 
-                      ? "Locked: Contributions have already started for this item." 
-                      : "Fans can contribute any amount instead of buying the whole gift."}
+                      ? "Locked: Contributions have already started." 
+                      : "Fans can contribute any amount."}
                   </div>
                 </div>
               </div>
 
               {hasFunds && (
-                <div style={lockNoticeStyle}>
+                <div style={{ ...lockNoticeStyle, marginBottom: '1.25rem' }}>
                   <Lock size={12} />
                   <span>Funding active: Financial settings are locked.</span>
                 </div>
               )}
 
+              {/* Notes Section */}
               <div style={{ marginBottom: '1rem' }}>
                 <label style={labelStyle}>Notes (Optional)</label>
                 <textarea 
                   value={editableData.notes || ''} 
                   onChange={(e) => handleEdit('notes', e.target.value)}
-                  placeholder="Size, color, or a message for your fans..."
+                  placeholder="Size, color, or a message..."
                   style={{ ...inputStyle, height: '80px', resize: 'none' }}
                 />
               </div>
@@ -168,7 +268,7 @@ export default function UrlInputForm({
           )}
         </div>
 
-        {/* Footer */}
+        {/* FIXED FOOTER */}
         <div style={footerStyle}>
           <button 
             disabled={(!scrapedData && !isEditing && !error) || loading} 
@@ -176,7 +276,8 @@ export default function UrlInputForm({
             style={{ 
               ...submitButtonStyle, 
               backgroundColor: (scrapedData || isEditing || error) ? '#1e293b' : '#cbd5e1',
-              opacity: loading ? 0.7 : 1
+              opacity: loading ? 0.7 : 1,
+              width: '100%' // Ensure button fills footer
             }}
           >
             {loading ? 'Processing...' : (isEditing ? 'Save Changes' : 'Add to Wishlist')}
@@ -189,26 +290,36 @@ export default function UrlInputForm({
 
 // --- STYLES ---
 
-const modalOverlayStyle = { 
-  position: 'fixed', 
-  inset: 0, 
-  backgroundColor: 'rgba(0,0,0,0.5)', 
-  display: 'flex', 
-  alignItems: 'center', 
-  justifyContent: 'center', 
-  zIndex: 10000, 
-  padding: '20px' 
+const modalContentStyle = {
+  backgroundColor: '#fff',
+  borderRadius: '16px',
+  width: '100%',
+  maxWidth: '480px',
+  maxHeight: '90vh', // Critical: Keeps modal within screen height
+  display: 'flex',
+  flexDirection: 'column', // Stack header -> body -> footer
+  overflow: 'hidden', // Prevents container-level scrollbars
+  boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)',
+  position: 'relative'
 };
 
-const modalContentStyle = { 
-  backgroundColor: 'white', 
-  borderRadius: '16px', 
-  width: '100%', 
-  maxWidth: '440px', 
-  boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)',
-  maxHeight: '90vh',
-  overflowY: 'auto'
+const scrollableBodyStyle = {
+  padding: '1.25rem',
+  overflowY: 'auto', // Only this section will scroll
+  flex: 1, // Takes up all remaining space between header and footer
+  display: 'flex',
+  flexDirection: 'column'
 };
+
+const footerStyle = {
+  padding: '1.25rem',
+  borderTop: '1px solid #f1f5f9',
+  backgroundColor: '#fff',
+  position: 'sticky',
+  bottom: 0,
+  zIndex: 10
+};
+
 
 const headerStyle = { 
   padding: '1.25rem', 
@@ -216,6 +327,55 @@ const headerStyle = {
   display: 'flex', 
   justifyContent: 'space-between', 
   alignItems: 'center' 
+};
+
+const modalOverlayStyle = {
+  position: 'fixed',
+  inset: 0,
+  backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  zIndex: 1000,
+  padding: '20px'
+};
+
+const modalContainerStyle = {
+  backgroundColor: '#ffffff',
+  borderRadius: '16px',
+  width: '100%',
+  maxWidth: '500px',
+  maxHeight: '90vh', // Critical: Keeps modal from going off-screen
+  display: 'flex',
+  flexDirection: 'column',
+  overflow: 'hidden', // Prevents container-level scrollbars
+  boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)'
+};
+
+const modalHeaderStyle = {
+  padding: '20px 24px',
+  borderBottom: '1px solid #f1f5f9',
+  display: 'flex',
+  justifyContent: 'space-between',
+  alignItems: 'center'
+};
+
+const modalBodyStyle = {
+  padding: '24px',
+  overflowY: 'auto', // Enables scrolling only for the form content
+  flex: 1            // Makes the body take up all available middle space
+};
+
+const modalFooterStyle = {
+  padding: '16px 24px',
+  borderTop: '1px solid #f1f5f9',
+  backgroundColor: '#ffffff',
+  display: 'flex',
+  justifyContent: 'flex-end',
+  gap: '12px',
+  position: 'sticky', // Pins the footer to the bottom
+  bottom: 0,
+  zIndex: 10
 };
 
 const labelStyle = { 
@@ -302,14 +462,6 @@ const lockNoticeStyle = {
   padding: '8px 12px',
   backgroundColor: '#f1f5f9',
   borderRadius: '8px'
-};
-
-const footerStyle = { 
-  padding: '1.25rem', 
-  borderTop: '1px solid #f1f5f9',
-  backgroundColor: '#fcfcfc',
-  borderBottomLeftRadius: '16px',
-  borderBottomRightRadius: '16px'
 };
 
 const submitButtonStyle = { 

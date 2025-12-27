@@ -52,7 +52,7 @@ export default function AddWishlistItem({
       setScrapedData(initialData);
       setEditableData({
         title: initialData.title || '',
-        price: displayPrice,
+        price: scrdisplayPrice,
         image: initialData.image || initialData.image_url || '',
         quantity: initialData.quantity || 1,
         notes: initialData.notes || '',
