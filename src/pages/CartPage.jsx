@@ -177,7 +177,7 @@ export default function CartPage() {
                     buyer_name: senderName,
                     buyer_email: senderEmail,
                     creator_id: item.recipient_id || item.creator_id,
-                    item_id: item.id, // Link to the specific item
+                    item_id: isSurprise? null : item.id, // Link to the specific item
                     total_amount: itemPrice, 
                     currency_code: currency.code,
                     payment_status: 'paid',

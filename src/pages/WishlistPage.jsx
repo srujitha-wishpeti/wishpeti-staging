@@ -353,9 +353,11 @@ const totalGiftValue = wishlist.reduce((acc, item) => {
     const numericAmount = parseFloat(amount) || 0;
     if (numericAmount <= 0) return;
 
+    const surpriseId = crypto.randomUUID();
+    console.log(surpriseId);
     logSupportEvent('surprise_fund_intent', username, { amount: numericAmount });
     const surpriseItem = {
-        id: 'surprise-' + Date.now(),
+        id: surpriseId,
         title: "Surprise Gift! 🎁",
         price: numericAmount.toFixed(2), 
         image: "/surprise-box.png",
