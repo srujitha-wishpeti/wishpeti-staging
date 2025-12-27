@@ -88,9 +88,13 @@ const CardInnerContent = ({
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '4px' }}>
         <span style={{ fontSize: '11px', fontWeight: '700', color: '#94a3b8', textTransform: 'uppercase' }}>
           {item.brand || item.store || 'Store'}
+          {qty > 1  && (
+              <span style={qtyTagStyle}>Qty {qty}</span>
+            )}
         </span>
         <span style={{ fontWeight: '800', color: '#1e293b', fontSize: '14px' }}>{displayMainPrice}</span>
       </div>
+      
       
       <h3 style={{ 
           color: isClaimed ? '#94a3b8' : '#1e293b', 
