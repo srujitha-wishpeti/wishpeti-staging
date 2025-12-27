@@ -144,7 +144,7 @@ export default function ContributeModal({ item, onClose, onSuccess, isOwner }) {
         order_id: newOrder.id,
         provider_payment_id: response.razorpay_payment_id, // Renamed
         amount_inr: contributionInINR,
-        currency: currency.code, // Renamed from currency_from
+        currency_code: currency.code, // Renamed from currency_from
         type: 'gift_payment', // Added to match transactions_type_check constraint
         status: 'success',
         currency_rate: currency.rate

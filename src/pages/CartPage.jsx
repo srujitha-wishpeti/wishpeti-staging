@@ -149,51 +149,59 @@ export default function CartPage() {
   const handlePaymentSuccess = async (response) => {
     setLoading(true);
     try {
-        const creatorId = cartItems[0]?.recipient_id || cartItems[0]?.creator_id;
         const { rate } = getCurrencyPreference();
         
-        // 1. Calculate Surprise Amount (Funds)
-        const surpriseTotal = cartItems
-            .filter(item => item.is_surprise)
-            .reduce((sum, item) => sum + parseFloat(item.price), 0);
+        // 1. Map through cart items to create individual Order rows
+        // This ensures every item triggers a separate Realtime Alert toast
+        const orderPromises = cartItems.map(item => {
+            const isSurprise = !!item.is_surprise;
+            const itemPrice = parseFloat(item.price);
+            
+            // Convert individual item price to INR for the record
+            const itemInINR = currency.code === 'INR' 
+                ? itemPrice 
+                : itemPrice / (currency.rate || 1);
+
+            return supabase
+                .from('orders')
+                .insert([{
+                    razorpay_payment_id: response.razorpay_payment_id,
+                    buyer_name: senderName,
+                    buyer_email: senderEmail,
+                    creator_id: item.recipient_id || item.creator_id,
+                    item_id: item.id, // Link to the specific item
+                    total_amount: itemPrice, 
+                    currency_code: currency.code,
+                    payment_status: 'paid',
+                    exchange_rate_at_payment: rate,
+                    gift_status: 'pending',
+                    is_surprise: isSurprise,
+                    surprise_amount_in_inr: isSurprise ? itemInINR : 0
+                }])
+                .select();
+        });
+
+        // Execute all order inserts simultaneously
+        const orderResults = await Promise.all(orderPromises);
         
-        // Convert to INR for the record (Net balance calculation happens on 'Accept')
-        const surpriseInINR = currency.code === 'INR' 
-            ? surpriseTotal 
-            : surpriseTotal / (currency.rate || 1);
+        // Check for any insertion errors
+        const firstError = orderResults.find(res => res.error);
+        if (firstError) throw firstError.error;
 
-        // 2. Insert the Order Record (Now with is_surprise flag)
-        const { data: orderData, error: orderError } = await supabase
-            .from('orders')
-            .insert([{
-                razorpay_payment_id: response.razorpay_payment_id,
-                buyer_name: senderName,
-                buyer_email: senderEmail,
-                creator_id: creatorId,
-                subtotal: finalPayable, 
-                total_amount: finalPayable, 
-                currency_code: currency.code,
-                items: cartItems, 
-                payment_status: 'paid',
-                exchange_rate_at_payment: rate,
-                gift_status: 'pending',
-                is_surprise: surpriseTotal > 0, // Critical flag for Manage Gifts page
-                surprise_amount_in_inr: surpriseInINR
-            }])
-            .select();
+        // Get the ID of the first order for the transaction record and redirect
+        const firstOrderId = orderResults[0].data[0].id;
 
-        if (orderError) throw orderError;
-
-        // 3. Log the Transaction (Using your specific table schema)
+        // 2. Log the Single Transaction (The "Money" record)
+        // We only do this ONCE per payment, even if there are multiple items
         const { error: transError } = await supabase
           .from('transactions')
           .insert([{
-              creator_id: cartItems?.[0]?.creator_id,
-              order_id: orderData?.[0]?.id,
-              provider_payment_id: response.razorpay_payment_id, // Renamed
-              amount_inr: finalPayable,
-              currency: currency.code, // Renamed from currency_from
-              type: 'gift_payment', // Added to match transactions_type_check constraint
+              creator_id: cartItems[0]?.recipient_id || cartItems[0]?.creator_id,
+              order_id: firstOrderId, 
+              provider_payment_id: response.razorpay_payment_id,
+              amount_inr: finalPayable, // The total amount paid in the cart
+              currency_code: currency.code,
+              type: 'gift_payment',
               status: 'success',
               currency_rate: currency.rate
           }]);
@@ -201,9 +209,7 @@ export default function CartPage() {
         if (transError) console.error("Transaction log failed:", transError.message);
 
         // 3. Decrement quantity only for physical items
-        // (Surprise gifts don't have inventory to decrement)
         const physicalItems = cartItems.filter(item => !item.is_surprise);
-        
         if (physicalItems.length > 0) {
             const dbUpdatePromises = physicalItems.map(item => 
                 supabase.rpc('decrement_item_quantity', { row_id: item.id })
@@ -216,12 +222,12 @@ export default function CartPage() {
         setCartItems([]);
         window.dispatchEvent(new Event('cartUpdated'));
         
-        // Redirect to success page
-        navigate(`/success/${orderData?.[0]?.id}`);
+        // Redirect to success page using the first order reference
+        navigate(`/success/${firstOrderId}`);
 
     } catch (err) {
         console.error("Post-Payment Error:", err);
-        showToast("Payment recorded, but we had trouble updating the wishlist. Don't worry, your gift is safe!");
+        showToast("Payment recorded, but we had trouble updating the wishlist.", "error");
     } finally {
         setLoading(false);
     }
