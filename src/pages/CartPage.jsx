@@ -81,9 +81,6 @@ export default function CartPage() {
     const savedPrice = parseFloat(item.price) || 0;
     const savedCurrency = item.added_currency || 'INR';
     
-    if (item.is_surprise) {
-      return item.price;
-    }
     // FIX 2: THE GOLDEN RULE
     // If viewing currency matches how it was added (USD -> USD), skip math.
     if (savedCurrency === currency.code) {
@@ -121,6 +118,9 @@ export default function CartPage() {
 
   const handleCheckout = async () => {
     let amountInPaise;
+    const firstItem = cartItems[0];
+    const creatorId = firstItem?.creator_id;
+
     if (currency.code === 'INR') {
       amountInPaise = Math.round(finalPayable * 100);
     } else {
@@ -128,7 +128,7 @@ export default function CartPage() {
       amountInPaise = Math.round((finalPayable / currency.rate) * 100);
     }
 
-    await logSupportEvent('checkout_initiated', username, { cart_total: finalPayable });
+    await logSupportEvent('checkout_initiated', creatorId, { cart_total: finalPayable });
     const options = {
       key: "rzp_test_RtgvVK9ZMU6pKm", 
       amount: amountInPaise, 
@@ -144,7 +144,7 @@ export default function CartPage() {
       theme: { color: "#6366f1" },
       modal: {
         ondismiss: () => {
-          logSupportEvent('payment_modal_closed', username, { reason: 'User cancelled' });
+          logSupportEvent('payment_modal_closed', creatorId, { reason: 'User cancelled' });
         }
       }
 
