@@ -1,0 +1,175 @@
+[1mdiff --git a/src/components/ManageGifts.jsx b/src/components/ManageGifts.jsx[m
+[1mindex cb59639..6c5f74b 100644[m
+[1m--- a/src/components/ManageGifts.jsx[m
+[1m+++ b/src/components/ManageGifts.jsx[m
+[36m@@ -41,96 +41,50 @@[m [mexport default function ManageGifts() {[m
+     }[m
+   };[m
+ [m
+[31m-  const handleReallocate = async (order) => {[m
+[32m+[m[32m const handleReallocate = async (order) => {[m
+     const confirm = window.confirm("Move this fund to your next priority item?");[m
+     if (!confirm) return;[m
+ [m
+     setLoading(true);[m
+     try {[m
+[31m-      const amount = parseFloat(order.total_amount);[m
+[31m-      const currency = order.currency_code || 'INR';[m
+[31m-      const oldItemId = order.items?.[0]?.item_id || null;[m
+[31m-[m
+[31m-      // 1. Fetch active items[m
+[31m-      const { data: candidates } = await supabase[m
+[31m-        .from('wishlist_items')[m
+[31m-        .select('*')[m
+[31m-        .eq('creator_id', order.creator_id)[m
+[31m-        .eq('status', 'active')[m
+[31m-        .order('priority_level', { ascending: true });[m
+[31m-[m
+[31m-      // 2. Target Finder (Skip fully funded)[m
+[31m-      let targetItem = candidates?.find(item => {[m
+[31m-        const totalGoal = parseFloat(item.price || 0) * parseInt(item.quantity || 1);[m
+[31m-        const raised = parseFloat(item.amount_raised || 0);[m
+[31m-        return item.id !== oldItemId && !item.is_general_fund && raised < totalGoal;[m
+[31m-      });[m
+[31m-[m
+[31m-      if (!targetItem) {[m
+[31m-        targetItem = candidates?.find(item => item.is_general_fund === true);[m
+[31m-      }[m
+[31m-[m
+[31m-      // 3. AUTO-CREATE with initial balance included[m
+[31m-      if (!targetItem) {[m
+[31m-        console.log("Creating new General Support Fund with amount:", amount);[m
+[31m-        const { data: newFund, error: createError } = await supabase[m
+[31m-          .from('wishlist_items')[m
+[31m-          .insert([{[m
+[31m-            creator_id: order.creator_id,[m
+[31m-            title: "General Support Fund",[m
+[31m-            price: 0,[m
+[31m-            quantity: 1,[m
+[31m-            url: "https://wishpeti.com/general-fund",[m
+[31m-            is_general_fund: true,[m
+[31m-            status: 'active',[m
+[31m-            amount_raised: amount // <-- SETTING BALANCE HERE[m
+[31m-          }])[m
+[31m-          .select()[m
+[31m-          .single();[m
+[31m-        [m
+[31m-        if (createError) {[m
+[31m-          console.error("Insert Error:", createError);[m
+[31m-          throw createError;[m
+[31m-        }[m
+[31m-        targetItem = newFund;[m
+[31m-      } else {[m
+[31m-        // 4. If it already existed, use the RPC to add the money[m
+[31m-        const { error: rpcError } = await supabase.rpc('increment_item_raised', { [m
+[31m-          row_id: targetItem.id, [m
+[31m-          amount_to_add: amount [m
+[31m-        });[m
+[31m-        if (rpcError) {[m
+[31m-          console.error("RPC Error:", rpcError);[m
+[31m-          throw rpcError;[m
+[31m-        }[m
+[31m-      }[m
+[31m-[m
+[31m-      // Decrement the old item (Backpack) if it exists[m
+[31m-      if (oldItemId) {[m
+[31m-        await supabase.rpc('decrement_item_raised', { [m
+[31m-          row_id: oldItemId, [m
+[31m-          amount_to_subtract: amount [m
+[32m+[m[32m        // 1. Get the current amount in the system (INR is our base)[m
+[32m+[m[32m        const rawAmount = Number(order.total_amount);[m
+[32m+[m[32m        let rate = Number(order.exchange_rate_at_payment || 1);[m
+[32m+[m[32m        if (rate > 0 && rate < 1) rate = 1 / rate; // Fix flipped rates[m
+[32m+[m
+[32m+[m[32m        const inINR = order.currency_code === 'INR' ? rawAmount : (rawAmount * rate);[m
+[32m+[m
+[32m+[m[32m        // 2. Use a specialized RPC to handle the move[m[41m [m
+[32m+[m[32m        // We'll call 'process_surprise_payment' because it's ALREADY[m[41m [m
+[32m+[m[32m        // programmed to find the next best item and fill it.[m
+[32m+[m[32m        const { data, error: rpcError } = await supabase.rpc('process_surprise_payment', {[m[41m [m
+[32m+[m[32m            target_creator_id: order.creator_id,[m[41m [m
+[32m+[m[32m            total_amount: inINR[m[41m [m
+         });[m
+[31m-      }[m
+ [m
+[31m-      await supabase.rpc('increment_item_raised', { row_id: targetItem.id, amount_to_add: amount });[m
+[32m+[m[32m        if (rpcError) throw rpcError;[m
+ [m
+[31m-      // 5. Finalize Order[m
+[31m-      await supabase.from('orders').update({[m
+[31m-        items: [{ item_id: targetItem.id, title: targetItem.title, amount, currency }],[m
+[31m-        is_crowdfund_master: false,[m
+[31m-        gift_status: 'accepted'[m
+[31m-      }).eq('id', order.id);[m
+[32m+[m[32m        // 3. Update the Order record so it's no longer a "Master/Surprise"[m[41m [m
+[32m+[m[32m        // and reflects it's been processed.[m
+[32m+[m[32m        const { error: updateOrderError } = await supabase[m
+[32m+[m[32m            .from('orders')[m
+[32m+[m[32m            .update({[m
+[32m+[m[32m                is_crowdfund_master: false, // It's now been "poured" into specific items[m
+[32m+[m[32m                gift_status: 'accepted'[m
+[32m+[m[32m            })[m
+[32m+[m[32m            .eq('id', order.id);[m
+ [m
+[31m-      showToast(`Funds moved to ${targetItem.title}`);[m
+[31m-      fetchGifts();[m
+[32m+[m[32m        if (updateOrderError) throw updateOrderError;[m
+[32m+[m
+[32m+[m[32m        showToast(`Funds successfully redistributed!`);[m
+[32m+[m[32m        fetchGifts();[m
+     } catch (err) {[m
+[31m-      console.error("Reallocation Error:", err);[m
+[31m-      showToast(`Failed: ${err.message}`, "error");[m
+[32m+[m[32m        console.error("Reallocation Error:", err);[m
+[32m+[m[32m        showToast("Reallocation failed", "error");[m
+     } finally {[m
+[31m-      setLoading(false);[m
+[32m+[m[32m        setLoading(true); // fetchGifts will set it back to false[m
+     }[m
+[31m-  };[m
+[32m+[m[32m };[m
+ [m
+   const getStatusStyle = (status) => {[m
+     switch (status) {[m
+[1mdiff --git a/src/components/wishlist/WishlistItemCard.jsx b/src/components/wishlist/WishlistItemCard.jsx[m
+[1mindex f562079..db125e9 100644[m
+[1m--- a/src/components/wishlist/WishlistItemCard.jsx[m
+[1m+++ b/src/components/wishlist/WishlistItemCard.jsx[m
+[36m@@ -1,189 +1,202 @@[m
+[31m-import React, { useState } from 'react';[m
+[31m-import { ShoppingBag, Trash2, ExternalLink, Share2, Edit3, Lock, Star, ArrowUp, CheckCircle, X } from 'lucide-react';[m
+[32m+[m[32mimport React, { useState, useEffect } from 'react';[m
+[32m+[m[32mimport {[m[41m [m
+[32m+[m[32m  ShoppingBag, Trash2, ExternalLink, Share2,[m[41m [m
+[32m+[m[32m  Edit3, Lock, Star, ArrowUp, CheckCircle, X[m[41m [m
+[32m+[m[32m} from 'lucide-react';[m
+[32m+[m[32mimport { useNavigate } from 'react-router-dom';[m
+ import { formatPrice } from '../../utils/currency';[m
+ import { supabase } from '../../services/supabaseClient';[m
+ import SpotlightPortal from '../ui/SpotlightPortal';[m
+ [m
+ // --- SUB-COMPONENT: CARD CONTENT ---[m
+[31m-// Defined outside to prevent re-mounting issues during Spotlight toggle[m
+ const CardInnerContent = ({ [m
+[31m-  item, [m
+[31m-  isOwner, [m
+[31m-  isClaimed, [m
+[31m-  isCrowdfund, [m
+[31m-  displayImage, [m
+[31m-  currentPriority, [m
+[31m-  displayMainPrice, [m
+[31m-  qty, [m
+[31m-  isFullyFunded, [m
+[31m-  clampedPercentage, [m
+[31m-  displayRaised, [m
+[31m-  onEdit, [m
+[31m-  handleShare, [m
+[31m-  isLocked, [m
+[31m-  onDelete, [m
+[31m-  handlePriorityChange,[m
+[31m-  onAddToCart,[m
+[31m-  priorities,[m
+[31m-  username[m
+[31m-}) => ([m
+[31m-  <div className={`unified-wishlist-card ${isCrowdfund ? 'crowdfund-style' : ''} ${isClaimed ? 'item-claimed' : ''}`} style={{ background: 'white', height: '100%', borderRadius: '24px', overflow: 'hidden' }}>[m
+[31m-    <div className="card-media-box" style={{ positi
