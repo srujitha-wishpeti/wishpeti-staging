@@ -175,8 +175,9 @@ export default function CartPage() {
                 .from('orders')
                 .insert([{
                     razorpay_payment_id: response.razorpay_payment_id,
-                    buyer_name: displayName,
+                    buyer_name: senderName,
                     buyer_email: senderEmail,
+                    buyer_anonymous: isAnonymous,
                     creator_id: item.recipient_id || item.creator_id,
                     item_id: isSurprise? null : item.id, // Link to the specific item
                     total_amount: itemPrice, 

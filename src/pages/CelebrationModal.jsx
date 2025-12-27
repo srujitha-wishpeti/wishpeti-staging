@@ -7,10 +7,7 @@ export default function CelebrationModal({ item, username, onClose }) {
   const cardRef = useRef(null);
   
   // 1. Clean up the sender name logic
-  const isAnonymous = !item.sender || 
-                     item.sender.toLowerCase() === 'anonymous' || 
-                     item.sender.trim() === '';
-
+  const isAnonymous = item.buyer_anonymous;
   const senderDisplay = isAnonymous ? null : item.sender;
 
   useEffect(() => {
