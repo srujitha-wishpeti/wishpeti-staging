@@ -15,6 +15,7 @@ import SuccessPage from '../pages/SuccessPage'
 import AdminFulfillment from '../pages/AdminFulfillment'
 import ScrollToTop from "../components/ScrollToTop";
 import ItemDetailView from '../pages/ItemDetailView';
+import CookieBanner from '../components/CookieBanner';
 
 export default function AppRoutes() {
   const { session, loading } = useAuth();
@@ -24,6 +25,7 @@ export default function AppRoutes() {
 
   return (
     <>
+    <CookieBanner />
     <ScrollToTop />
     <Routes>
       {/* AUTH LOGIC */}
