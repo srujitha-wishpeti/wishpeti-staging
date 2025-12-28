@@ -339,16 +339,15 @@ const totalGiftValue = wishlist.reduce((acc, item) => {
         return;
     }
     
-    let finalPrice;
+    let itemWithCurrency;
     
     if (item.is_surprise) {
         // Surprise gifts are already in the correct currency format
-        finalPrice = item.price; 
+        itemWithCurrency = { ...item, price: parseFloat(item.price), added_currency: currency.code, added_rate: currency.rate };
     } else {
         // Standard items from DB are in INR, so convert them
-        finalPrice = currency.code === 'INR' ? item.price : (item.price * currency.rate).toFixed(2);
+        itemWithCurrency = { ...item, price: parseFloat(item.price), added_currency: item.currency_code, added_rate: item.currentRate };
     }
-    const itemWithCurrency = { ...item, price: parseFloat(finalPrice), added_currency: currency.code, added_rate: currency.rate };
     
     localStorage.setItem('wishlist_cart', JSON.stringify([...existingCart, itemWithCurrency]));
     window.dispatchEvent(new Event('cartUpdated'));

@@ -5,7 +5,7 @@ import { supabase } from '../services/supabaseClient';
 import './CartPage.css';
 import { useToast } from '../context/ToastContext';
 import { useCurrency } from '../context/CurrencyContext';
-import { getCurrencyPreference } from '../utils/currency';
+import { getCurrencyPreference, getCurrencySymbol } from '../utils/currency';
 import {logSupportEvent} from '../utils/supportLogger';
 
 export default function CartPage() {
@@ -17,7 +17,7 @@ export default function CartPage() {
   const [giftMessage, setGiftMessage] = useState('');
   const showToast = useToast();
   const [isAnonymous, setIsAnonymous] = useState(false); // New state
-  const { currency, updateCurrency, loading: currencyLoading } = useCurrency();
+  const { currency, updateCurrency, loading: currencyLoading, formatPrice } = useCurrency();
 
   const loadCart = () => {
     const savedCart = JSON.parse(localStorage.getItem('wishlist_cart') || '[]');
@@ -88,12 +88,14 @@ export default function CartPage() {
   };
 
   const getNormalizedPrice = (item) => {
+
     const savedPrice = parseFloat(item.price) || 0;
     const savedCurrency = item.added_currency || 'INR';
     
     // FIX 2: THE GOLDEN RULE
     // If viewing currency matches how it was added (USD -> USD), skip math.
     if (savedCurrency === currency.code) {
+      console.log('same currency');
       return savedPrice;
     }
 
@@ -114,15 +116,6 @@ export default function CartPage() {
   };
 
   const finalPayable = calculateTotal();
-
-  const formatPrice = (amount) => {
-    if (currencyLoading) return "...";
-    return new Intl.NumberFormat(currency.code === 'INR' ? 'en-IN' : 'en-US', {
-      style: 'currency',
-      currency: currency.code || 'INR',
-      maximumFractionDigits: currency.code === 'INR' ? 0 : 2
-    }).format(amount || 0);
-  };
 
   const isFormIncomplete = !senderName.trim() || !senderEmail.trim() || !senderEmail.includes('@');
 
@@ -199,10 +192,10 @@ export default function CartPage() {
                     buyer_anonymous: isAnonymous,
                     creator_id: item.recipient_id || item.creator_id,
                     item_id: isSurprise? null : item.id, // Link to the specific item
-                    total_amount: itemPrice, 
-                    currency_code: currency.code,
+                    total_amount: item.price, 
+                    currency_code: item.is_surprise ? currency.code : 'INR',
                     payment_status: 'paid',
-                    exchange_rate_at_payment: rate,
+                    exchange_rate_at_payment: isSurprise? currency.rate : 1,
                     gift_status: 'pending',
                     is_surprise: isSurprise,
                     surprise_amount_in_inr: isSurprise ? itemInINR : 0
@@ -229,7 +222,7 @@ export default function CartPage() {
               order_id: firstOrderId, 
               provider_payment_id: response.razorpay_payment_id,
               amount_inr: finalPayable, // The total amount paid in the cart
-              currency_code: currency.code,
+              currency_code: 'INR',
               type: 'gift_payment',
               status: 'success',
               currency_rate: currency.rate
@@ -302,7 +295,7 @@ export default function CartPage() {
                   <div className="item-details">
                     <h4>{item.title}</h4>
                     <p>Recipient: <span>{item.recipient_name || 'Creator'}</span></p>
-                    <span className="price-tag">{formatPrice(getNormalizedPrice(item))}</span>
+                    <span className="price-tag">{getCurrencySymbol(currency.code)+getNormalizedPrice(item).toFixed(2)}</span>
                   </div>
                   <button onClick={() => removeItem(index)} className="item-remove-icon">
                     <Trash2 size={18} />
@@ -359,7 +352,7 @@ export default function CartPage() {
             <div className="price-breakdown">
               <div className="price-row grand-total">
                 <span>Gift Total</span>
-                <span>{formatPrice(finalPayable)}</span>
+                <span>{getCurrencySymbol(currency.code)+finalPayable.toFixed(2)}</span>
               </div>
               <div className="price-row shipping">
                 <span>Shipping & Delivery</span>
@@ -377,7 +370,7 @@ export default function CartPage() {
               disabled={isFormIncomplete || loading || cartItems.length === 0}
             >
               <CreditCard size={18} /> 
-              {loading ? 'Processing...' : `Pay ${formatPrice(finalPayable)}`}
+              {loading ? 'Processing...' : `Pay ${getCurrencySymbol(currency.code)+finalPayable.toFixed(2)}`}
             </button>
 
             <div className="security-badges">

@@ -4,6 +4,7 @@ import { Package, Truck, CheckCircle, ExternalLink, Users } from 'lucide-react';
 import { useToast } from '../context/ToastContext';
 import CelebrationModal from '../pages/CelebrationModal';
 import { useParams } from 'react-router-dom';
+import { CurrencyContext, useCurrency } from '../context/CurrencyContext';
 
 export default function ManageGifts() {
   const [gifts, setGifts] = useState([]);
@@ -17,7 +18,8 @@ export default function ManageGifts() {
   const [showCelebration, setShowCelebration] = useState(false);
   const [celebrationItem, setCelebrationItem] = useState(null);
   const [username, setUsername] = useState('');
-  
+  const {formatPrice} = useCurrency();
+
   const handleSavePayout = async () => {
       try {
           const { data: { user } } = await supabase.auth.getUser();
@@ -376,11 +378,7 @@ export default function ManageGifts() {
                 
                 <div style={{ textAlign: 'right', marginLeft: '24px' }}>
                   <div style={{ fontWeight: '800', color: '#1e293b', fontSize: '20px', marginBottom: '8px' }}>
-                    {new Intl.NumberFormat(gift.currency_code === 'INR' ? 'en-IN' : 'en-US', {
-                        style: 'currency',
-                        currency: gift.currency_code || 'INR',
-                        maximumFractionDigits: gift.currency_code === 'INR' ? 0 : 2
-                    }).format(gift.total_amount)}
+                    {( gift.is_surprise? formatPrice(gift.surprise_amount_in_inr.toFixed(2)) : (formatPrice(gift.total_amount.toFixed(2), gift.currency_code, gift.exchange_rate_at_payment)))}
                   </div>
                   
                   {/* BUTTON LOGIC: Hide Accept/Reject if it's a Crowdfund */}

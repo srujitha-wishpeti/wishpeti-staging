@@ -64,25 +64,9 @@ export default function ItemDetailView() {
         return;
     }
 
-    let finalPrice;
+    let itemWithCurrency = { ...item, price: parseFloat(item.price), added_currency: item.currency_code, added_rate: item.currentRate };
     
-    if (item.is_surprise) {
-        // Surprise gifts are already in the correct currency format
-        finalPrice = item.price; 
-    } else {
-        // Standard items from DB are in INR, so convert them
-        finalPrice = currency.code === 'INR' ? item.price : (item.price * currency.rate).toFixed(2);
-    }
-
-    const cartItem = {
-        ...item,
-        price: finalPrice, // DB price is already INR
-        added_currency: currency.Code,
-        added_rate: currency.rate,
-        quantity: 1
-    };
-    
-    localStorage.setItem(cartKey, JSON.stringify([...existingCart, cartItem]));
+    localStorage.setItem(cartKey, JSON.stringify([...existingCart, itemWithCurrency]));
     window.dispatchEvent(new Event('cartUpdated')); // Sync navbar count
     showToast("Added to basket! 🎁");
     navigate('/cart');
