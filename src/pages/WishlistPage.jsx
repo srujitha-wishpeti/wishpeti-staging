@@ -238,9 +238,9 @@ const nearestItem = getNearestGoal();
             // Now fetch items for this specific profile with paging
             await fetchPaginatedItems(profileData.id, isInitial);
         } else {
-            setProfile(null);
             setLoading(false);
-            navigate('/notfound/404', { replace: true });
+            setProfile(null);
+            navigate('/404', { replace: true });
             return;
         }
     } catch (err) {

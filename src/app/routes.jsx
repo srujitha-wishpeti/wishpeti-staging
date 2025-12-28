@@ -42,6 +42,7 @@ export default function AppRoutes() {
           </RequireAuth>
         } 
       />
+      <Route path="/404" element={<NotFoundPage />} />
       
       {/* PUBLIC GIFTING FLOW */}
       <Route path="/:username/item/:itemId" element={<ItemDetailView />} />
