@@ -122,8 +122,7 @@ export default function OnBoarding() {
             city: formData.city,
             state: formData.state,
             postal_code: formData.postal_code,
-            country: formData.country,
-            onboarding_complete: true // Mark as finished
+            country: formData.country
         });
 
         if (error) throw error;
