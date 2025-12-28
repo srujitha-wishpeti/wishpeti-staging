@@ -512,7 +512,7 @@ const totalGiftValue = wishlist.reduce((acc, item) => {
                         <div style={{ display: 'flex', gap: '16px', fontSize: '13px', fontWeight: '600', color: '#64748b' }}>
                             <span>{wishlist.length} items</span>
                             <span>•</span>
-                            <span>{getCurrencySymbol(currency.code)}{(wishlist.reduce((acc, item) => acc + (parseFloat(item.price) || 0), 0) * currency.rate).toLocaleString()}</span>
+                            <span>{getCurrencySymbol(currency.code)}{(wishlist.reduce((acc, item) => acc + (parseFloat(item.price) || 0), 0) * currency.rate).toFixed(2)}</span>
                         </div>
                     </div>
 
