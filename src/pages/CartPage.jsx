@@ -17,7 +17,7 @@ export default function CartPage() {
   const [giftMessage, setGiftMessage] = useState('');
   const showToast = useToast();
   const [isAnonymous, setIsAnonymous] = useState(false); // New state
-  const { currency, updateCurrency, loading: currencyLoading, formatPrice } = useCurrency();
+  const { currency, updateCurrency, loading: currencyLoading } = useCurrency();
 
   const loadCart = () => {
     const savedCart = JSON.parse(localStorage.getItem('wishlist_cart') || '[]');
@@ -105,6 +105,15 @@ export default function CartPage() {
   };
 
   const finalPayable = calculateTotal();
+
+  const formatPrice = (amount) => {
+    if (currencyLoading) return "...";
+    return new Intl.NumberFormat(currency.code === 'INR' ? 'en-IN' : 'en-US', {
+      style: 'currency',
+      currency: currency.code || 'INR',
+      maximumFractionDigits: currency.code === 'INR' ? 0 : 2
+    }).format(amount || 0);
+  };
 
   const isFormIncomplete = !senderName.trim() || !senderEmail.trim() || !senderEmail.includes('@');
 
