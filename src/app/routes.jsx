@@ -71,7 +71,7 @@ export default function AppRoutes() {
         element={
           <RequireAuth>
             <CheckProfileCompletion>
-              <WishlistPage />
+              <WishlistPage /> 
             </CheckProfileCompletion>
           </RequireAuth>
         }

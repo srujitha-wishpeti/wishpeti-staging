@@ -534,7 +534,7 @@ const totalGiftValue = wishlist.reduce((acc, item) => {
                                         <div style={{ flex: 1, minWidth: 0 }}>
                                             <div style={{ fontSize: '14px', fontWeight: '700', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{nearestItem.title}</div>
                                             <div style={{ fontSize: '12px', color: '#6366f1', fontWeight: '800' }}>
-                                                Only {getCurrencySymbol(currency.code)}{(( (parseFloat(nearestItem.price) - (nearestItem.amount_raised || 0)) * currency.rate).toLocaleString())} left!
+                                                Only {getCurrencySymbol(currency.code)}{(( (parseFloat(nearestItem.price) - (nearestItem.amount_raised || 0)) * currency.rate).toFixed(2))} left!
                                             </div>
                                         </div>
                                     </div>
