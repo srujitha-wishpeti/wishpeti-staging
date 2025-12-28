@@ -157,13 +157,12 @@ export default function CartPage() {
           showToast("Payment cancelled. Your cart is still saved!", "info");
           logSupportEvent('payment_modal_closed', creatorId, { reason: 'User cancelled' });
         }
-      },
-      theme: { color: "#6366f1" }
+      }
 
     };
 
     const rzp = new window.Razorpay(options);
-    
+
     // ADD THIS LISTENER for specific payment failures (e.g. declined cards)
     rzp.on('payment.failed', function (response) {
       setLoading(false);

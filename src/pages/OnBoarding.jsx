@@ -5,13 +5,14 @@ import { useAuth } from '../auth/AuthProvider';
 import { useToast } from '../context/ToastContext';
 import AvatarUpload from '../pages/AvatarUpload';
 import BannerUpload from '../pages/BannerUpload';
+import { ShieldCheck, Lock, MapPin, CheckCircle } from 'lucide-react'; // Added icons
 
 export default function OnBoarding() {
   const { session, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [fetching, setFetching] = useState(true);
-  const [isExistingUser, setIsExistingUser] = useState(false); // 🔑 Track if username is already in DB
+  const [isExistingUser, setIsExistingUser] = useState(false);
   const showToast = useToast();
 
   const [formData, setFormData] = useState({
@@ -26,19 +27,26 @@ export default function OnBoarding() {
     state: '',
     postal_code: '',
     country: 'India',
+    phone: '',
+    country_code: '+91', // Default to India
   });
-
-  // 🔑 FIX: Fetch existing data using maybeSingle() to avoid 406 errors
+  
+  // 2. Define common country codes
+  const countryCodes = [
+    { code: '+91', label: '🇮🇳 +91' },
+    { code: '+1', label: '🇺🇸 +1' },
+    { code: '+44', label: '🇬🇧 +44' },
+    { code: '+971', label: '🇦🇪 +971' },
+  ];
   useEffect(() => {
     const fetchProfile = async () => {
       if (!session?.user?.id) return;
-
       try {
         const { data, error } = await supabase
           .from('creator_profiles')
           .select('*')
           .eq('id', session.user.id)
-          .maybeSingle(); // Returns null instead of 406 error if row doesn't exist
+          .maybeSingle();
 
         if (error) throw error;
 
@@ -57,7 +65,6 @@ export default function OnBoarding() {
             country: data.country || 'India',
           });
 
-          // 🔑 Only lock the input if they have a real username saved
           if (data.username && data.username.trim() !== "") {
             setIsExistingUser(true);
           }
@@ -77,6 +84,7 @@ export default function OnBoarding() {
   }, [session, authLoading]);
 
   const [usernameError, setUsernameError] = useState('');
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -85,24 +93,21 @@ export default function OnBoarding() {
     try {
         const cleanUsername = formData.username.toLowerCase().trim();
 
-        // 1. 🔑 PRE-CHECK: Is this username taken by SOMEONE ELSE?
-        // We check if the username exists AND the ID is not ours.
         if (!isExistingUser) {
             const { data: taken } = await supabase
             .from('creator_profiles')
             .select('username')
             .eq('username', cleanUsername)
-            .not('id', 'eq', session.user.id) // Exclude ourselves
+            .not('id', 'eq', session.user.id)
             .maybeSingle();
 
             if (taken) {
-            alert("This username is already taken by another creator. Please pick a different one.");
-            setLoading(false);
-            return;
+                alert("This username is already taken. Please pick another.");
+                setLoading(false);
+                return;
             }
         }
 
-        // 2. If free, proceed with Upsert
         const { error } = await supabase
         .from('creator_profiles')
         .upsert({
@@ -118,17 +123,14 @@ export default function OnBoarding() {
             state: formData.state,
             postal_code: formData.postal_code,
             country: formData.country,
+            onboarding_complete: true // Mark as finished
         });
 
         if (error) throw error;
+        showToast("Profile secured! Welcome to WishPeti 🚀");
         navigate('/dashboard');
     } catch (err) {
-        // 🔑 Better error messaging for the user
-        if (err.message.includes("unique_username") || err.message.includes("creator_profiles_username_key")) {
-            alert("That username is already taken. Please try another.");
-        } else {
-            alert("Error saving profile: " + err.message);
-        }
+        alert("Error saving profile: " + err.message);
     } finally {
         setLoading(false);
     }
@@ -151,13 +153,14 @@ export default function OnBoarding() {
             city: postOffice.District,
             state: postOffice.State
             }));
-            showToast("City & State detected! ✨");
+            showToast("Location detected! ✨");
         }
         } catch (err) {
-        console.error("Pincode lookup failed");
+            console.error("Pincode lookup failed");
         }
     }
   };
+
   const handleDeleteAccount = async () => {
     const confirm = window.confirm("This will PERMANENTLY delete your account. Continue?");
     if (confirm) {
@@ -166,7 +169,6 @@ export default function OnBoarding() {
         const { error } = await supabase.rpc('delete_user_full_account');
         if (error) throw error;
         await supabase.auth.signOut();
-        localStorage.clear();
         navigate('/');
       } catch (err) {
         alert("Error: " + err.message);
@@ -177,16 +179,18 @@ export default function OnBoarding() {
   };
 
   if (authLoading || fetching) {
-    return <div style={{ marginTop: '120px', textAlign: 'center' }}>Loading profile details...</div>;
+    return <div style={{ marginTop: '120px', textAlign: 'center' }}>Loading your profile...</div>;
   }
 
   return (
     <div className="onboarding-container" style={containerStyle}>
       <div style={cardStyle}>
-        <h2 style={{ marginBottom: '8px' }}>✨ Update Your Profile</h2>
-        <p style={{ color: '#666', marginBottom: '24px', fontSize: '0.95rem' }}>
-          Update your identity and shipping details.
-        </p>
+        <div style={{ textAlign: 'center', marginBottom: '24px' }}>
+            <h2 style={{ marginBottom: '8px', fontSize: '1.8rem' }}>Setup Your Profile</h2>
+            <p style={{ color: '#64748b', fontSize: '0.95rem' }}>
+              Finalize your identity to start receiving gifts from fans.
+            </p>
+        </div>
 
         <BannerUpload 
             url={formData.banner_url} 
@@ -197,7 +201,9 @@ export default function OnBoarding() {
             url={formData.avatar_url} 
             onUpload={(url) => setFormData({ ...formData, avatar_url: url })} 
         />
+
         <form onSubmit={handleSubmit}>
+          {/* PROFILE SECTION */}
           <label style={labelStyle}>Public Display Name</label>
           <input
             type="text"
@@ -209,70 +215,107 @@ export default function OnBoarding() {
           />
 
           <label style={labelStyle}>Wishlist Username</label>
-          <div style={{ position: 'relative' }}>
-            <span style={{ position: 'absolute', left: '12px', top: '12px', color: '#999' }}>@</span>
+          <div style={{ position: 'relative', marginBottom: '15px' }}>
+            <span style={{ position: 'absolute', left: '12px', top: '12px', color: '#94a3b8' }}>@</span>
             <input
                 disabled={isExistingUser}
                 type="text"
                 value={formData.username}
                 onChange={(e) => {
-                    setUsernameError(''); // Clear error while they type
+                    setUsernameError('');
                     setFormData({ ...formData, username: e.target.value.toLowerCase().replace(/\s/g, '') });
                 }}
                 style={{ 
                     ...inputStyle, 
                     paddingLeft: '30px', 
-                    borderColor: usernameError ? '#dc2626' : '#ddd',
-                    backgroundColor: isExistingUser ? '#f9fafb' : 'white'
+                    marginBottom: '0',
+                    backgroundColor: isExistingUser ? '#f8fafc' : 'white'
                 }}
             />
-            </div>
-            {usernameError && (
-            <p style={{ color: '#dc2626', fontSize: '0.8rem', marginTop: '-10px', marginBottom: '15px' }}>
-                ⚠️ {usernameError}
-            </p>
-          )}
+          </div>
           {isExistingUser && (
-            <p style={{ fontSize: '0.75rem', color: '#9ca3af', marginTop: '-10px', marginBottom: '15px' }}>
-              Username is locked to protect your public link.
+            <p style={{ fontSize: '0.75rem', color: '#94a3b8', marginTop: '4px', marginBottom: '15px' }}>
+              Username is locked to keep your public links active.
             </p>
           )}
-          <div className="form-group">
-            <label style={labelStyle}>About You (Bio)</label>
-            <textarea
-                placeholder="Tell your fans a little bit about yourself or why you're collecting gifts..."
-                /*  FIX: Use formData.bio instead of bio */
-                value={formData.bio} 
-                /* FIX: Use setFormData to update the bio key */
-                onChange={(e) => setFormData({ ...formData, bio: e.target.value })} 
-                maxLength={160}
-                style={{
-                ...inputStyle,
-                height: '100px',
-                resize: 'none',
-                padding: '12px'
-                }}
-            />
-            <p style={{ fontSize: '0.75rem', textAlign: 'right', color: '#94a3b8' }}>
-                {/*FIX: Use formData.bio.length */}
-                {(formData.bio || '').length}/160
+
+          <label style={labelStyle}>Bio</label>
+          <textarea
+              placeholder="Tell fans about yourself..."
+              value={formData.bio} 
+              onChange={(e) => setFormData({ ...formData, bio: e.target.value })} 
+              maxLength={160}
+              style={{ ...inputStyle, height: '80px', resize: 'none' }}
+          />
+
+          <hr style={dividerStyle} />
+
+          {/* SHIPPING SECTION WITH PRIVACY FOCUS */}
+          <div style={privacyHeaderStyle}>
+             <ShieldCheck size={20} color="#10b981" />
+             <h3 style={{ fontSize: '1.1rem', margin: 0 }}>Private Shipping Address</h3>
+          </div>
+
+          <div style={privacyBannerStyle}>
+            <p style={{ margin: 0 }}>
+              <strong>🔒 Privacy Guaranteed:</strong> Fans only see your wishlist. Your real name and address are strictly used for delivery coordination.
             </p>
           </div>
-          <hr style={dividerStyle} />
-          <h3 style={{ fontSize: '1rem', marginBottom: '15px' }}>🚚 Private Shipping Details</h3>
 
+          {/* 🔑 PHONE NUMBER FIRST */}
+          <label style={labelStyle}>Contact Number (Required for Courier)</label>
+          <div style={{ 
+            display: 'flex', 
+            flexDirection: 'row', // Explicitly force row
+            gap: '10px', 
+            marginBottom: '18px',
+            width: '100%' 
+          }}>
+            <select 
+              value={formData.country_code} 
+              onChange={e => setFormData({...formData, country_code: e.target.value})}
+              style={{ 
+                ...inputStyle, 
+                width: '120px',      // Fixed width
+                minWidth: '120px',   // Force it not to grow
+                flex: '0 0 120px',   // Don't grow, don't shrink, stay at 120px
+                marginBottom: 0,
+                padding: '12px 4px'
+              }}
+            >
+              {countryCodes.map(c => <option key={c.code} value={c.code}>{c.label}</option>)}
+            </select>
+
+            <input 
+              type="tel" 
+              placeholder="10-digit mobile number" 
+              required 
+              value={formData.phone} 
+              onChange={e => setFormData({...formData, phone: e.target.value.replace(/\D/g, '')})} 
+              style={{ 
+                ...inputStyle, 
+                flex: '1',           // This will take the rest of the 100% width
+                minWidth: '0',       // Important for flex children to shrink/fit correctly
+                marginBottom: 0 
+              }} 
+            />
+          </div>
+
+
+          <label style={labelStyle}>Recipient Full Name</label>
           <input
             type="text"
-            placeholder="Real Full Name"
+            placeholder="Legal name for delivery"
             required
             value={formData.full_name}
             onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
             style={inputStyle}
           />
 
+          <label style={labelStyle}>Street Address</label>
           <input
             type="text"
-            placeholder="Street Address"
+            placeholder="House No, Building, Street"
             required
             value={formData.address_line1}
             onChange={(e) => setFormData({ ...formData, address_line1: e.target.value })}
@@ -280,60 +323,63 @@ export default function OnBoarding() {
           />
 
           <div style={{ display: 'flex', gap: '10px' }}>
-            <input
-              type="text"
-              placeholder="City"
-              required
-              value={formData.city}
-              onChange={(e) => setFormData({ ...formData, city: e.target.value })}
-              style={inputStyle}
-            />
-            <input
-              type="text"
-              placeholder="State"
-              required
-              value={formData.state}
-              onChange={(e) => setFormData({ ...formData, state: e.target.value })}
-              style={inputStyle}
-            />
+            <div style={{ flex: 1 }}>
+              <label style={labelStyle}>City</label>
+              <input
+                type="text"
+                required
+                value={formData.city}
+                onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+                style={inputStyle}
+              />
+            </div>
+            <div style={{ flex: 1 }}>
+              <label style={labelStyle}>State</label>
+              <input
+                type="text"
+                required
+                value={formData.state}
+                onChange={(e) => setFormData({ ...formData, state: e.target.value })}
+                style={inputStyle}
+              />
+            </div>
           </div>
 
           <div style={{ display: 'flex', gap: '10px' }}>
-            <input
-                type="text"
-                placeholder="Pincode (6 digits)"
+            <div style={{ flex: 1 }}>
+              <label style={labelStyle}>Pincode</label>
+              <input
+                  type="text"
+                  maxLength="6"
+                  required
+                  value={formData.postal_code}
+                  onChange={handlePincodeChange}
+                  style={inputStyle}
+              />
+            </div>
+            <div style={{ flex: 1 }}>
+              <label style={labelStyle}>Country</label>
+              <select
                 required
-                maxLength="6"
-                value={formData.postal_code}
-                onChange={handlePincodeChange}
+                value={formData.country}
+                onChange={(e) => setFormData({ ...formData, country: e.target.value })}
                 style={inputStyle}
-            />
-            <select
-              required
-              value={formData.country}
-              onChange={(e) => setFormData({ ...formData, country: e.target.value })}
-              style={inputStyle}
-            >
-              <option value="India">India</option>
-              <option value="USA">USA</option>
-              <option value="UK">UK</option>
-              <option value="Canada">Canada</option>
-              <option value="Other">Other</option>
-            </select>
+              >
+                <option value="India">India</option>
+                <option value="USA">USA</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
           </div>
 
           <button type="submit" disabled={loading} style={btnStyle}>
-            {loading ? 'Saving Changes...' : 'Update Profile ✅'}
+            {loading ? 'Securing Profile...' : 'Complete My Profile'}
           </button>
         </form>
 
         <div style={dangerZoneStyle}>
-          <h4 style={{ color: '#991b1b', margin: '0 0 8px 0', fontSize: '0.9rem' }}>Danger Zone</h4>
-          <p style={{ color: '#666', fontSize: '0.8rem', marginBottom: '12px', lineHeight: '1.4' }}>
-            Deleting your account will remove your public wishlist and shipping data.
-          </p>
           <button type="button" onClick={handleDeleteAccount} style={deleteBtnStyle}>
-            Delete Account
+            Delete My Account
           </button>
         </div>
       </div>
@@ -341,23 +387,23 @@ export default function OnBoarding() {
   );
 }
 
-// Keep your existing style constants below...
-const containerStyle = { paddingTop: '80px', paddingBottom: '50px', backgroundColor: '#f3f4f6', minHeight: '100vh' };
-const cardStyle = { maxWidth: '500px', margin: '0 auto', background: 'white', padding: '40px', borderRadius: '16px', boxShadow: '0 4px 20px rgba(0,0,0,0.08)' };
-const labelStyle = { display: 'block', fontSize: '0.85rem', fontWeight: '600', marginBottom: '5px', color: '#374151' };
+// STYLES
+const containerStyle = { paddingTop: '60px', paddingBottom: '80px', backgroundColor: '#f8fafc', minHeight: '100vh' };
+const cardStyle = { maxWidth: '540px', margin: '0 auto', background: 'white', padding: '32px', borderRadius: '24px', border: '1px solid #e2e8f0', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.05)' };
+const labelStyle = { display: 'block', fontSize: '0.85rem', fontWeight: '700', marginBottom: '6px', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.025em' };
 const inputStyle = { 
-  width: '100%', 
-  padding: '12px', 
-  marginBottom: '15px', 
-  borderRadius: '8px', 
-  border: '1px solid #ddd', 
-  boxSizing: 'border-box', 
-  fontSize: '16px', // 💡 IMPORTANT: 16px prevents iOS auto-zoom
-  backgroundColor: 'white', // 💡 Force white background
-  color: '#111827', // 💡 Explicitly set dark text color
-  WebkitTextFillColor: '#111827', // 💡 Specific fix for iOS
+  width: '100%', padding: '12px 16px', marginBottom: '18px', borderRadius: '12px', border: '1px solid #e2e8f0', 
+  boxSizing: 'border-box', fontSize: '16px', backgroundColor: '#fff', color: '#0f172a', transition: 'all 0.2s ease'
 };
-const btnStyle = { width: '100%', padding: '14px', background: '#4f46e5', color: 'white', border: 'none', borderRadius: '8px', fontWeight: '700', cursor: 'pointer', marginTop: '10px' };
-const dividerStyle = { margin: '24px 0', border: '0', borderTop: '1px solid #f3f4f6' };
-const dangerZoneStyle = { marginTop: '32px', padding: '20px', border: '1px solid #fee2e2', borderRadius: '12px', backgroundColor: '#fef2f2' };
-const deleteBtnStyle = { width: '100%', padding: '10px', background: 'white', color: '#dc2626', border: '1px solid #dc2626', borderRadius: '8px', fontWeight: '600', cursor: 'pointer', fontSize: '0.85rem' };
+const btnStyle = { 
+  width: '100%', padding: '16px', background: '#6366f1', color: 'white', border: 'none', borderRadius: '14px', 
+  fontWeight: '800', fontSize: '1rem', cursor: 'pointer', marginTop: '10px', boxShadow: '0 4px 12px rgba(99, 102, 241, 0.2)'
+};
+const dividerStyle = { margin: '32px 0', border: '0', borderTop: '1px solid #f1f5f9' };
+const privacyHeaderStyle = { display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' };
+const privacyBannerStyle = { 
+  backgroundColor: '#f0fdf4', padding: '14px', borderRadius: '12px', border: '1px solid #dcfce7', 
+  fontSize: '0.8rem', color: '#166534', marginBottom: '24px', lineHeight: '1.5' 
+};
+const dangerZoneStyle = { marginTop: '40px', paddingTop: '20px', borderTop: '1px solid #f1f5f9', textAlign: 'center' };
+const deleteBtnStyle = { background: 'none', color: '#94a3b8', border: 'none', fontSize: '0.8rem', textDecoration: 'underline', cursor: 'pointer' };
