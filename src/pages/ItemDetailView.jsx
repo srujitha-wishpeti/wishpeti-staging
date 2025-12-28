@@ -64,11 +64,21 @@ export default function ItemDetailView() {
         return;
     }
 
+    let finalPrice;
+    
+    if (item.is_surprise) {
+        // Surprise gifts are already in the correct currency format
+        finalPrice = item.price; 
+    } else {
+        // Standard items from DB are in INR, so convert them
+        finalPrice = currency.code === 'INR' ? item.price : (item.price * currency.rate).toFixed(2);
+    }
+
     const cartItem = {
         ...item,
-        price: parseFloat(item.price), // DB price is already INR
-        added_currency: item.currencyCode,
-        added_rate: item.rate,
+        price: finalPrice, // DB price is already INR
+        added_currency: currency.Code,
+        added_rate: currency.rate,
         quantity: 1
     };
     

@@ -347,7 +347,6 @@ const totalGiftValue = wishlist.reduce((acc, item) => {
     } else {
         // Standard items from DB are in INR, so convert them
         finalPrice = currency.code === 'INR' ? item.price : (item.price * currency.rate).toFixed(2);
-        console.log(currency.code);
     }
     const itemWithCurrency = { ...item, price: parseFloat(finalPrice), added_currency: currency.code, added_rate: currency.rate };
     
@@ -839,6 +838,7 @@ const totalGiftValue = wishlist.reduce((acc, item) => {
 }
 
 function RealtimeAlerts({ setMsg, setShow }) {
+  const showToast = useToast();
   useEffect(() => {
     const channel = supabase
       .channel('live-orders')
