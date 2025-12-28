@@ -24,6 +24,15 @@ export default function CartPage() {
     setCartItems(savedCart);
   };
 
+  const validateEmail = (email) => {
+    return String(email)
+      .toLowerCase()
+      .match(/^[^\s@]+@[^\s@]+\.[^\s@]+$/);
+  };
+  
+  const isEmailValid = validateEmail(senderEmail);
+  const isFormValid = senderName.trim().length > 0 && isEmailValid;
+
   useEffect(() => {
     loadCart();
   }, []);
@@ -145,13 +154,22 @@ export default function CartPage() {
       theme: { color: "#6366f1" },
       modal: {
         ondismiss: () => {
+          showToast("Payment cancelled. Your cart is still saved!", "info");
           logSupportEvent('payment_modal_closed', creatorId, { reason: 'User cancelled' });
         }
-      }
+      },
+      theme: { color: "#6366f1" }
 
     };
 
     const rzp = new window.Razorpay(options);
+    
+    // ADD THIS LISTENER for specific payment failures (e.g. declined cards)
+    rzp.on('payment.failed', function (response) {
+      setLoading(false);
+      showToast(`Payment failed: ${response.error.description}`, "error");
+    });
+
     rzp.open();
   };
 
@@ -313,7 +331,13 @@ export default function CartPage() {
                 placeholder="Email Address (For receipt)" 
                 value={senderEmail}
                 onChange={(e) => setSenderEmail(e.target.value)}
+                style={!isEmailValid && senderEmail ? { borderColor: '#ef4444' } : {}}
               />
+              {!isEmailValid && senderEmail && (
+                <span style={{ color: '#ef4444', fontSize: '11px', marginTop: '-8px' }}>
+                  Please enter a valid email address
+                </span>
+              )}
             </div>
 
             <textarea 

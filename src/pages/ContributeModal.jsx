@@ -22,6 +22,9 @@ export default function ContributeModal({ item, onClose, onSuccess, isOwner }) {
   const symbol = getCurrencySymbol(currency.code);
   const rate = currency?.rate || 1;
 
+  const isEmailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(buyerEmail);
+  
+
   // --- LOGIC: UNIT PRICE * QUANTITY ---
   const unitPrice = item.price || 0;
   const quantity = item.quantity || 1;
@@ -113,6 +116,12 @@ export default function ContributeModal({ item, onClose, onSuccess, isOwner }) {
       };
 
       const rzp = new window.Razorpay(options);
+
+      rzp.on('payment.failed', function (response) {
+        setLoading(false);
+        alert("Payment failed: " + response.error.description);
+      });
+
       rzp.open();
     } catch (err) {
       alert("Payment error: " + err.message);
@@ -291,12 +300,15 @@ export default function ContributeModal({ item, onClose, onSuccess, isOwner }) {
                   <label style={labelStyle}>Your Email</label>
                   <div style={inputContainer}>
                     <Mail size={16} style={iconStyle} />
-                    <input 
+                    <input
                       type="email"
+                      placeholder="Your Email"
                       value={buyerEmail}
                       onChange={(e) => setBuyerEmail(e.target.value)}
-                      placeholder="email@example.com"
-                      style={inputStyleWithIcon}
+                      style={{
+                        ...inputStyle,
+                        borderColor: !isEmailValid && buyerEmail ? '#ef4444' : '#e2e8f0'
+                      }}
                     />
                   </div>
                 </div>
