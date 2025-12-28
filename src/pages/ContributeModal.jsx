@@ -376,19 +376,22 @@ export default function ContributeModal({ item, onClose, onSuccess, isOwner }) {
         </div>
 
         {/* FIXED FOOTER BUTTON */}
-        <div style={{ padding: '16px 24px', borderTop: '1px solid #f1f5f9', backgroundColor: '#f8fafc' }}>
-          <button 
-                  onClick={handlePayment}
-                  disabled={!amount || amount <= 0 || !buyerEmail || loading}
-                  style={{...btnStyle, opacity: (!amount || !buyerEmail || loading) ? 0.6 : 1}}
-                >
-                  {loading ? 'Processing...' : `Confirm Contribution`}
-                </button>
-          <div style={footerStyle}>
-            <ShieldCheck size={12} />
-            <span>Secure via SSL</span>
+        {/* Hide the payment footer if the user is the owner of the wishlist */}
+        {!isOwner && (
+          <div style={{ padding: '16px 24px', borderTop: '1px solid #f1f5f9', backgroundColor: '#f8fafc' }}>
+            <button 
+              onClick={handlePayment}
+              disabled={!amount || amount <= 0 || !buyerEmail || loading}
+              style={{...btnStyle, opacity: (!amount || !buyerEmail || loading) ? 0.6 : 1}}
+            >
+              {loading ? 'Processing...' : `Confirm Contribution`}
+            </button>
+            <div style={footerStyle}>
+              <ShieldCheck size={12} />
+              <span>Secure via SSL</span>
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );
