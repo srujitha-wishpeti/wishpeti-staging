@@ -239,6 +239,9 @@ const nearestItem = getNearestGoal();
             await fetchPaginatedItems(profileData.id, isInitial);
         } else {
             setProfile(null);
+            setLoading(false);
+            navigate('/notfound/404', { replace: true });
+            return;
         }
     } catch (err) {
         console.error('Fetch Error:', err);

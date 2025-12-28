@@ -16,6 +16,7 @@ import AdminFulfillment from '../pages/AdminFulfillment'
 import ScrollToTop from "../components/ScrollToTop";
 import ItemDetailView from '../pages/ItemDetailView';
 import CookieBanner from '../components/CookieBanner';
+import NotFoundPage from '../pages/NotFoundPage';
 
 export default function AppRoutes() {
   const { session, loading } = useAuth();
@@ -76,6 +77,7 @@ export default function AppRoutes() {
       />
 
       <Route path="/wishlist" element={<Navigate to={session ? "/dashboard" : "/"} />} />
+      <Route path="*" element={<NotFoundPage />} />
 
       {/* LEGAL & POLICY ROUTES (Razorpay Compliant) */}
       <Route 
