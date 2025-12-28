@@ -334,6 +334,10 @@ export default function ManageGifts() {
                   <p style={{ margin: '0 0 12px 0', fontSize: '14px', color: '#64748b' }}>
                     From: <strong style={{ color: '#475569' }}>{gift.buyer_name}</strong>
                   </p>
+
+                  <p style={{ margin: '0 0 12px 0', fontSize: '14px', color: '#64748b' }}>
+                    Message: <strong style={{ color: '#475569' }}>{gift.buyer_message}</strong>
+                  </p>
                   
                   <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                     <span style={{ 

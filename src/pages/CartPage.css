@@ -32,6 +32,47 @@
   border-color: #6366f1;
   box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.1);
 }
+/* Add these to your CartPage.css */
+
+.modern-summary-card {
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  box-sizing: border-box; /* Crucial: ensures card doesn't overflow */
+}
+
+.sender-inputs {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+}
+
+.sender-inputs input,
+.clean-checkout-inputs {
+  width: 100% !important; /* Force full width */
+  padding: 14px 16px;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  font-size: 14px;
+  box-sizing: border-box; /* FIX: Prevents inputs from clipping out of the card */
+  outline: none;
+  background: white;
+}
+
+.checkout-textarea {
+  min-height: 90px;
+  line-height: 1.5;
+}
+
+.field-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: #94a3b8;
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
 
 .checkout-input-field:disabled {
   background: #f8fafc;

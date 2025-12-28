@@ -14,6 +14,7 @@ export default function CartPage() {
   const [loading, setLoading] = useState(false);
   const [senderName, setSenderName] = useState('');
   const [senderEmail, setSenderEmail] = useState('');
+  const [giftMessage, setGiftMessage] = useState('');
   const showToast = useToast();
   const [isAnonymous, setIsAnonymous] = useState(false); // New state
   const { currency, updateCurrency, loading: currencyLoading } = useCurrency();
@@ -177,6 +178,7 @@ export default function CartPage() {
                     razorpay_payment_id: response.razorpay_payment_id,
                     buyer_name: senderName,
                     buyer_email: senderEmail,
+                    buyer_message: giftMessage,
                     buyer_anonymous: isAnonymous,
                     creator_id: item.recipient_id || item.creator_id,
                     item_id: isSurprise? null : item.id, // Link to the specific item
@@ -314,6 +316,14 @@ export default function CartPage() {
               />
             </div>
 
+            <textarea 
+              placeholder="Write a message to your bestie... (Optional)" 
+              value={giftMessage}
+              onChange={(e) => setGiftMessage(e.target.value)}
+              className="clean-checkout-inputs"
+              style={{ minHeight: '80px', resize: 'vertical' }}
+            />
+
             {/* ANONYMOUS TOGGLE */}
               <div className="anonymous-checkbox-container" onClick={() => setIsAnonymous(!isAnonymous)}>
                 <div className={`custom-checkbox ${isAnonymous ? 'checked' : ''}`}>
@@ -321,6 +331,7 @@ export default function CartPage() {
                 </div>
                 <span className="checkbox-label-text">Remain Anonymous to creator</span>
               </div>
+
               
             <div className="price-breakdown">
               <div className="price-row grand-total">
