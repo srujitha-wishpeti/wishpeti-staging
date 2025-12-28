@@ -32,6 +32,13 @@ export default function ContributeModal({ item, onClose, onSuccess, isOwner }) {
   const displayRemaining = Math.max(displayGoal - displayRaised, 0);
   const progressPercent = Math.min((displayRaised / displayGoal) * 100, 100);
 
+  const PRESETS = {
+    INR: [500, 1000, 2000, 5000],
+    USD: [10, 25, 50, 100],
+    EUR: [10, 20, 50, 100],
+    GBP: [10, 20, 50, 100]
+  };
+
   useEffect(() => {
     const fetchGivers = async () => {
       const { data } = await supabase
@@ -244,6 +251,42 @@ export default function ContributeModal({ item, onClose, onSuccess, isOwner }) {
             /* --- SUPPORTER VIEW: Payment Form --- */
             !isGoalReached && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                <div style={{ marginBottom: '24px' }}>
+                    <label style={labelStyle}>Quick Contribution</label>
+                    <div style={quickGridStyle}>
+                      {(PRESETS[currency.code] || [10, 25, 50]).map((presetAmt) => {
+                        const isSelected = parseFloat(amount) === presetAmt;
+                        return (
+                          <button
+                            key={presetAmt}
+                            onClick={() => setAmount(presetAmt.toString())}
+                            style={{
+                              ...quickBtnBase,
+                              backgroundColor: isSelected ? '#6366f1' : '#f8fafc',
+                              color: isSelected ? 'white' : '#475569',
+                              borderColor: isSelected ? '#6366f1' : '#e2e8f0'
+                            }}
+                          >
+                            {symbol}{presetAmt.toLocaleString()}
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    <div style={fieldGroup}>
+                      <label style={labelStyle}>Contribution Amount</label>
+                      <div style={inputContainer}>
+                        <span style={prefixStyle}>{symbol}</span>
+                        <input 
+                          type="number"
+                          value={amount}
+                          onChange={(e) => setAmount(e.target.value)}
+                          placeholder="0.00"
+                          style={inputStyle}
+                        />
+                      </div>
+                    </div>
+                  </div>
                 <div style={fieldGroup}>
                   <label style={labelStyle}>Your Email</label>
                   <div style={inputContainer}>
@@ -313,34 +356,25 @@ export default function ContributeModal({ item, onClose, onSuccess, isOwner }) {
                     </div>
                   </div>
                 </div>
+              </div>
+            )
+          )}
 
-                <div style={fieldGroup}>
-                  <label style={labelStyle}>Contribution Amount</label>
-                  <div style={inputContainer}>
-                    <span style={prefixStyle}>{symbol}</span>
-                    <input 
-                      type="number"
-                      value={amount}
-                      onChange={(e) => setAmount(e.target.value)}
-                      placeholder="0.00"
-                      style={inputStyle}
-                    />
-                  </div>
-                </div>
+          
+        </div>
 
-                <button 
+        {/* FIXED FOOTER BUTTON */}
+        <div style={{ padding: '16px 24px', borderTop: '1px solid #f1f5f9', backgroundColor: '#f8fafc' }}>
+          <button 
                   onClick={handlePayment}
                   disabled={!amount || amount <= 0 || !buyerEmail || loading}
                   style={{...btnStyle, opacity: (!amount || !buyerEmail || loading) ? 0.6 : 1}}
                 >
                   {loading ? 'Processing...' : `Confirm Contribution`}
                 </button>
-              </div>
-            )
-          )}
-
           <div style={footerStyle}>
-            <ShieldCheck size={14} /> Secure Payment via Razorpay
+            <ShieldCheck size={12} />
+            <span>Secure via SSL</span>
           </div>
         </div>
       </div>
@@ -362,7 +396,6 @@ const remainingBox = { padding: '20px', borderRadius: '16px', textAlign: 'center
 const inputContainer = { position: 'relative', display: 'flex', alignItems: 'flex-start', width: '100%' };
 const iconStyle = { position: 'absolute', left: '14px', top: '14px', color: '#94a3b8' };
 const prefixStyle = { position: 'absolute', left: '16px', top: '16px', fontWeight: '700', color: '#1e293b' };
-const inputStyle = { width: '100%', padding: '14px 12px 14px 40px', borderRadius: '12px', border: '1px solid #e2e8f0', fontSize: '16px', outline: 'none' };
 const inputStyleWithIcon = { width: '100%', padding: '12px 12px 12px 42px', borderRadius: '12px', border: '1px solid #e2e8f0', fontSize: '14px', outline: 'none' };
 const btnStyle = { width: '100%', padding: '16px', backgroundColor: '#1e293b', color: 'white', border: 'none', borderRadius: '14px', fontWeight: '700', cursor: 'pointer', marginTop: '10px' };
 const labelStyle = { fontSize: '11px', fontWeight: '800', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' };
@@ -370,7 +403,6 @@ const itemText = { fontSize: '14px', margin: '0 0 16px 0', color: '#475569', tex
 const footerStyle = { marginTop: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px', color: '#94a3b8', fontSize: '11px' };
 
 const overlayStyle = { position: 'fixed', inset: 0, boxShadow: '0 0 0 5000px rgba(15, 23, 42, 0.85)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10000, padding: '20px' };
-const modalStyle = { backgroundColor: 'white', borderRadius: '24px', width: '100%', maxWidth: '420px', overflow: 'hidden', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', position: 'relative', zIndex: 10001 };
 const toggleCardStyle = {
   display: 'flex',
   alignItems: 'center', // This centers them vertically
@@ -383,4 +415,59 @@ const toggleCardStyle = {
   transition: 'all 0.2s ease',
   textAlign: 'left',
   width: '100%' // Ensure it fills the container
+};
+// ContributeModal.jsx
+
+const modalStyle = { 
+  backgroundColor: 'white', 
+  borderRadius: '24px', 
+  width: '100%', 
+  maxWidth: '420px', 
+  // FIX: Limit height and enable internal scrolling
+  maxHeight: '90vh', 
+  display: 'flex',
+  flexDirection: 'column',
+  overflow: 'hidden', // Keep the outer container clean
+  boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)', 
+  position: 'relative' 
+};
+
+// ADD THIS NEW STYLE for the scrollable area
+const scrollContentStyle = {
+  padding: '24px',
+  overflowY: 'auto',
+  flex: 1
+};
+
+const quickGridStyle = {
+  display: 'grid',
+  gridTemplateColumns: 'repeat(auto-fit, minmax(80px, 1fr))',
+  gap: '10px',
+  marginTop: '8px',
+  marginBottom: '16px'
+};
+
+const quickBtnBase = {
+  padding: '12px 8px',
+  borderRadius: '12px',
+  border: '1.5px solid',
+  fontSize: '14px',
+  fontWeight: '700',
+  cursor: 'pointer',
+  transition: 'all 0.2s ease',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center'
+};
+
+// Update inputStyle for a cleaner look
+const inputStyle = { 
+  width: '100%', 
+  padding: '14px 14px 14px 40px', 
+  borderRadius: '12px', 
+  border: '1.5px solid #e2e8f0', 
+  fontSize: '16px', 
+  fontWeight: '700', 
+  outline: 'none',
+  boxSizing: 'border-box'
 };

@@ -55,22 +55,29 @@ export default function WishlistPage() {
     setEditingItem(item); // This will pass the item data to your AddWishlistItem component
   };
 
-  const getNearestGoal = () => {
-    const crowdfunds = wishlist.filter(item => 
-        item.is_crowdfund && 
-        (item.amount_raised || 0) > 0 && 
-        (item.amount_raised < (item.price * (item.quantity || 1)))
-    );
+const getNearestGoal = () => {
+    const activeCrowdfunds = wishlist.filter(item => {
+        const totalGoal = item.price * (item.quantity || 1);
+        const raised = item.amount_raised || 0;
+        const remaining = totalGoal - raised;
 
-    if (crowdfunds.length === 0) return null;
+        return (
+            item.is_crowdfund && 
+            item.status !== 'purchased' &&
+            raised > 0 && 
+            remaining >= 1 // Only show if at least 1 INR is still needed
+        );
+    });
+
+    if (activeCrowdfunds.length === 0) return null;
 
     // Sort by highest percentage raised
-    return crowdfunds.sort((a, b) => {
+    return activeCrowdfunds.sort((a, b) => {
         const pctA = (a.amount_raised / (a.price * (a.quantity || 1)));
         const pctB = (b.amount_raised / (b.price * (b.quantity || 1)));
         return pctB - pctA;
     })[0];
-  };
+};
 
 const nearestItem = getNearestGoal();
 
@@ -354,7 +361,6 @@ const totalGiftValue = wishlist.reduce((acc, item) => {
     if (numericAmount <= 0) return;
 
     const surpriseId = crypto.randomUUID();
-    console.log(surpriseId);
     logSupportEvent('surprise_fund_intent', username, { amount: numericAmount });
     const surpriseItem = {
         id: surpriseId,
