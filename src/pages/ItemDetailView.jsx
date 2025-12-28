@@ -289,7 +289,7 @@ export default function ItemDetailView() {
                   >
                     <ShoppingBag size={20} />
                     <span>
-                        {item.is_crowdfund ? 'Contribute Now' : `Add to Cart • ${globalFormatPrice(item.price)}`}
+                        {item.is_crowdfund ? 'Contribute Now' : `Add to Cart • ${formatPrice(item.price)}`}
                     </span>
                   </button>
 
