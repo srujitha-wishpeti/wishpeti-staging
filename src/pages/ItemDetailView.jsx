@@ -65,13 +65,11 @@ export default function ItemDetailView() {
     }
 
     const cartItem = {
-      ...item,
-      quantity: 1, 
-      added_at: new Date().toISOString(),
-      // We store the original database price (INR) and the rate at which it was added
-      base_price: item.price,
-      added_currency: currency.code,
-      added_rate: currency.rate 
+        ...item,
+        price: parseFloat(item.price), // DB price is already INR
+        added_currency: 'INR',
+        added_rate: 1,
+        quantity: 1
     };
     
     localStorage.setItem(cartKey, JSON.stringify([...existingCart, cartItem]));
@@ -189,7 +187,6 @@ export default function ItemDetailView() {
                   )}
 
                   <div style={divider} />
-                    // 2. Update your Edit Toggle Button to initialize the draft
                     {!isEditingMode ? (
                       <button 
                         style={editToggleBtn} 
