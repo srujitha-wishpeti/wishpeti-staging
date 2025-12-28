@@ -67,8 +67,8 @@ export default function ItemDetailView() {
     const cartItem = {
         ...item,
         price: parseFloat(item.price), // DB price is already INR
-        added_currency: 'INR',
-        added_rate: 1,
+        added_currency: item.currencyCode,
+        added_rate: item.rate,
         quantity: 1
     };
     

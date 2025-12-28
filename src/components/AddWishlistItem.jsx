@@ -85,6 +85,7 @@ export default function AddWishlistItem({
       const isUSD = rawPriceText.includes('USD') || rawPriceText.includes('$');
       const isGBP = rawPriceText.includes('GBP') || rawPriceText.includes('£');
       const isEUR = rawPriceText.includes('EUR') || rawPriceText.includes('€');
+      const isINR = rawPriceText.includes('INR') || rawPriceText.includes('₹');
 
       const symbol = isUSD ? '$' : isGBP ? '£' : isEUR ? '€' : '₹';
 

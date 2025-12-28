@@ -347,6 +347,7 @@ const totalGiftValue = wishlist.reduce((acc, item) => {
     } else {
         // Standard items from DB are in INR, so convert them
         finalPrice = currency.code === 'INR' ? item.price : (item.price * currency.rate).toFixed(2);
+        console.log(currency.code);
     }
     const itemWithCurrency = { ...item, price: parseFloat(finalPrice), added_currency: currency.code, added_rate: currency.rate };
     
