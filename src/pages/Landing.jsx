@@ -37,7 +37,7 @@ export default function Landing() {
           The Safest Way for Digital Creators to Receive Real Support from their Community. 🎁
         </h1>
         <p style={{ fontSize: '1.2rem', color: '#4a5568', lineHeight: '1.6', marginBottom: '32px' }}>
-          Build your WishPeti in minutes. Let your audience help fund your tools, creative work, or causes, while keeping your personal address and identity 100% private. Trusted by top influencers to bridge the gap between creators and their community safely.
+          Build your WishPeti in minutes. Let your audience help fund your tools, creative work, or causes, while keeping your personal details private. Trusted by top influencers to bridge the gap between creators and their community safely.
         </p>
         
         <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
