@@ -66,7 +66,7 @@ export default function Landing() {
           <div style={stepCardStyle}>
             <div style={numberCircle}>1</div>
             <h3>Create your Peti</h3>
-            <p>Add the gifts you actually want from any online store.</p>
+            <p>Add the items, tooks or resources you actually want from any online store.</p>
           </div>
 
           <div style={stepCardStyle}>
@@ -78,7 +78,7 @@ export default function Landing() {
           <div style={stepCardStyle}>
             <div style={numberCircle}>3</div>
             <h3>Receive Privately</h3>
-            <p>Fans buy gifts; we ship them to you without revealing your address.</p>
+            <p>Your community supports you; we ship items to you without revealing your address.</p>
           </div>
         </div>
       </div>
