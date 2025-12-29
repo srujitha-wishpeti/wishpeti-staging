@@ -66,7 +66,7 @@ export default function Landing() {
           <div style={stepCardStyle}>
             <div style={numberCircle}>1</div>
             <h3>Create your Peti</h3>
-            <p>Add the items, tooks or resources you actually want from any online store.</p>
+            <p>Add the items, tools or resources you actually want from any online store.</p>
           </div>
 
           <div style={stepCardStyle}>
@@ -89,12 +89,12 @@ export default function Landing() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
           <div style={faqItemStyle}>
             <h4 style={faqQuestionStyle}>Is my address really private?</h4>
-            <p style={faqAnswerStyle}>Yes. Your Community never see your shipping address. We provide a secure middle-man service to ensure your doorstep remains your private space.</p>
+            <p style={faqAnswerStyle}>Absolutely. Your shipping address is never revealed to your community. Our secure delivery service ensures your home remains your private sanctuary.</p>
           </div>
 
           <div style={faqItemStyle}>
             <h4 style={faqQuestionStyle}>How do I get paid?</h4>
-            <p style={faqAnswerStyle}>For cash gifts, we use Razorpay's secure infrastructure to transfer funds directly to your linked account.</p>
+            <p style={faqAnswerStyle}>For cash support, we use Razorpay's secure infrastructure to transfer funds directly to your linked account.</p>
           </div>
 
           <div style={faqItemStyle}>
