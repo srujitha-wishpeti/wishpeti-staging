@@ -20,7 +20,7 @@ export default function Footer() {
         {/* Brand Section */}
         <div style={styles.section}>
           <h3 style={styles.logo}>🎁 WishPeti</h3>
-          <p style={styles.tagline}>The safest way for digital creators to receive gifts from fans worldwide.</p>
+          <p style={styles.tagline}>The safest way for digital creators to receive real support from their online community worldwide.</p>
           <div style={styles.socialLinks}>
             <a href="https://www.instagram.com/wishpeti/" target="_blank" rel="noreferrer" className="social-icon" style={styles.socialIcon}>
               <Instagram size={20} />

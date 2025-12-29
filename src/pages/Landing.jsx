@@ -89,7 +89,7 @@ export default function Landing() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
           <div style={faqItemStyle}>
             <h4 style={faqQuestionStyle}>Is my address really private?</h4>
-            <p style={faqAnswerStyle}>Yes. Fans never see your shipping address. We provide a secure middle-man service to ensure your doorstep remains your private space.</p>
+            <p style={faqAnswerStyle}>Yes. Your Community never see your shipping address. We provide a secure middle-man service to ensure your doorstep remains your private space.</p>
           </div>
 
           <div style={faqItemStyle}>
