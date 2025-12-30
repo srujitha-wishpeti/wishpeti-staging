@@ -143,6 +143,14 @@ export default function CartPage() {
       handler: async function (response) {
         await handlePaymentSuccess(response);
       },
+      config: {
+        display: {
+          hide_topbar: false,
+          preferences: {
+            show_default_blocks: true 
+          }
+        }
+      },
       prefill: { name: senderName, email: senderEmail, contat: "+919972769491" }, //contact number default for better conversion rate
       theme: { color: "#6366f1" },
       modal: {
@@ -212,6 +220,13 @@ export default function CartPage() {
 
         // Get the ID of the first order for the transaction record and redirect
         const firstOrderId = orderResults[0].data[0].id;
+        let amountInInr;
+        if (currency.code === 'INR') {
+          amountInInr = Math.round(finalPayable * 100);
+        } else {
+          // Back to INR for Razorpay Gateway
+          amountInInr = Math.round((finalPayable / currency.rate) * 100);
+        }
 
         // 2. Log the Single Transaction (The "Money" record)
         // We only do this ONCE per payment, even if there are multiple items
@@ -221,7 +236,7 @@ export default function CartPage() {
               creator_id: cartItems[0]?.recipient_id || cartItems[0]?.creator_id,
               order_id: firstOrderId, 
               provider_payment_id: response.razorpay_payment_id,
-              amount_inr: finalPayable, // The total amount paid in the cart
+              amount_inr: amountInInr, // The total amount paid in the cart
               currency_code: 'INR',
               type: 'gift_payment',
               status: 'success',
