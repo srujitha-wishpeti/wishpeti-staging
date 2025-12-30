@@ -204,7 +204,7 @@ export default function Auth() {
             {isSignup ? 'Create Account' : 'Welcome Back'}
           </h1>
           <p style={{ color: '#6b7280', fontSize: '0.95rem' }}>
-            {isSignup ? 'Start your wishlist journey today.' : 'Log in to manage your gifts.'}
+            {isSignup ? 'Start your wishpeti journey today.' : 'Log in to manage your Peti.'}
           </p>
         </div>
 
@@ -240,7 +240,7 @@ export default function Auth() {
                 />
               </div>
               <p style={{ fontSize: '0.75rem', color: '#6b7280', marginTop: '6px' }}>
-                Your link: <strong>https://wishpeti.vercel.app/{username || 'username'}</strong>
+                Your link: <strong>https://wishpeti.com/{username || 'username'}</strong>
               </p>
             </div>
           )}
