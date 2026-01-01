@@ -47,10 +47,6 @@ export const fetchExchangeRate = async (toCurrency) => {
     const targetValueInDb = data.rates[toCurrency] || 1;
     let rate = targetValueInDb / inrValueInDb;
 
-    if (toCurrency !== 'INR') {
-      rate = rate * 0.985; // 1.5% Buffer (Industry Standard)
-    }
-
     return rate;
   } catch (err) {
     console.error("Exchange rate fetch failed:", err);
