@@ -1,26 +1,33 @@
 // src/utils/currencyHelper.js
 
-/**
- * Synchronous local converter using cached rates
- * @param {number} amount - The scraped numeric value
- * @param {string} symbol - The detected currency symbol ($, £, etc)
- * @returns {number} - The value converted to base INR
- */
-
 import { supabase } from "../services/supabaseClient";
 
-export const getBaseInrSync = (amount, symbol) => {
-  const cachedData = localStorage.getItem('wishpeti_rates');
-  if (!cachedData) return amount; // Fallback to raw if no cache
+/**
+ * Converts a scraped price back to Base INR
+ * @param {number} amount - The numeric value (e.g., 14.00)
+ * @param {string} symbol - The currency symbol ($, £, etc)
+ * @param {object} liveRates - The rates object from your Supabase/Context
+ */
+export const convertToInr = (amount, symbol, liveRates) => {
+  if (!liveRates) return amount;
 
-  const { rates } = JSON.parse(cachedData);
-  
-  if (symbol === '$') return amount / (rates['USD'] || 0.011);
-  if (symbol === '£') return amount / (rates['GBP'] || 0.009);
-  if (symbol === '€') return amount / (rates['EUR'] || 0.010);
-  
-  return amount; // Default to INR
+  // 1. Identify the currency code
+  const code = symbol === '$' ? 'USD' : 
+               symbol === '£' ? 'GBP' : 
+               symbol === '€' ? 'EUR' : 'INR';
+
+  if (code === 'INR') return amount;
+
+  // 2. The Math Flip
+  // Your DB is USD-base (USD: 1, INR: 89). 
+  // To get INR: (Amount / TargetRate) * InrRate
+  // Example for $10: (10 / 1) * 89 = 890 INR
+  const targetRate = liveRates[code] || (code === 'USD' ? 1 : 0.011);
+  const inrRate = liveRates['INR'] || 89.94;
+
+  return Math.ceil((amount / targetRate) * inrRate);
 };
+
 
 export const fetchExchangeRate = async (toCurrency) => {
   if (toCurrency === 'INR') return 1;

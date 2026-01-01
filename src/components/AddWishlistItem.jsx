@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '../services/supabaseClient';
 import AddItemButton from './AddItemButton';
 import UrlInputForm from './UrlInputForm';
-import { getCurrencySymbol, getBaseInrSync } from '../utils/currency';
+import { getCurrencySymbol, convertToInr} from '../utils/currency';
 import { useCurrency } from '../context/CurrencyContext';
 
 export default function AddWishlistItem({ 
@@ -90,7 +90,7 @@ export default function AddWishlistItem({
       const symbol = isUSD ? '$' : isGBP ? '£' : isEUR ? '€' : '₹';
 
       // 1. Get Base INR using the local storage sync function
-      const baseInrValue = getBaseInrSync(numericValue, symbol);
+      const baseInrValue = convertToInr(numericValue, symbol);
 
       // 2. Convert to User's Viewing Currency
       const displayValue = (baseInrValue * currency.rate).toFixed(2);

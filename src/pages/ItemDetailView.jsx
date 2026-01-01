@@ -3,7 +3,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import { supabase } from '../services/supabaseClient';
 import { useAuth } from '../auth/AuthProvider';
 import { useCurrency } from '../context/CurrencyContext';
-import { getCurrencySymbol, getBaseInrSync } from '../utils/currency';
+import { getCurrencySymbol, convertToInr } from '../utils/currency';
 import { useToast } from '../context/ToastContext'; 
 import WishlistItemCard from '../components/wishlist/WishlistItemCard';
 import UrlInputForm from '../components/UrlInputForm';
