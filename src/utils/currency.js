@@ -2,57 +2,8 @@
 
 import { supabase } from "../services/supabaseClient";
 
-/**
- * Converts a scraped price back to Base INR
- * @param {number} amount - The numeric value (e.g., 14.00)
- * @param {string} symbol - The currency symbol ($, £, etc)
- * @param {object} liveRates - The rates object from your Supabase/Context
- */
-export const convertToInr = (amount, symbol, liveRates) => {
-  if (!liveRates) return amount;
+// src/utils/currency.js
 
-  // 1. Identify the currency code
-  const code = symbol === '$' ? 'USD' : 
-               symbol === '£' ? 'GBP' : 
-               symbol === '€' ? 'EUR' : 'INR';
-
-  if (code === 'INR') return amount;
-
-  // 2. The Math Flip
-  // Your DB is USD-base (USD: 1, INR: 89). 
-  // To get INR: (Amount / TargetRate) * InrRate
-  // Example for $10: (10 / 1) * 89 = 890 INR
-  const targetRate = liveRates[code] || (code === 'USD' ? 1 : 0.011);
-  const inrRate = liveRates['INR'] || 89.94;
-
-  return Math.ceil((amount / targetRate) * inrRate);
-};
-
-
-export const fetchExchangeRate = async (toCurrency) => {
-  if (toCurrency === 'INR') return 1;
-
-  try {
-    const { data, error } = await supabase
-      .from('global_settings')
-      .select('rates')
-      .eq('id', 'current_rates')
-      .maybeSingle();
-
-    if (error || !data || !data.rates) return 0.011;
-
-    // 1. NORMALIZE THE RATE
-    // Since DB is USD-base (USD:1, INR:89), we flip it to get INR-base
-    const inrValueInDb = data.rates['INR'] || 89.94;
-    const targetValueInDb = data.rates[toCurrency] || 1;
-    let rate = targetValueInDb / inrValueInDb;
-
-    return rate;
-  } catch (err) {
-    console.error("Exchange rate fetch failed:", err);
-    return 0.011; 
-  }
-};
 
 /*export const fetchExchangeRate = async (toCurrency) => {
   if (toCurrency === 'INR') return 1;

@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '../services/supabaseClient';
 import AddItemButton from './AddItemButton';
 import UrlInputForm from './UrlInputForm';
-import { getCurrencySymbol, convertToInr} from '../utils/currency';
+import { getCurrencySymbol} from '../utils/currency';
 import { useCurrency } from '../context/CurrencyContext';
 
 export default function AddWishlistItem({ 
@@ -19,7 +19,7 @@ export default function AddWishlistItem({
   const [showForm, setShowForm] = useState(false); 
   const [error, setError] = useState(null);
   const [scrapedData, setScrapedData] = useState(null);
-  const { setCurrency } = useCurrency();
+  const { setCurrency, convertToInr } = useCurrency();
 
   const [editableData, setEditableData] = useState({
     title: '',

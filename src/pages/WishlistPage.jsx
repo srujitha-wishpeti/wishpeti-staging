@@ -16,7 +16,7 @@ import './WishlistPage.css';
 import Toast from '../components/ui/Toast';
 import { useCurrency } from '../context/CurrencyContext';
 import { useToast } from '../context/ToastContext';
-import { fetchExchangeRate, getCurrencySymbol } from '../utils/currency';
+import { getCurrencySymbol } from '../utils/currency';
 import {logSupportEvent} from '../utils/supportLogger';
 
 export default function WishlistPage() {  

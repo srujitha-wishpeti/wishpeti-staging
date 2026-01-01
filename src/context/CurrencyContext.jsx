@@ -1,82 +1,98 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { getCurrencyPreference, saveCurrencyPreference, fetchExchangeRate } from '../utils/currency';
+import { supabase } from '../services/supabaseClient';
+import { getCurrencyPreference, saveCurrencyPreference, formatPrice } from '../utils/currency';
 import { detectUserCurrency } from '../utils/geo';
-import { formatPrice } from '../utils/currency';
 
-// 1. Create the Context
 export const CurrencyContext = createContext(null);
 
-// 2. The Provider Component
 export function CurrencyProvider({ children }) {
   const [currency, setCurrency] = useState(getCurrencyPreference());
-  const [loading, setLoading] = useState(true); // Added to help UI handling
+  const [allRates, setAllRates] = useState({});
+  const [loading, setLoading] = useState(true);
+
+  // 1. Internal fetch logic (The "Edge Function" data)
+  // We fetch the entire rates object once to power both switching and scraping
+  const fetchAllRates = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('global_settings')
+        .select('rates')
+        .eq('id', 'current_rates')
+        .maybeSingle();
+
+      if (error) throw error;
+      return data?.rates || { "USD": 0.011, "INR": 1 }; // Default fallbacks
+    } catch (err) {
+      console.error("Failed to fetch rates:", err);
+      return { "USD": 0.011, "INR": 1 }; 
+    }
+  };
 
   useEffect(() => {
     const init = async () => {
-      const code = localStorage.getItem('user_preference_currency') || 'INR';
-      // Always fetch fresh rate on load, regardless of what's in storage
-      const freshRate = await fetchExchangeRate(code);
-      setCurrency({ code, rate: freshRate });
+      const rates = await fetchAllRates();
+      setAllRates(rates);
+
+      const savedCode = localStorage.getItem('user_preference_currency');
+      let code = savedCode;
+
+      if (!code) {
+        code = await detectUserCurrency();
+      }
+
+      // Set initial state from the fresh rates
+      const finalCode = code || 'INR';
+      setCurrency({ 
+        code: finalCode, 
+        rate: rates[finalCode] || rates['INR'] || 1 
+      });
+      
       setLoading(false);
     };
     init();
   }, []);
 
+  // 2. The convertToInr logic (Moved from currency.js)
+  // Uses the allRates already stored in context memory
+  const convertToInr = (amount, symbol) => {
+    const code = symbol === '$' ? 'USD' : 
+                 symbol === '£' ? 'GBP' : 
+                 symbol === '€' ? 'EUR' : 'INR';
+
+    if (code === 'INR' || !allRates || !allRates[code]) return amount;
+
+    // MATH: Foreign Amount / Rate = INR Base
+    // Example: $14.00 / 0.011 = 1272.72 -> 1273 INR
+    return Math.ceil(amount / allRates[code]);
+  };
+
+  const updateCurrency = (newCode) => {
+    const rate = allRates[newCode] || 1;
+    setCurrency({ code: newCode, rate });
+    saveCurrencyPreference(newCode, rate);
+    localStorage.setItem('user_preference_currency', newCode);
+  };
+
   const globalFormatPrice = (amount) => {
     return formatPrice(amount, currency.code, currency.rate);
   };
 
-  useEffect(() => {
-    const initCurrency = async () => {
-      const savedCurrency = localStorage.getItem('user_preference_currency');
-      
-      try {
-        if (savedCurrency) {
-          // If it's already the default from getCurrencyPreference(), skip fetch
-          if (savedCurrency !== currency.code) {
-            await updateCurrency(savedCurrency);
-          }
-        } else {
-          const detected = await detectUserCurrency();
-          if (detected !== currency.code) {
-            await updateCurrency(detected);
-          }
-        }
-      } catch (err) {
-        console.error("Initialization failed", err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    initCurrency();
-  }, []);
-
-  const updateCurrency = async (newCode) => {
-    try {
-      const rate = await fetchExchangeRate(newCode);
-      const newPref = { code: newCode, rate };
-      setCurrency(newPref);
-      saveCurrencyPreference(newCode, rate);
-      // Also save the code specifically for our init check
-      localStorage.setItem('user_preference_currency', newCode);
-    } catch (error) {
-      console.error("Error updating currency:", error);
-    }
-  };
-
   return (
-    <CurrencyContext.Provider value={{ currency, updateCurrency, loading, formatPrice: globalFormatPrice }}>
+    <CurrencyContext.Provider value={{ 
+      currency, 
+      allRates, 
+      updateCurrency, 
+      loading, 
+      formatPrice: globalFormatPrice,
+      convertToInr // Exposed for AddWishlistItem.jsx
+    }}>
       {children}
     </CurrencyContext.Provider>
   );
 }
 
-// 3. The Custom Hook
 export const useCurrency = () => {
   const context = useContext(CurrencyContext);
-  if (!context) {
-    throw new Error('useCurrency must be used within a CurrencyProvider');
-  }
+  if (!context) throw new Error('useCurrency must be used within a CurrencyProvider');
   return context;
 };
