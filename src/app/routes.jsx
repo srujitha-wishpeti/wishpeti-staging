@@ -84,7 +84,7 @@ export default function AppRoutes() {
       <Route 
         path="/terms" 
         element={<PolicyPage title="Terms & Conditions" content={`<div class="policy-text">
-          <p>Last updated on <strong>December 27, 2025</strong></p>
+          <p>Last updated on <strong>January 02, 2026</strong></p>
           <p>Welcome to <strong>WishPeti</strong>. By using our website and services, you agree to comply with and be bound by the following terms and conditions.</p>
 
           <h3>1. Service Overview</h3>
@@ -110,16 +110,17 @@ export default function AppRoutes() {
               <li>Once a goal is reached, the Creator is responsible for the allocation of those funds toward the specified item.</li>
           </ul>
 
-          <h3>5. Order Fulfillment</h3>
+          <h3>5. Order Fulfillment & International Items</h3>
           <ul>
               <li>Items are shipped directly from third-party merchants to the recipient.</li>
               <li>Delivery timelines are typically <strong>7-10 working days</strong>, subject to merchant availability.</li>
+              <li><strong>Fulfillment Policy:</strong> WishPeti aims to fulfill the exact item requested. However, if an item is determined to be unshippable to the recipient's address due to international customs, high overheads, or merchant restrictions, WishPeti reserves the right to disburse the total collected funds as <strong>Store Credit</strong> to the Creator's wallet in lieu of the physical product.</li>
           </ul>
 
           <h3>6. Contact Information</h3>
           <p>Email: <strong>support@wishpeti.com</strong><br>
           Address: <strong>Vidya Nagar 1st cross, Bellary, Karnataka - 583104</strong></p>
-      </div>`} />} 
+        </div>`} />} 
       />
 
       <Route 
