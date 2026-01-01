@@ -6,6 +6,9 @@
  * @param {string} symbol - The detected currency symbol ($, £, etc)
  * @returns {number} - The value converted to base INR
  */
+
+import { supabase } from "../services/supabaseClient";
+
 export const getBaseInrSync = (amount, symbol) => {
   const cachedData = localStorage.getItem('wishpeti_rates');
   if (!cachedData) return amount; // Fallback to raw if no cache
@@ -20,6 +23,35 @@ export const getBaseInrSync = (amount, symbol) => {
 };
 
 export const fetchExchangeRate = async (toCurrency) => {
+  if (toCurrency === 'INR') return 1;
+
+  try {
+    const { data, error } = await supabase
+      .from('global_settings')
+      .select('rates')
+      .eq('id', 'current_rates')
+      .maybeSingle();
+
+    if (error || !data || !data.rates) return 0.011;
+
+    // 1. NORMALIZE THE RATE
+    // Since DB is USD-base (USD:1, INR:89), we flip it to get INR-base
+    const inrValueInDb = data.rates['INR'] || 89.94;
+    const targetValueInDb = data.rates[toCurrency] || 1;
+    let rate = targetValueInDb / inrValueInDb;
+
+    if (toCurrency !== 'INR') {
+      rate = rate * 0.985; // 1.5% Buffer (Industry Standard)
+    }
+
+    return rate;
+  } catch (err) {
+    console.error("Exchange rate fetch failed:", err);
+    return 0.011; 
+  }
+};
+
+/*export const fetchExchangeRate = async (toCurrency) => {
   if (toCurrency === 'INR') return 1;
 
   // 1. Check Cache first (Save bandwidth and speed up UI)
@@ -60,7 +92,7 @@ export const fetchExchangeRate = async (toCurrency) => {
     console.error("Exchange rate fetch failed:", error);
     return 1;
   }
-};
+};*/
 
 
 const SAFETY_BUFFER = 0.015; 
