@@ -11,6 +11,17 @@ export function CurrencyProvider({ children }) {
   const [currency, setCurrency] = useState(getCurrencyPreference());
   const [loading, setLoading] = useState(true); // Added to help UI handling
 
+  useEffect(() => {
+    const init = async () => {
+      const code = localStorage.getItem('user_preference_currency') || 'INR';
+      // Always fetch fresh rate on load, regardless of what's in storage
+      const freshRate = await fetchExchangeRate(code);
+      setCurrency({ code, rate: freshRate });
+      setLoading(false);
+    };
+    init();
+  }, []);
+
   const globalFormatPrice = (amount) => {
     return formatPrice(amount, currency.code, currency.rate);
   };
