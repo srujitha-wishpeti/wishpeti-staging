@@ -32,7 +32,6 @@ export function CurrencyProvider({ children }) {
         return { "USD": 0.011, "INR": 1 }; 
       }
 
-      console.log("Live Rates Loaded:", data.rates);
       return data.rates;
     } catch (err) {
       console.error("Failed to fetch rates:", err);
