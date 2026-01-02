@@ -20,8 +20,20 @@ export function CurrencyProvider({ children }) {
         .eq('id', 'current_rates')
         .maybeSingle();
 
-      if (error) throw error;
-      return data?.rates || { "USD": 0.011, "INR": 1 }; // Default fallbacks
+      // Log the error if it exists
+      if (error) {
+        console.error("Supabase Query Error:", error);
+        throw error;
+      }
+
+      // Safe check: If data is null, the row doesn't exist or is blocked by RLS
+      if (!data) {
+        console.warn("No row found in 'global_settings' with id 'current_rates'");
+        return { "USD": 0.011, "INR": 1 }; 
+      }
+
+      console.log("Live Rates Loaded:", data.rates);
+      return data.rates;
     } catch (err) {
       console.error("Failed to fetch rates:", err);
       return { "USD": 0.011, "INR": 1 }; 
@@ -31,6 +43,7 @@ export function CurrencyProvider({ children }) {
   useEffect(() => {
     const init = async () => {
       const rates = await fetchAllRates();
+      console.log(rates);
       setAllRates(rates);
 
       const savedCode = localStorage.getItem('user_preference_currency');
@@ -67,7 +80,10 @@ export function CurrencyProvider({ children }) {
   };
 
   const updateCurrency = (newCode) => {
+    console.log(newCode);
+
     const rate = allRates[newCode] || 1;
+    console.log(rate);
     setCurrency({ code: newCode, rate });
     saveCurrencyPreference(newCode, rate);
     localStorage.setItem('user_preference_currency', newCode);

@@ -134,3 +134,18 @@ export const getCurrencySymbol = (code) => {
     return '₹'; // Fallback
   }
 };
+
+export const getCurrencySymbolExpanded = (code) => {
+  try {
+    // This uses the browser's built-in internationalization engine
+    // It creates a formatted string like "$0" or "₹0" and removes the "0"
+    return (0).toLocaleString('en-US', {
+      style: 'currency',
+      currency: code,
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).replace(/\d/g, '').trim();
+  } catch (e) {
+    return ''; // Fallback for invalid codes
+  }
+};
