@@ -43,7 +43,6 @@ export function CurrencyProvider({ children }) {
   useEffect(() => {
     const init = async () => {
       const rates = await fetchAllRates();
-      console.log(rates);
       setAllRates(rates);
 
       const savedCode = localStorage.getItem('user_preference_currency');

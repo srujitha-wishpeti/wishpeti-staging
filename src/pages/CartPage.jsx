@@ -95,7 +95,6 @@ export default function CartPage() {
     // FIX 2: THE GOLDEN RULE
     // If viewing currency matches how it was added (USD -> USD), skip math.
     if (savedCurrency === currency.code) {
-      console.log('same currency');
       return savedPrice;
     }
 
