@@ -508,45 +508,30 @@ const totalGiftValue = wishlist.reduce((acc, item) => {
                         </h1>
                         <p style={{ margin: 0, color: '#64748b', fontSize: '15px' }}>@{profile?.username}</p>
                         
-                        {/* SOCIAL MEDIA LINKS - Added Here */}
-                        {/* SOCIAL MEDIA LINKS */}
-                        <div style={{ display: 'flex', gap: '10px', marginTop: '12px', flexWrap: 'wrap' }}>
+                        {/* CUSTOM SOCIAL MEDIA LINKS */}
+                        <div style={{ display: 'flex', gap: '8px', marginTop: '16px' }}>
                             {profile?.social_links?.instagram && (
-                                <a 
-                                    href={`https://instagram.com/${profile.social_links.instagram}`} 
-                                    target="_blank" 
-                                    rel="noreferrer" 
-                                    style={socialLinkStyle}
-                                >
-                                    <Instagram size={16} />
+                                <a href={profile.social_links.instagram} target="_blank" rel="noreferrer" style={socialLinkStyle} title="Instagram">
+                                    <Instagram size={20} />
                                 </a>
                             )}
                             {profile?.social_links?.twitter && (
-                                <a 
-                                    href={`https://twitter.com/${profile.social_links.twitter}`} 
-                                    target="_blank" 
-                                    rel="noreferrer" 
-                                    style={socialLinkStyle}
-                                >
-                                    <Twitter size={16} />
+                                <a href={profile.social_links.twitter} target="_blank" rel="noreferrer" style={socialLinkStyle} title="Twitter">
+                                    <Twitter size={20} />
                                 </a>
                             )}
                             {profile?.social_links?.youtube && (
-                                <a 
-                                    href={profile.social_links.youtube.includes('http') ? profile.social_links.youtube : `https://youtube.com/@${profile.social_links.youtube}`} 
-                                    target="_blank" 
-                                    rel="noreferrer" 
-                                    style={socialLinkStyle}
-                                >
-                                    <Youtube size={16} />
+                                <a href={profile.social_links.youtube} target="_blank" rel="noreferrer" style={socialLinkStyle} title="YouTube">
+                                    <Youtube size={20} />
                                 </a>
                             )}
                             {profile?.social_links?.spotify && (
-                                <a href={profile.social_links.spotify} target="_blank" rel="noreferrer" style={socialLinkStyle}>
-                                    <Music size={16} />
+                                <a href={profile.social_links.spotify} target="_blank" rel="noreferrer" style={socialLinkStyle} title="Spotify">
+                                    <Music size={20} />
                                 </a>
                             )}
                         </div>
+
 
                         <div style={{ margin: '12px 0' }}>
                             <p style={{ 
@@ -827,116 +812,150 @@ const totalGiftValue = wishlist.reduce((acc, item) => {
       {/* EDIT MODAL WITH WORKING BUTTONS */}
       {editingProfile && (
         <div className="edit-overlay" style={overlayStyle}>
-            <div className="edit-modal" style={modalStyle}>
-                <div className="modal-header" style={{ padding: '15px 20px', borderBottom: '1px solid #eee', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <h3 style={{ margin: 0 }}>Update Your Profile</h3>
-                    <button onClick={() => setEditingProfile(false)} style={{ background: 'none', border: 'none', fontSize: '24px', cursor: 'pointer' }}>×</button>
+            <div className="edit-modal" style={{ ...modalStyle, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+            
+            {/* FIXED HEADER */}
+            <div style={{ 
+                padding: '20px 24px', 
+                borderBottom: '1px solid #f1f5f9', 
+                display: 'flex', 
+                justifyContent: 'space-between', 
+                alignItems: 'center',
+                background: 'white',
+                zIndex: 10
+            }}>
+                <h3 style={{ margin: 0, fontSize: '18px', fontWeight: '700', color: '#1e293b' }}>Update Your Profile</h3>
+                <button 
+                onClick={() => setEditingProfile(false)} 
+                style={{ background: '#f1f5f9', border: 'none', width: '32px', height: '32px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#64748b' }}
+                >
+                ×
+                </button>
+            </div>
+
+            {/* SCROLLABLE BODY */}
+            <div style={{ padding: '24px', overflowY: 'auto', flex: 1 }}>
+                <div style={{ position: 'relative', marginBottom: '60px' }}>
+                {/* Banner Preview */}
+                <div style={{ height: '160px', borderRadius: '12px', overflow: 'hidden', position: 'relative', backgroundColor: '#f1f5f9' }}>
+                    <img 
+                    src={tempProfile.banner_url || 'https://via.placeholder.com/800x200'} 
+                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                    />
+                    <label style={bannerEditButtonStyle}>
+                    <Camera size={16} /> {uploading === 'banner' ? '...' : 'Change Cover'}
+                    <input type="file" style={{ display: 'none' }} hidden accept="image/*" onChange={(e) => handleImageUpload(e, 'banner')} />
+                    </label>
                 </div>
 
-                <div style={{ padding: '20px' }}>
-                    <div style={{ position: 'relative', marginBottom: '60px' }}>
-                        {/* Banner Preview */}
-                        <div style={{ height: '160px', borderRadius: '12px', overflow: 'hidden', position: 'relative', backgroundColor: '#f1f5f9' }}>
-                            <img 
-                                src={tempProfile.banner_url || 'https://via.placeholder.com/800x200'} 
-                                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                            />
-                            <label style={bannerEditButtonStyle}>
-                                <Camera size={16} /> {uploading === 'banner' ? '...' : 'Change Cover'}
-                                <input type="file" style={{ display: 'none' }} hidden accept="image/*" onChange={(e) => handleImageUpload(e, 'banner')} />
-                            </label>
-                        </div>
-
-                        {/* Avatar Preview */}
-                        <div style={{ position: 'absolute', bottom: '-40px', left: '20px' }}>
-                            <div style={{ position: 'relative' }}>
-                                <img 
-                                    src={tempProfile.avatar_url || 'https://via.placeholder.com/100'} 
-                                    style={{ width: '90px', height: '90px', borderRadius: '50%', border: '4px solid white', objectFit: 'cover' }} 
-                                />
-                                <label style={avatarEditButtonStyle}>
-                                    <Camera size={14} color="white" />
-                                    <input type="file" style={{ display: 'none' }} hidden accept="image/*" onChange={(e) => handleImageUpload(e, 'avatar')} />
-                                </label>
-                            </div>
-                        </div>
+                {/* Avatar Preview */}
+                <div style={{ position: 'absolute', bottom: '-40px', left: '20px' }}>
+                    <div style={{ position: 'relative' }}>
+                    <img 
+                        src={tempProfile.avatar_url || `https://api.dicebear.com/7.x/initials/svg?seed=${profile?.display_name}`} 
+                        style={{ width: '90px', height: '90px', borderRadius: '50%', border: '4px solid white', objectFit: 'cover', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} 
+                    />
+                    <label style={avatarEditButtonStyle}>
+                        <Camera size={14} color="white" />
+                        <input type="file" style={{ display: 'none' }} hidden accept="image/*" onChange={(e) => handleImageUpload(e, 'avatar')} />
+                    </label>
                     </div>
+                </div>
+                </div>
 
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-                        <div>
-                            <label style={labelStyle}>Display Name</label>
-                            <input 
-                                className="modern-search-input"
-                                value={tempProfile.display_name}
-                                onChange={(e) => setTempProfile({...tempProfile, display_name: e.target.value})}
-                            />
-                        </div>
-                        <div>
-                            <label style={labelStyle}>Bio</label>
-                            <textarea 
-                                className="modern-search-input"
-                                style={{ minHeight: '80px', resize: 'none' }}
-                                value={tempProfile.bio}
-                                onChange={(e) => setTempProfile({...tempProfile, bio: e.target.value})}
-                            />
-                        </div>
-                        {/* Social Media Links in Edit Modal */}
-                        <div>
-                            <label style={labelStyle}>Instagram URL</label>
-                            <input 
-                                className="modern-search-input"
-                                placeholder="https://instagram.com/username"
-                                value={tempProfile.social_links?.instagram || ''}
-                                onChange={(e) => setTempProfile({
-                                    ...tempProfile, 
-                                    social_links: { ...tempProfile.social_links, instagram: e.target.value }
-                                })}
-                            />
-                        </div>
-                        <div>
-                            <label style={labelStyle}>Twitter/X URL</label>
-                            <input 
-                                className="modern-search-input"
-                                placeholder="https://twitter.com/username"
-                                value={tempProfile.social_links?.twitter || ''}
-                                onChange={(e) => setTempProfile({
-                                    ...tempProfile, 
-                                    social_links: { ...tempProfile.social_links, twitter: e.target.value }
-                                })}
-                            />
-                        </div>
-                        <div>
-                            <label style={labelStyle}>YouTube URL</label>
-                            <input 
-                                className="modern-search-input"
-                                placeholder="https://youtube.com/@username"
-                                value={tempProfile.social_links?.youtube || ''}
-                                onChange={(e) => setTempProfile({
-                                    ...tempProfile, 
-                                    social_links: { ...tempProfile.social_links, youtube: e.target.value }
-                                })}
-                            />
-                        </div>
-                        <div>
-                            <label style={labelStyle}>Spotify URL</label>
-                            <input 
-                                className="modern-search-input"
-                                placeholder="https://open.spotify.com/user/..."
-                                value={tempProfile.social_links?.spotify || ''}
-                                onChange={(e) => setTempProfile({
-                                    ...tempProfile, 
-                                    social_links: { ...tempProfile.social_links, spotify: e.target.value }
-                                })}
-                            />
-                        </div>
-                        <button onClick={handleUpdateProfile} className="btn-main-action" style={{ width: '100%', padding: '12px', background: '#1e293b', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer' }}>
-                            Save Changes
-                        </button>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                <div>
+                    <label style={labelStyle}>Display Name</label>
+                    <input 
+                    className="modern-search-input"
+                    value={tempProfile.display_name}
+                    onChange={(e) => setTempProfile({...tempProfile, display_name: e.target.value})}
+                    />
+                </div>
+                <div>
+                    <label style={labelStyle}>Bio</label>
+                    <textarea 
+                    className="modern-search-input"
+                    style={{ minHeight: '80px', resize: 'none' }}
+                    value={tempProfile.bio}
+                    onChange={(e) => setTempProfile({...tempProfile, bio: e.target.value})}
+                    />
+                </div>
+
+                {/* SOCIAL LINKS GRID */}
+                <div style={{ 
+                    display: 'grid', 
+                    // This line makes it 1 column on mobile and 2 columns on larger screens
+                    gridTemplateColumns: window.innerWidth < 600 ? '1fr' : '1fr 1fr', 
+                    gap: '15px' 
+                    }}>
+                    <div>
+                        <label style={labelStyle}>Instagram URL</label>
+                        <input 
+                        className="modern-search-input"
+                        placeholder="https://..."
+                        value={tempProfile.social_links?.instagram || ''}
+                        onChange={(e) => setTempProfile({...tempProfile, social_links: {...tempProfile.social_links, instagram: e.target.value}})}
+                        />
+                    </div>
+                    <div>
+                        <label style={labelStyle}>Twitter URL</label>
+                        <input 
+                        className="modern-search-input"
+                        placeholder="https://..."
+                        value={tempProfile.social_links?.twitter || ''}
+                        onChange={(e) => setTempProfile({...tempProfile, social_links: {...tempProfile.social_links, twitter: e.target.value}})}
+                        />
+                    </div>
+                    <div>
+                        <label style={labelStyle}>YouTube URL</label>
+                        <input 
+                        className="modern-search-input"
+                        placeholder="https://..."
+                        value={tempProfile.social_links?.youtube || ''}
+                        onChange={(e) => setTempProfile({...tempProfile, social_links: {...tempProfile.social_links, youtube: e.target.value}})}
+                        />
+                    </div>
+                    <div>
+                        <label style={labelStyle}>Spotify URL</label>
+                        <input 
+                        className="modern-search-input"
+                        placeholder="https://..."
+                        value={tempProfile.social_links?.spotify || ''}
+                        onChange={(e) => setTempProfile({...tempProfile, social_links: {...tempProfile.social_links, spotify: e.target.value}})}
+                        />
+                    </div>
                     </div>
                 </div>
             </div>
+
+            {/* FIXED FOOTER */}
+            <div style={{ 
+                padding: '16px 24px', 
+                borderTop: '1px solid #f1f5f9', 
+                background: '#f8fafc',
+                display: 'flex',
+                justifyContent: 'flex-end'
+            }}>
+                <button 
+                onClick={handleUpdateProfile} 
+                style={{ 
+                    padding: '12px 24px', 
+                    background: '#6366f1', 
+                    color: 'white', 
+                    border: 'none', 
+                    borderRadius: '12px', 
+                    fontWeight: '700', 
+                    cursor: 'pointer',
+                    boxShadow: '0 4px 6px -1px rgba(99, 102, 241, 0.4)'
+                }}
+                >
+                Save Changes
+                </button>
+            </div>
+            </div>
         </div>
-      )}
+       )}
     </div>
   );
 }
@@ -1043,11 +1062,37 @@ const avatarPencilStyle = {
     zIndex: 11
 };
 const shareButtonStyle = { display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 16px', borderRadius: '8px', border: '1px solid #e2e8f0', background: 'white', fontWeight: '600', cursor: 'pointer', color: '#1e293b' };
-const overlayStyle = { position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0, 0, 0, 0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(4px)' };
-const modalStyle = { backgroundColor: 'white', borderRadius: '16px', width: '95%', maxWidth: '500px', maxHeight: '90vh', overflowY: 'auto', position: 'relative' };
 const labelStyle = { display: 'block', fontSize: '14px', fontWeight: '600', marginBottom: '8px', color: '#374151' };
 const bannerEditButtonStyle = { position: 'absolute', top: '12px', right: '12px', background: 'white', padding: '6px 12px', borderRadius: '20px', fontSize: '12px', fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px', boxShadow: '0 2px 5px rgba(0,0,0,0.2)' };
 const avatarEditButtonStyle = { position: 'absolute', bottom: '0', right: '0', background: '#4f46e5', width: '28px', height: '28px', borderRadius: '50%', border: '2px solid white', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' };
+
+// Update this line at the bottom of WishlistPage.jsx
+const overlayStyle = { 
+  position: 'fixed', 
+  top: 0, 
+  left: 0, 
+  right: 0, 
+  bottom: 0, 
+  backgroundColor: 'rgba(15, 23, 42, 0.5)', // Slate-900 with transparency
+  display: 'flex', 
+  alignItems: 'center', 
+  justifyContent: 'center', 
+  zIndex: 9999, // Ensure it's above the navbar
+  backdropFilter: 'blur(8px)' 
+};
+
+const modalStyle = { 
+  backgroundColor: 'white', 
+  borderRadius: '24px', 
+  width: '95%', // Takes up almost full width on mobile
+  maxWidth: '550px', 
+  maxHeight: '85vh', 
+  display: 'flex', // Crucial for header/body/footer layout
+  flexDirection: 'column', 
+  overflow: 'hidden', // Prevents the whole modal from scrolling
+  position: 'relative',
+  boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)'
+};
 
 const dashboardStatsStyle = {
   maxWidth: '1000px',
@@ -1114,14 +1159,13 @@ const statCardStyle = {
 const socialLinkStyle = {
     display: 'flex',
     alignItems: 'center',
-    gap: '6px',
-    padding: '6px 12px',
-    borderRadius: '20px',
-    background: '#f1f5f9',
-    color: '#475569',
-    fontSize: '13px',
-    fontWeight: '600',
-    textDecoration: 'none',
+    justifyContent: 'center',
+    width: '38px',
+    height: '38px',
+    borderRadius: '12px',
+    background: '#ffffff',
+    color: '#6366f1', // Brand Indigo
     transition: 'all 0.2s ease',
-    border: '1px solid #e2e8f0'
+    border: '1px solid #e2e8f0',
+    boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
 };
