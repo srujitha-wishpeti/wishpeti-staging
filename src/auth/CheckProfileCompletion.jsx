@@ -5,23 +5,23 @@ import { useAuth } from './AuthProvider';
 
 export default function CheckProfileCompletion({ children }) {
   const { session } = useAuth();
-  const [hasAddress, setHasAddress] = useState(null);
+  const [hasUsername, setHasUsername] = useState(null);
 
   useEffect(() => {
     async function checkProfile() {
       const { data } = await supabase
         .from('creator_profiles')
-        .select('address_line1')
+        .select('username') //
         .eq('id', session.user.id)
         .single();
-      
-      setHasAddress(!!data?.address_line1);
+
+      setHasUsername(!!data?.username);
     }
     if (session) checkProfile();
   }, [session]);
 
-  if (hasAddress === null) return <div>Loading profile...</div>;
-  if (!hasAddress) return <Navigate to="/onboarding" />;
+  if (hasUsername === null) return <div>Loading profile...</div>;
+  if (!hasUsername) return <Navigate to="/onboarding" />;
 
   return children;
 }
