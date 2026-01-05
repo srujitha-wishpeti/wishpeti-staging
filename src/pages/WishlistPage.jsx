@@ -883,49 +883,72 @@ const totalGiftValue = wishlist.reduce((acc, item) => {
                 </div>
 
                 {/* SOCIAL LINKS GRID */}
+                {/* RESPONSIVE SOCIAL LINKS GRID */}
                 <div style={{ 
-                    display: 'grid', 
-                    // This line makes it 1 column on mobile and 2 columns on larger screens
-                    gridTemplateColumns: window.innerWidth < 600 ? '1fr' : '1fr 1fr', 
-                    gap: '15px' 
-                    }}>
-                    <div>
-                        <label style={labelStyle}>Instagram URL</label>
-                        <input 
+                display: 'grid', 
+                gridTemplateColumns: window.innerWidth < 600 ? '1fr' : '1fr 1fr', 
+                gap: '15px' 
+                }}>
+                {/* Instagram */}
+                <div>
+                    <label style={labelStyle}>Instagram URL</label>
+                    <div style={socialInputWrapper}>
+                    <Instagram size={18} style={socialIconStyle} />
+                    <input 
                         className="modern-search-input"
-                        placeholder="https://..."
+                        style={socialInputStyle}
+                        placeholder="https://instagram.com/..."
                         value={tempProfile.social_links?.instagram || ''}
                         onChange={(e) => setTempProfile({...tempProfile, social_links: {...tempProfile.social_links, instagram: e.target.value}})}
-                        />
+                    />
                     </div>
-                    <div>
-                        <label style={labelStyle}>Twitter URL</label>
-                        <input 
+                </div>
+
+                {/* Twitter */}
+                <div>
+                    <label style={labelStyle}>Twitter URL</label>
+                    <div style={socialInputWrapper}>
+                    <Twitter size={18} style={socialIconStyle} />
+                    <input 
                         className="modern-search-input"
-                        placeholder="https://..."
+                        style={socialInputStyle}
+                        placeholder="https://twitter.com/..."
                         value={tempProfile.social_links?.twitter || ''}
                         onChange={(e) => setTempProfile({...tempProfile, social_links: {...tempProfile.social_links, twitter: e.target.value}})}
-                        />
+                    />
                     </div>
-                    <div>
-                        <label style={labelStyle}>YouTube URL</label>
-                        <input 
+                </div>
+
+                {/* YouTube */}
+                <div>
+                    <label style={labelStyle}>YouTube URL</label>
+                    <div style={socialInputWrapper}>
+                    <Youtube size={18} style={socialIconStyle} />
+                    <input 
                         className="modern-search-input"
-                        placeholder="https://..."
+                        style={socialInputStyle}
+                        placeholder="https://youtube.com/..."
                         value={tempProfile.social_links?.youtube || ''}
                         onChange={(e) => setTempProfile({...tempProfile, social_links: {...tempProfile.social_links, youtube: e.target.value}})}
-                        />
+                    />
                     </div>
-                    <div>
-                        <label style={labelStyle}>Spotify URL</label>
-                        <input 
+                </div>
+
+                {/* Spotify */}
+                <div>
+                    <label style={labelStyle}>Spotify URL</label>
+                    <div style={socialInputWrapper}>
+                    <Music size={18} style={socialIconStyle} />
+                    <input 
                         className="modern-search-input"
-                        placeholder="https://..."
+                        style={socialInputStyle}
+                        placeholder="https://spotify.com/..."
                         value={tempProfile.social_links?.spotify || ''}
                         onChange={(e) => setTempProfile({...tempProfile, social_links: {...tempProfile.social_links, spotify: e.target.value}})}
-                        />
+                    />
                     </div>
-                    </div>
+                </div>
+                </div>
                 </div>
             </div>
 
@@ -1168,4 +1191,24 @@ const socialLinkStyle = {
     transition: 'all 0.2s ease',
     border: '1px solid #e2e8f0',
     boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
+};
+
+const socialInputWrapper = { 
+  position: 'relative', 
+  display: 'flex', 
+  alignItems: 'center',
+  width: '100%' 
+};
+
+const socialIconStyle = { 
+  position: 'absolute', 
+  left: '14px', 
+  color: '#6366f1', // This gives the icons that nice Indigo color
+  pointerEvents: 'none' 
+};
+
+const socialInputStyle = { 
+  width: '100%', 
+  paddingLeft: '42px', // This creates the space for the icon
+  marginBottom: 0 // Overriding default margin to keep the grid tight
 };

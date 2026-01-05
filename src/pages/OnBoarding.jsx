@@ -5,7 +5,7 @@ import { useAuth } from '../auth/AuthProvider';
 import { useToast } from '../context/ToastContext';
 import AvatarUpload from '../pages/AvatarUpload';
 import BannerUpload from '../pages/BannerUpload';
-import { ShieldCheck, ArrowRight, ArrowLeft } from 'lucide-react';
+import { ShieldCheck, ArrowRight, ArrowLeft, Instagram, Twitter, Youtube, Music } from 'lucide-react';
 
 export default function OnBoarding() {
   const { session, loading: authLoading } = useAuth();
@@ -30,6 +30,12 @@ export default function OnBoarding() {
     country: 'India',
     phone: '',
     country_code: '+91',
+    social_links: {
+      instagram: '',
+      twitter: '',
+      youtube: '',
+      spotify: ''
+    }
   });
   
   const countryCodes = [
@@ -51,7 +57,10 @@ export default function OnBoarding() {
 
         if (error) throw error;
         if (data) {
-          setFormData(prev => ({ ...prev, ...data }));
+          setFormData({
+            ...data,
+            social_links: data.social_links || { instagram: '', twitter: '', youtube: '', spotify: '' }
+          });
           if (data.username?.trim()) setIsExistingUser(true);
         }
       } catch (err) {
@@ -63,7 +72,6 @@ export default function OnBoarding() {
     if (!authLoading && session) fetchProfile();
   }, [session, authLoading]);
 
-  // Step 1: Save Profile Info (Required to move to Step 2)
   const saveStep1 = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -75,7 +83,8 @@ export default function OnBoarding() {
         display_name: formData.display_name,
         bio: formData.bio,
         avatar_url: formData.avatar_url,
-        banner_url: formData.banner_url
+        banner_url: formData.banner_url,
+        social_links: formData.social_links
       });
       if (error) throw error;
       setStep(2); 
@@ -86,7 +95,6 @@ export default function OnBoarding() {
     }
   };
 
-  // Step 2: Save Shipping (Final Submit)
   const handleFinalSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -125,7 +133,7 @@ export default function OnBoarding() {
   return (
     <div className="onboarding-container" style={containerStyle}>
       <div style={cardStyle}>
-        {/* Step Indicator */}
+        {/* Progress Tracker */}
         <div style={progressContainer}>
             <div style={{...progressCircle, backgroundColor: '#6366f1', color: 'white'}}>1</div>
             <div style={{...progressLine, backgroundColor: step === 2 ? '#6366f1' : '#e2e8f0'}}></div>
@@ -139,25 +147,75 @@ export default function OnBoarding() {
                 <p style={{ color: '#64748b' }}>Choose how supporters will see you.</p>
             </div>
 
-            {/* STACKED HEADER (NO OVERLAP) */}
-            <div style={{ marginBottom: '20px' }}>
+            {/* HEADER AREA: Banner and Avatar */}
+            <div style={{ position: 'relative', marginBottom: '0px' }}> 
               <BannerUpload url={formData.banner_url} onUpload={(url) => setFormData({ ...formData, banner_url: url })} />
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '32px' }}>
-              <AvatarUpload url={formData.avatar_url} onUpload={(url) => setFormData({ ...formData, avatar_url: url })} />
-            </div>
-
-            <label style={labelStyle}>Public Display Name</label>
-            <input type="text" required placeholder="Display Name" value={formData.display_name} onChange={(e) => setFormData({ ...formData, display_name: e.target.value })} style={inputStyle} />
-
-            <label style={labelStyle}>Username</label>
-            <div style={{ position: 'relative', marginBottom: '20px' }}>
-                <span style={{ position: 'absolute', left: '14px', top: '13px', color: '#94a3b8' }}>@</span>
-                <input disabled={isExistingUser} type="text" value={formData.username} onChange={(e) => setFormData({ ...formData, username: e.target.value.toLowerCase().replace(/\s/g, '') })} style={{ ...inputStyle, paddingLeft: '34px' }} />
+              
+              <div style={avatarPositioner}>
+                <div style={avatarTransparentStyle}>
+                  <AvatarUpload url={formData.avatar_url} onUpload={(url) => setFormData({ ...formData, avatar_url: url })} />
+                </div>
+              </div>
             </div>
 
-            <label style={labelStyle}>Bio</label>
-            <textarea placeholder="Tell supporters about yourself..." value={formData.bio} onChange={(e) => setFormData({ ...formData, bio: e.target.value })} maxLength={160} style={{ ...inputStyle, height: '100px', resize: 'none' }} />
+            {/* PHYSICAL SPACER: Reserves space for the floating avatar so it doesn't overlap labels */}
+            <div style={{ height: '60px', width: '100%' }}></div>
+
+            <div style={{ display: 'flex', flexDirection: 'column' }}>
+              <label style={labelStyle}>Public Display Name</label>
+              <input type="text" required placeholder="Display Name" value={formData.display_name} onChange={(e) => setFormData({ ...formData, display_name: e.target.value })} style={inputStyle} />
+
+              <label style={labelStyle}>Username</label>
+              <div style={{ position: 'relative', marginBottom: '20px' }}>
+                  <span style={{ position: 'absolute', left: '14px', top: '13px', color: '#94a3b8' }}>@</span>
+                  <input disabled={isExistingUser} type="text" value={formData.username} onChange={(e) => setFormData({ ...formData, username: e.target.value.toLowerCase().replace(/\s/g, '') })} style={{ ...inputStyle, paddingLeft: '34px' }} />
+              </div>
+
+              <label style={labelStyle}>Bio</label>
+              <textarea placeholder="Tell supporters about yourself..." value={formData.bio} onChange={(e) => setFormData({ ...formData, bio: e.target.value })} maxLength={160} style={{ ...inputStyle, height: '100px', resize: 'none' }} />
+
+              <div style={{ marginBottom: '24px' }}>
+                  <label style={labelStyle}>Social Media Links (Optional)</label>
+                  <div style={socialGridStyle}>
+                      <div style={socialInputWrapper}>
+                          <Instagram size={18} style={socialIconStyle} />
+                          <input 
+                              placeholder="Instagram URL" 
+                              style={socialInputStyle} 
+                              value={formData.social_links?.instagram || ''} 
+                              onChange={(e) => setFormData({...formData, social_links: {...formData.social_links, instagram: e.target.value}})}
+                          />
+                      </div>
+                      <div style={socialInputWrapper}>
+                          <Twitter size={18} style={socialIconStyle} />
+                          <input 
+                              placeholder="Twitter/X URL" 
+                              style={socialInputStyle} 
+                              value={formData.social_links?.twitter || ''} 
+                              onChange={(e) => setFormData({...formData, social_links: {...formData.social_links, twitter: e.target.value}})}
+                          />
+                      </div>
+                      <div style={socialInputWrapper}>
+                          <Youtube size={18} style={socialIconStyle} />
+                          <input 
+                              placeholder="YouTube URL" 
+                              style={socialInputStyle} 
+                              value={formData.social_links?.youtube || ''} 
+                              onChange={(e) => setFormData({...formData, social_links: {...formData.social_links, youtube: e.target.value}})}
+                          />
+                      </div>
+                      <div style={socialInputWrapper}>
+                          <Music size={18} style={socialIconStyle} />
+                          <input 
+                              placeholder="Spotify URL" 
+                              style={socialInputStyle} 
+                              value={formData.social_links?.spotify || ''} 
+                              onChange={(e) => setFormData({...formData, social_links: {...formData.social_links, spotify: e.target.value}})}
+                          />
+                      </div>
+                  </div>
+              </div>
+            </div>
 
             <button type="submit" disabled={loading} style={btnStyle}>
                 Continue to Shipping <ArrowRight size={18} style={{marginLeft: '8px'}} />
@@ -167,7 +225,7 @@ export default function OnBoarding() {
           <form onSubmit={handleFinalSubmit}>
             <div style={{ textAlign: 'center', marginBottom: '32px' }}>
                 <h2 style={{ fontSize: '1.8rem', fontWeight: '800', color: '#0f172a' }}>Shipping Details</h2>
-                <p style={{ color: '#64748b' }}>This can be completed now or later.</p>
+                <p style={{ color: '#64748b' }}>Used only for private gift deliveries.</p>
             </div>
 
             <div style={privacyBannerStyle}>
@@ -200,16 +258,9 @@ export default function OnBoarding() {
               </div>
             </div>
 
-            <button type="submit" disabled={loading} style={btnStyle}>Save & Complete</button>
-            
-            {/* SKIP BUTTON: Only appears in Step 2 */}
-            <button type="button" onClick={() => navigate('/dashboard')} style={skipBtnStyle}>
-                I'll complete this later
-            </button>
-            
-            <button type="button" onClick={() => setStep(1)} style={backBtnStyle}>
-                <ArrowLeft size={16} /> Back to Profile
-            </button>
+            <button type="submit" disabled={loading} style={btnStyle}>Complete Setup</button>
+            <button type="button" onClick={() => navigate('/dashboard')} style={skipBtnStyle}>I'll complete this later</button>
+            <button type="button" onClick={() => setStep(1)} style={backBtnStyle}><ArrowLeft size={16} /> Back to Profile</button>
           </form>
         )}
       </div>
@@ -220,6 +271,24 @@ export default function OnBoarding() {
 // STYLES
 const containerStyle = { paddingTop: '60px', paddingBottom: '80px', backgroundColor: '#f8fafc', minHeight: '100vh', display: 'flex', justifyContent: 'center' };
 const cardStyle = { width: '100%', maxWidth: '600px', background: 'white', padding: '40px', borderRadius: '28px', border: '1px solid #e2e8f0', boxShadow: '0 10px 30px rgba(0,0,0,0.04)' };
+
+const avatarPositioner = { 
+  position: 'absolute', 
+  left: '50%', 
+  transform: 'translateX(-50%)', 
+  bottom: '-80px', 
+  zIndex: 10, 
+  lineHeight: '0' 
+};
+
+// Removed white ring/shadow to make it "transparent" relative to the background
+const avatarTransparentStyle = { 
+  padding: '0px', 
+  backgroundColor: 'transparent', 
+  borderRadius: '50%', 
+  display: 'inline-block' 
+};
+
 const inputStyle = { width: '100%', padding: '14px 16px', marginBottom: '20px', borderRadius: '14px', border: '1px solid #cbd5e1', fontSize: '16px', boxSizing: 'border-box' };
 const labelStyle = { display: 'block', fontSize: '0.8rem', fontWeight: '700', marginBottom: '8px', color: '#64748b', textTransform: 'uppercase' };
 const btnStyle = { width: '100%', padding: '16px', background: '#6366f1', color: 'white', border: 'none', borderRadius: '14px', fontWeight: '700', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' };
@@ -229,3 +298,8 @@ const privacyBannerStyle = { backgroundColor: '#f0fdf4', padding: '16px', border
 const progressContainer = { display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '40px', gap: '12px' };
 const progressCircle = { width: '32px', height: '32px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold' };
 const progressLine = { width: '60px', height: '3px' };
+
+const socialGridStyle = { display: 'flex', flexDirection: 'column', gap: '12px' };
+const socialInputWrapper = { position: 'relative', display: 'flex', alignItems: 'center' };
+const socialIconStyle = { position: 'absolute', left: '14px', color: '#6366f1' };
+const socialInputStyle = { width: '100%', padding: '12px 16px 12px 42px', borderRadius: '12px', border: '1px solid #e2e8f0', fontSize: '14px', outline: 'none' };
