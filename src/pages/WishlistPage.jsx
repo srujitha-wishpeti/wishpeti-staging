@@ -1,6 +1,18 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Camera, Search, Grid, List, Share2, Pencil, Sparkles } from 'lucide-react';
+import { 
+  Instagram, 
+  Twitter, 
+  Youtube, 
+  Music, // Used for Spotify
+  Camera, 
+  Search, 
+  Grid, 
+  List, 
+  Share2, 
+  Pencil, 
+  Sparkles 
+} from 'lucide-react';
 import AddWishlistItem from '../components/AddWishlistItem';
 import { useAuth } from '../auth/AuthProvider';
 import ContributeModal from './ContributeModal';
@@ -33,7 +45,7 @@ export default function WishlistPage() {
   const isOwner = !username || (session?.user && profile && session.user.id === profile.id);
 
   const [editingProfile, setEditingProfile] = useState(false);
-  const [tempProfile, setTempProfile] = useState({ display_name: '', bio: '', avatar_url: '', banner_url: '' });
+  const [tempProfile, setTempProfile] = useState({ display_name: '', bio: '', avatar_url: '', banner_url: '', social_links: { instagram: '', twitter: '', youtube: '', spotify: '' } });
   const [contributingItem, setContributingItem] = useState(null);
 
   const { currency, updateCurrency } = useCurrency();
@@ -94,7 +106,8 @@ const nearestItem = getNearestGoal();
         display_name: profile.display_name || '',
         bio: profile.bio || '',
         avatar_url: profile.avatar_url || '',
-        banner_url: profile.banner_url || ''
+        banner_url: profile.banner_url || '',
+        social_links: profile.social_links || { instagram: '', twitter: '', youtube: '', spotify: '' }
       });
     }
   }, [profile]);
@@ -152,7 +165,9 @@ const nearestItem = getNearestGoal();
         .from('creator_profiles')
         .update({
             display_name: tempProfile.display_name,
-            bio: tempProfile.bio
+            bio: tempProfile.bio,
+            // Add this line to save the links to your jsonb column
+            social_links: tempProfile.social_links 
         })
         .eq('id', session.user.id);
 
@@ -481,6 +496,7 @@ const totalGiftValue = wishlist.reduce((acc, item) => {
                     </div>
 
                     {/* COLUMN 2: IDENTITY & BIO (Takes remaining middle space) */}
+                    {/* COLUMN 2: IDENTITY, BIO & SOCIALS */}
                     <div style={{ 
                         flex: 1, 
                         width: '100%', 
@@ -492,6 +508,46 @@ const totalGiftValue = wishlist.reduce((acc, item) => {
                         </h1>
                         <p style={{ margin: 0, color: '#64748b', fontSize: '15px' }}>@{profile?.username}</p>
                         
+                        {/* SOCIAL MEDIA LINKS - Added Here */}
+                        {/* SOCIAL MEDIA LINKS */}
+                        <div style={{ display: 'flex', gap: '10px', marginTop: '12px', flexWrap: 'wrap' }}>
+                            {profile?.social_links?.instagram && (
+                                <a 
+                                    href={`https://instagram.com/${profile.social_links.instagram}`} 
+                                    target="_blank" 
+                                    rel="noreferrer" 
+                                    style={socialLinkStyle}
+                                >
+                                    <Instagram size={16} />
+                                </a>
+                            )}
+                            {profile?.social_links?.twitter && (
+                                <a 
+                                    href={`https://twitter.com/${profile.social_links.twitter}`} 
+                                    target="_blank" 
+                                    rel="noreferrer" 
+                                    style={socialLinkStyle}
+                                >
+                                    <Twitter size={16} />
+                                </a>
+                            )}
+                            {profile?.social_links?.youtube && (
+                                <a 
+                                    href={profile.social_links.youtube.includes('http') ? profile.social_links.youtube : `https://youtube.com/@${profile.social_links.youtube}`} 
+                                    target="_blank" 
+                                    rel="noreferrer" 
+                                    style={socialLinkStyle}
+                                >
+                                    <Youtube size={16} />
+                                </a>
+                            )}
+                            {profile?.social_links?.spotify && (
+                                <a href={profile.social_links.spotify} target="_blank" rel="noreferrer" style={socialLinkStyle}>
+                                    <Music size={16} />
+                                </a>
+                            )}
+                        </div>
+
                         <div style={{ margin: '12px 0' }}>
                             <p style={{ 
                                 margin: 0, 
@@ -824,6 +880,55 @@ const totalGiftValue = wishlist.reduce((acc, item) => {
                                 onChange={(e) => setTempProfile({...tempProfile, bio: e.target.value})}
                             />
                         </div>
+                        {/* Social Media Links in Edit Modal */}
+                        <div>
+                            <label style={labelStyle}>Instagram URL</label>
+                            <input 
+                                className="modern-search-input"
+                                placeholder="https://instagram.com/username"
+                                value={tempProfile.social_links?.instagram || ''}
+                                onChange={(e) => setTempProfile({
+                                    ...tempProfile, 
+                                    social_links: { ...tempProfile.social_links, instagram: e.target.value }
+                                })}
+                            />
+                        </div>
+                        <div>
+                            <label style={labelStyle}>Twitter/X URL</label>
+                            <input 
+                                className="modern-search-input"
+                                placeholder="https://twitter.com/username"
+                                value={tempProfile.social_links?.twitter || ''}
+                                onChange={(e) => setTempProfile({
+                                    ...tempProfile, 
+                                    social_links: { ...tempProfile.social_links, twitter: e.target.value }
+                                })}
+                            />
+                        </div>
+                        <div>
+                            <label style={labelStyle}>YouTube URL</label>
+                            <input 
+                                className="modern-search-input"
+                                placeholder="https://youtube.com/@username"
+                                value={tempProfile.social_links?.youtube || ''}
+                                onChange={(e) => setTempProfile({
+                                    ...tempProfile, 
+                                    social_links: { ...tempProfile.social_links, youtube: e.target.value }
+                                })}
+                            />
+                        </div>
+                        <div>
+                            <label style={labelStyle}>Spotify URL</label>
+                            <input 
+                                className="modern-search-input"
+                                placeholder="https://open.spotify.com/user/..."
+                                value={tempProfile.social_links?.spotify || ''}
+                                onChange={(e) => setTempProfile({
+                                    ...tempProfile, 
+                                    social_links: { ...tempProfile.social_links, spotify: e.target.value }
+                                })}
+                            />
+                        </div>
                         <button onClick={handleUpdateProfile} className="btn-main-action" style={{ width: '100%', padding: '12px', background: '#1e293b', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer' }}>
                             Save Changes
                         </button>
@@ -1004,4 +1109,19 @@ const statCardStyle = {
   borderRadius: '12px',
   border: '1px solid #e2e8f0',
   minWidth: '200px'
+};
+
+const socialLinkStyle = {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '6px',
+    padding: '6px 12px',
+    borderRadius: '20px',
+    background: '#f1f5f9',
+    color: '#475569',
+    fontSize: '13px',
+    fontWeight: '600',
+    textDecoration: 'none',
+    transition: 'all 0.2s ease',
+    border: '1px solid #e2e8f0'
 };
