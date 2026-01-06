@@ -4,16 +4,34 @@ import React, { useEffect, useState } from 'react';
 
 export default function Landing() {
   const showToast = useToast();
+  const [featuredCreators, setFeaturedCreators] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // Fetch top 5 active profiles (ordered by most recent update)
+    const fetchFeatured = async () => {
+      const { data, error } = await supabase
+        .from('creator_profiles')
+        .select('username, display_name, avatar_url, banner_url, bio')
+        .not('username', 'is', null) // Ensure they have a username
+        .not('display_name', 'is', null) // Ensure they have a display name
+        .limit(5)
+        .order('updated_at', { ascending: false });
+
+      if (!error && data) {
+        setFeaturedCreators(data);
+      }
+      setLoading(false);
+    };
+
+    fetchFeatured();
+
     const channel = supabase
       .channel('landing-public-activity')
       .on(
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'orders' },
         (payload) => {
-          // We don't need to show the exact amount for privacy on a landing page
-          // Just a "Someone just sent a gift" message
           const name = payload.new.is_anonymous ? "Someone" : (payload.new.buyer_name || "A fan");
           showToast(`✨ ${name} just fulfilled a gift for a creator!`);
         }
@@ -57,6 +75,43 @@ export default function Landing() {
           </a>
         </div>
       </div>
+
+      {/* DYNAMIC COMMUNITY SPOTLIGHTS */}
+      {!loading && featuredCreators.length > 0 && (
+        <div style={{ padding: '60px 32px', textAlign: 'center', backgroundColor: '#fff' }}>
+          <h2 style={{ fontSize: '2rem', marginBottom: '12px' }}>Active Community Members</h2>
+          <p style={{ color: '#64748b', marginBottom: '40px' }}>Meet the creators receiving support from their supporters.</p>
+          
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '20px', justifyContent: 'center', maxWidth: '1200px', margin: '0 auto' }}>
+            {featuredCreators.map((creator) => (
+              <div key={creator.username} style={profileCardStyle}>
+                <div style={profileBannerSmall}>
+                  {creator.banner_url && (
+                    <img src={creator.banner_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="banner" />
+                  )}
+                </div>
+                <div style={profileAvatarWrapper}>
+                  <img 
+                    src={creator.avatar_url || 'https://via.placeholder.com/150'} 
+                    style={profileAvatarStyle} 
+                    alt={creator.display_name} 
+                  />
+                </div>
+                <div style={{ padding: '45px 15px 20px 15px' }}>
+                  <h3 style={{ margin: '0 0 4px 0', fontSize: '1.1rem' }}>{creator.display_name}</h3>
+                  <p style={{ color: '#4f46e5', fontSize: '0.8rem', fontWeight: 'bold', marginBottom: '8px' }}>@{creator.username}</p>
+                  <p style={{ fontSize: '0.85rem', color: '#64748b', height: '38px', overflow: 'hidden', lineHeight: '1.4' }}>
+                    {creator.bio || "Digital Creator"}
+                  </p>
+                  <a href={`/${creator.username}`} style={viewProfileBtn}>
+                    View WishPeti
+                  </a>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* HOW IT WORKS SECTION */}
       <div id="how-it-works" style={{ padding: '80px 32px', backgroundColor: '#f7fafc', textAlign: 'center' }}>
@@ -112,7 +167,57 @@ export default function Landing() {
   )
 }
 
+
 // Simple styles for the cards
+
+const profileCardStyle = {
+  width: '280px',
+  backgroundColor: '#fff',
+  borderRadius: '20px',
+  border: '1px solid #e2e8f0',
+  textAlign: 'center',
+  overflow: 'hidden',
+  position: 'relative',
+  boxShadow: '0 4px 12px rgba(0,0,0,0.03)'
+};
+
+const profileBannerSmall = {
+  height: '100px',
+  backgroundColor: '#f1f5f9',
+  width: '100%'
+};
+
+const profileAvatarWrapper = {
+  position: 'absolute',
+  top: '65px',
+  left: '50%',
+  transform: 'translateX(-50%)',
+  padding: '4px',
+  backgroundColor: '#fff',
+  borderRadius: '50%',
+  zIndex: 2
+};
+
+const profileAvatarStyle = {
+  width: '70px',
+  height: '70px',
+  borderRadius: '50%',
+  objectFit: 'cover', // This prevents the image from stretching
+  border: '3px solid white', // Adds a nice clean border
+  backgroundColor: '#f1f5f9' // Fallback color while image loads
+};
+
+const viewProfileBtn = {
+  display: 'block',
+  padding: '12px',
+  backgroundColor: '#4f46e5',
+  color: '#fff',
+  borderRadius: '10px',
+  textDecoration: 'none',
+  fontSize: '0.9rem',
+  fontWeight: '700'
+};
+
 const stepCardStyle = {
   flex: '1',
   minWidth: '250px',
