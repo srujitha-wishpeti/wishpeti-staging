@@ -91,11 +91,29 @@ export default function Landing() {
                   )}
                 </div>
                 <div style={profileAvatarWrapper}>
-                  <img 
-                    src={creator.avatar_url || 'https://via.placeholder.com/150'} 
-                    style={profileAvatarStyle} 
-                    alt={creator.display_name} 
-                  />
+                  {creator.avatar_url ? (
+                    <img 
+                      src={creator.avatar_url} 
+                      style={profileAvatarStyle} 
+                      alt={creator.display_name} 
+                      onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }}
+                    />
+                  ) : null}
+                  
+                  {/* Fallback Initial: Shows if avatar_url is null or fails to load */}
+                  <div style={{
+                    ...profileAvatarStyle,
+                    display: creator.avatar_url ? 'none' : 'flex',
+                    backgroundColor: '#6366f1',
+                    color: 'white',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '24px',
+                    fontWeight: 'bold',
+                    textTransform: 'uppercase'
+                  }}>
+                    {creator.display_name?.charAt(0) || creator.username?.charAt(0)}
+                  </div>
                 </div>
                 <div style={{ padding: '45px 15px 20px 15px' }}>
                   <h3 style={{ margin: '0 0 4px 0', fontSize: '1.1rem' }}>{creator.display_name}</h3>
