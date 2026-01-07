@@ -8,13 +8,12 @@ export default function Landing() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Fetch top 5 active profiles (ordered by most recent update)
     const fetchFeatured = async () => {
       const { data, error } = await supabase
         .from('creator_profiles')
         .select('username, display_name, avatar_url, banner_url, bio')
-        .not('username', 'is', null) // Ensure they have a username
-        .not('display_name', 'is', null) // Ensure they have a display name
+        .not('username', 'is', null)
+        .not('display_name', 'is', null)
         .limit(4)
         .order('updated_at', { ascending: false });
 
@@ -55,24 +54,12 @@ export default function Landing() {
           The Safest Way for Digital Creators to Receive Real Support from their Community. 🎁
         </h1>
         <p style={{ fontSize: '1.2rem', color: '#4a5568', lineHeight: '1.6', marginBottom: '32px' }}>
-          Build your WishPeti in minutes. Let your audience help fund your tools, creative work, or causes, while keeping your personal details private. Trusted by top influencers to bridge the gap between creators and their community safely.
+          Build your WishPeti in minutes. Let your audience help fund your tools, creative work, or causes, while keeping your personal details private.
         </p>
         
         <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
-          <button 
-            onClick={login} 
-            style={{ padding: '12px 24px', backgroundColor: '#000', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}
-          >
-            Get Started
-          </button>
-          
-          {/* This link points to the ID below */}
-          <a 
-            href="#how-it-works" 
-            style={{ padding: '12px 24px', backgroundColor: '#fff', color: '#000', border: '1px solid #cbd5e0', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', textDecoration: 'none' }}
-          >
-            How it Works
-          </a>
+          <button onClick={login} style={primaryBtnStyle}>Get Started</button>
+          <a href="#how-it-works" style={secondaryBtnStyle}>How it Works</a>
         </div>
       </div>
 
@@ -82,7 +69,7 @@ export default function Landing() {
           <h2 style={{ fontSize: '2rem', marginBottom: '12px' }}>Active Community Members</h2>
           <p style={{ color: '#64748b', marginBottom: '40px' }}>Meet the creators receiving support from their supporters.</p>
           
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '20px', justifyContent: 'center', maxWidth: '1200px', margin: '0 auto' }}>
+          <div style={gridContainerStyle}>
             {featuredCreators.map((creator) => (
               <div key={creator.username} style={profileCardStyle}>
                 <div style={profileBannerSmall}>
@@ -90,40 +77,39 @@ export default function Landing() {
                     <img src={creator.banner_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="banner" />
                   )}
                 </div>
-                <div style={profileAvatarWrapper}>
-                  {creator.avatar_url ? (
-                    <img 
-                      src={creator.avatar_url} 
-                      style={profileAvatarStyle} 
-                      alt={creator.display_name} 
-                      onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }}
-                    />
-                  ) : null}
-                  
-                  {/* Fallback Initial: Shows if avatar_url is null or fails to load */}
-                  <div style={{
-                    ...profileAvatarStyle,
-                    display: creator.avatar_url ? 'none' : 'flex',
-                    backgroundColor: '#6366f1',
-                    color: 'white',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: '24px',
-                    fontWeight: 'bold',
-                    textTransform: 'uppercase'
-                  }}>
-                    {creator.display_name?.charAt(0) || creator.username?.charAt(0)}
+
+                <div style={avatarPositioner}>
+                  <div style={profileAvatarWrapper}>
+                    {creator.avatar_url ? (
+                      <img 
+                        src={creator.avatar_url} 
+                        style={profileAvatarStyle} 
+                        alt={creator.display_name} 
+                        onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }}
+                      />
+                    ) : null}
+                    <div style={{
+                      ...profileAvatarStyle,
+                      display: creator.avatar_url ? 'none' : 'flex',
+                      backgroundColor: '#6366f1',
+                      color: 'white',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: '24px',
+                      fontWeight: 'bold'
+                    }}>
+                      {creator.display_name?.charAt(0) || creator.username?.charAt(0)}
+                    </div>
                   </div>
                 </div>
-                <div style={{ padding: '45px 15px 20px 15px' }}>
+
+                <div style={{ padding: '0 15px 20px 15px' }}>
                   <h3 style={{ margin: '0 0 4px 0', fontSize: '1.1rem' }}>{creator.display_name}</h3>
                   <p style={{ color: '#4f46e5', fontSize: '0.8rem', fontWeight: 'bold', marginBottom: '8px' }}>@{creator.username}</p>
-                  <p style={{ fontSize: '0.85rem', color: '#64748b', height: '38px', overflow: 'hidden', lineHeight: '1.4' }}>
+                  <p style={{ fontSize: '0.85rem', color: '#64748b', height: '38px', overflow: 'hidden', lineHeight: '1.4', marginBottom: '12px' }}>
                     {creator.bio || "Digital Creator"}
                   </p>
-                  <a href={`/${creator.username}`} style={viewProfileBtn}>
-                    View WishPeti
-                  </a>
+                  <a href={`/${creator.username}`} style={viewProfileBtn}>View WishPeti</a>
                 </div>
               </div>
             ))}
@@ -134,20 +120,17 @@ export default function Landing() {
       {/* HOW IT WORKS SECTION */}
       <div id="how-it-works" style={{ padding: '80px 32px', backgroundColor: '#f7fafc', textAlign: 'center' }}>
         <h2 style={{ fontSize: '2rem', marginBottom: '48px' }}>How it Works</h2>
-        
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '32px', justifyContent: 'center', maxWidth: '1000px', margin: '0 auto' }}>
           <div style={stepCardStyle}>
             <div style={numberCircle}>1</div>
             <h3>Create your Peti</h3>
             <p>Add the items, tools or resources you actually want from any online store.</p>
           </div>
-
           <div style={stepCardStyle}>
             <div style={numberCircle}>2</div>
             <h3>Share your Link</h3>
             <p>Add your unique WishPeti link to your social media bios.</p>
           </div>
-
           <div style={stepCardStyle}>
             <div style={numberCircle}>3</div>
             <h3>Receive Privately</h3>
@@ -155,26 +138,23 @@ export default function Landing() {
           </div>
         </div>
       </div>
-      {/* FAQ SECTION */}
+
+      {/* FAQ SECTION - ALL QUESTIONS RESTORED */}
       <div style={{ padding: '80px 32px', maxWidth: '800px', margin: '0 auto' }}>
         <h2 style={{ fontSize: '2rem', textAlign: 'center', marginBottom: '40px' }}>Common Questions</h2>
-        
         <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
           <div style={faqItemStyle}>
             <h4 style={faqQuestionStyle}>Is my address really private?</h4>
             <p style={faqAnswerStyle}>Absolutely. Your shipping address is never revealed to your community. Our secure delivery service ensures your home remains your private sanctuary.</p>
           </div>
-
           <div style={faqItemStyle}>
             <h4 style={faqQuestionStyle}>How do I get paid?</h4>
             <p style={faqAnswerStyle}>For cash support, we use Razorpay's secure infrastructure to transfer funds directly to your linked account.</p>
           </div>
-
           <div style={faqItemStyle}>
             <h4 style={faqQuestionStyle}>What platforms does this work with?</h4>
-            <p style={faqAnswerStyle}>Everywhere! You can put your WishPeti link in your bio on Instagram, TikTok, YouTube, Twitch, or X (Twitter).</p>
+            <p style={faqAnswerStyle}>Everywhere! You can post your WishPeti link in your bio on Instagram, TikTok, YouTube, Twitch, or X (Twitter).</p>
           </div>
-
           <div style={faqItemStyle}>
             <h4 style={faqQuestionStyle}>Are there any fees?</h4>
             <p style={faqAnswerStyle}>Setting up your WishPeti is 100% free. We only take a small platform fee on cash contributions to keep the lights on.</p>
@@ -185,11 +165,19 @@ export default function Landing() {
   )
 }
 
-
-// Simple styles for the cards
+// STYLES 
+const gridContainerStyle = {
+  display: 'grid',
+  gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
+  gap: '20px',
+  justifyItems: 'center',
+  maxWidth: '1100px',
+  margin: '0 auto'
+};
 
 const profileCardStyle = {
-  width: '280px',
+  width: '100%',
+  maxWidth: '250px',
   backgroundColor: '#fff',
   borderRadius: '20px',
   border: '1px solid #e2e8f0',
@@ -199,82 +187,35 @@ const profileCardStyle = {
   boxShadow: '0 4px 12px rgba(0,0,0,0.03)'
 };
 
-const profileBannerSmall = {
-  height: '100px',
-  backgroundColor: '#f1f5f9',
-  width: '100%'
+const profileBannerSmall = { height: '90px', backgroundColor: '#f1f5f9', width: '100%' };
+
+const avatarPositioner = {
+  display: 'flex',
+  justifyContent: 'center',
+  marginTop: '-35px',
+  marginBottom: '10px',
+  position: 'relative',
+  zIndex: 10
 };
 
-const profileAvatarWrapper = {
-  position: 'absolute',
-  top: '65px',
-  left: '50%',
-  transform: 'translateX(-50%)',
-  padding: '4px',
-  backgroundColor: '#fff',
-  borderRadius: '50%',
-  zIndex: 2
-};
+const profileAvatarWrapper = { padding: '4px', backgroundColor: '#fff', borderRadius: '50%', display: 'inline-block' };
 
 const profileAvatarStyle = {
-  width: '70px',
-  height: '70px',
+  width: '65px',
+  height: '65px',
   borderRadius: '50%',
-  objectFit: 'cover', // This prevents the image from stretching
-  border: '3px solid white', // Adds a nice clean border
-  backgroundColor: '#f1f5f9' // Fallback color while image loads
+  objectFit: 'cover',
+  border: '3px solid white',
+  backgroundColor: '#f1f5f9'
 };
 
-const viewProfileBtn = {
-  display: 'block',
-  padding: '12px',
-  backgroundColor: '#4f46e5',
-  color: '#fff',
-  borderRadius: '10px',
-  textDecoration: 'none',
-  fontSize: '0.9rem',
-  fontWeight: '700'
-};
+const primaryBtnStyle = { padding: '12px 24px', backgroundColor: '#000', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' };
+const secondaryBtnStyle = { padding: '12px 24px', backgroundColor: '#fff', color: '#000', border: '1px solid #cbd5e0', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', textDecoration: 'none' };
+const viewProfileBtn = { display: 'block', padding: '10px', backgroundColor: '#4f46e5', color: '#fff', borderRadius: '10px', textDecoration: 'none', fontSize: '0.85rem', fontWeight: '700' };
 
-const stepCardStyle = {
-  flex: '1',
-  minWidth: '250px',
-  padding: '24px',
-  backgroundColor: '#fff',
-  borderRadius: '12px',
-  boxShadow: '0 4px 6px rgba(0,0,0,0.05)',
-  textAlign: 'left'
-};
+const stepCardStyle = { flex: '1', minWidth: '250px', padding: '24px', backgroundColor: '#fff', borderRadius: '12px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)', textAlign: 'left' };
+const numberCircle = { width: '32px', height: '32px', borderRadius: '50%', backgroundColor: '#4f46e5', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '16px', fontWeight: 'bold' };
 
-const numberCircle = {
-  width: '32px',
-  height: '32px',
-  borderRadius: '50%',
-  backgroundColor: '#4f46e5',
-  color: '#fff',
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  marginBottom: '16px',
-  fontWeight: 'bold'
-};
-
-const faqItemStyle = {
-  padding: '20px',
-  borderRadius: '12px',
-  backgroundColor: '#f8fafc',
-  border: '1px solid #e2e8f0'
-};
-
-const faqQuestionStyle = {
-  margin: '0 0 10px 0',
-  fontSize: '1.1rem',
-  fontWeight: '700',
-  color: '#1a202c'
-};
-
-const faqAnswerStyle = {
-  margin: 0,
-  color: '#4a5568',
-  lineHeight: '1.5'
-};
+const faqItemStyle = { padding: '20px', borderRadius: '12px', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0' };
+const faqQuestionStyle = { margin: '0 0 10px 0', fontSize: '1.1rem', fontWeight: '700', color: '#1a202c' };
+const faqAnswerStyle = { margin: 0, color: '#4a5568', lineHeight: '1.5' };
