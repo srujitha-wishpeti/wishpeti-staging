@@ -23,7 +23,6 @@ export default function ContributeModal({ item, onClose, onSuccess, isOwner }) {
   const rate = currency?.rate || 1;
 
   const isEmailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(buyerEmail);
-  
 
   // --- LOGIC: UNIT PRICE * QUANTITY ---
   const unitPrice = item.price || 0;
@@ -55,7 +54,6 @@ export default function ContributeModal({ item, onClose, onSuccess, isOwner }) {
     fetchGivers();
   }, [item.id]);
 
-  // --- CSV EXPORT LOGIC ---
   const handleExportCSV = () => {
     if (recentGivers.length === 0) return;
     const headers = ["Donor Name", "Amount", "Date", "Email", "Message"];
@@ -77,6 +75,12 @@ export default function ContributeModal({ item, onClose, onSuccess, isOwner }) {
     document.body.removeChild(link);
   };
 
+  // NEW: Logic to fill the exact remaining amount
+  const handlePayRemaining = () => {
+    const exactAmount = Math.ceil(displayRemaining * 100) / 100;
+    setAmount(exactAmount.toString());
+  };
+
   const handlePayment = async () => {
     let inputAmount = parseFloat(amount);
     if (!inputAmount || inputAmount <= 0 || !buyerEmail) {
@@ -84,8 +88,9 @@ export default function ContributeModal({ item, onClose, onSuccess, isOwner }) {
       return;
     }
 
+    // UPDATED: Rounding UP logic
     if (inputAmount > displayRemaining) {
-      inputAmount = Math.floor(displayRemaining * 100) / 100;
+      inputAmount = Math.ceil(displayRemaining * 100) / 100;
       setAmount(inputAmount.toString()); 
     }
 
@@ -116,12 +121,10 @@ export default function ContributeModal({ item, onClose, onSuccess, isOwner }) {
       };
 
       const rzp = new window.Razorpay(options);
-
       rzp.on('payment.failed', function (response) {
         setLoading(false);
         alert("Payment failed: " + response.error.description);
       });
-
       rzp.open();
     } catch (err) {
       alert("Payment error: " + err.message);
@@ -150,21 +153,20 @@ export default function ContributeModal({ item, onClose, onSuccess, isOwner }) {
           buyer_email: buyerEmail,
           buyer_message: buyerMessage
         }])
-        .select() // <--- CRITICAL: This allows you to get the ID
+        .select()
         .single();
 
     if (orderError) throw orderError;
 
-    // 3. LOG THE TRANSACTION (Matching your existing table)
     const { error: transError } = await supabase
     .from('transactions')
     .insert([{
         creator_id: item.creator_id,
         order_id: newOrder.id,
-        provider_payment_id: response.razorpay_payment_id, // Renamed
+        provider_payment_id: response.razorpay_payment_id,
         amount_inr: contributionInINR,
-        currency_code: currency.code, // Renamed from currency_from
-        type: 'gift_payment', // Added to match transactions_type_check constraint
+        currency_code: currency.code,
+        type: 'gift_payment',
         status: 'success',
         currency_rate: currency.rate
     }]);
@@ -172,9 +174,11 @@ export default function ContributeModal({ item, onClose, onSuccess, isOwner }) {
     if (transError) console.error("Transaction log failed:", transError.message);
 
     const newRaisedTotal = (item.amount_raised || 0) + contributionInINR;
-    const isNowFullyFunded = newRaisedTotal >= (totalGoalBase - 0.05); 
     
-    const updatePayload = { amount_raised: newRaisedTotal };
+    // Check if fully funded using a small epsilon to account for currency conversion rounding
+    const isNowFullyFunded = newRaisedTotal >= (totalGoalBase - 0.1); 
+    
+    const updatePayload = { amount_raised: isNowFullyFunded ? totalGoalBase : newRaisedTotal };
     if (isNowFullyFunded) {
         updatePayload.status = 'claimed';
         updatePayload.quantity = 0; 
@@ -204,7 +208,6 @@ export default function ContributeModal({ item, onClose, onSuccess, isOwner }) {
         <div style={{ padding: '20px', maxHeight: '85vh', overflowY: 'auto' }}>
           <p style={itemText}>Item: <strong>{item.title}</strong></p>
           
-          {/* Progress Bar Section */}
           <div style={{...remainingBox, backgroundColor: '#f8fafc', border: '1px solid #f1f5f9'}}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
                 <span style={labelStyle}>Raised: {symbol}{displayRaised.toFixed(2)}</span>
@@ -216,7 +219,6 @@ export default function ContributeModal({ item, onClose, onSuccess, isOwner }) {
           </div>
 
           {isOwner ? (
-            /* --- OWNER VIEW: Dashboard & History --- */
             <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
                 <div style={ownerStatsGrid}>
                     <div style={statCard}>
@@ -253,15 +255,16 @@ export default function ContributeModal({ item, onClose, onSuccess, isOwner }) {
                         <p style={{ fontSize: '13px', color: '#94a3b8', textAlign: 'center', padding: '20px' }}>No contributions yet.</p>
                     )}
                 </div>
-                
                 <button onClick={onClose} style={btnStyle}>Done</button>
             </div>
           ) : (
-            /* --- SUPPORTER VIEW: Payment Form --- */
             !isGoalReached && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                 <div style={{ marginBottom: '24px' }}>
-                    <label style={labelStyle}>Quick Contribution</label>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <label style={labelStyle}>Quick Contribution</label>
+                        <button onClick={handlePayRemaining} style={payRemainingBtnStyle}>Remaining: {symbol}{displayRemaining.toFixed(2)}</button>
+                    </div>
                     <div style={quickGridStyle}>
                       {(PRESETS[currency.code] || [10, 25, 50]).map((presetAmt) => {
                         const isSelected = parseFloat(amount) === presetAmt;
@@ -349,34 +352,19 @@ export default function ContributeModal({ item, onClose, onSuccess, isOwner }) {
                     backgroundColor: isAnonymous ? '#f5f3ff' : '#fff',
                   }}
                 >
-                  {/* Checkbox wrapper to ensure it doesn't shrink */}
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <input 
-                      type="checkbox" 
-                      checked={isAnonymous} 
-                      readOnly 
-                      style={{ width: '20px', height: '20px', cursor: 'pointer', margin: 0 }} 
-                    />
+                    <input type="checkbox" checked={isAnonymous} readOnly style={{ width: '20px', height: '20px', cursor: 'pointer', margin: 0 }} />
                   </div>
-
                   <div style={{ display: 'flex', flexDirection: 'column' }}>
-                    <div style={{ fontWeight: '700', fontSize: '14px', color: '#1e293b', lineHeight: '1.2' }}>
-                      Stay Anonymous 👤
-                    </div>
-                    <div style={{ fontSize: '12px', color: '#64748b', marginTop: '2px' }}>
-                      Hide your name on the public wishlist.
-                    </div>
+                    <div style={{ fontWeight: '700', fontSize: '14px', color: '#1e293b', lineHeight: '1.2' }}>Stay Anonymous 👤</div>
+                    <div style={{ fontSize: '12px', color: '#64748b', marginTop: '2px' }}>Hide your name on the public wishlist.</div>
                   </div>
                 </div>
               </div>
             )
           )}
-
-          
         </div>
 
-        {/* FIXED FOOTER BUTTON */}
-        {/* Hide the payment footer if the user is the owner of the wishlist */}
         {!isOwner && (
           <div style={{ padding: '16px 24px', borderTop: '1px solid #f1f5f9', backgroundColor: '#f8fafc' }}>
             <button 
@@ -404,7 +392,6 @@ const ownerStatsGrid = { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '
 const statCard = { padding: '12px', backgroundColor: '#f8fafc', borderRadius: '12px', border: '1px solid #f1f5f9', textAlign: 'left', display: 'flex', flexDirection: 'column', gap: '4px' };
 const ownerGiverRow = { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px', backgroundColor: '#fff', border: '1px solid #f1f5f9', borderRadius: '12px' };
 const exportBtnStyle = { display: 'flex', alignItems: 'center', gap: '4px', background: '#f1f5f9', border: '1px solid #e2e8f0', padding: '4px 10px', borderRadius: '6px', fontSize: '11px', fontWeight: '700', color: '#475569', cursor: 'pointer' };
-
 const fieldGroup = { display: 'flex', flexDirection: 'column', gap: '6px', textAlign: 'left' };
 const headerStyle = { padding: '20px', borderBottom: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center' };
 const remainingBox = { padding: '20px', borderRadius: '16px', textAlign: 'center', marginBottom: '16px' };
@@ -416,73 +403,12 @@ const btnStyle = { width: '100%', padding: '16px', backgroundColor: '#1e293b', c
 const labelStyle = { fontSize: '11px', fontWeight: '800', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' };
 const itemText = { fontSize: '14px', margin: '0 0 16px 0', color: '#475569', textAlign: 'left' };
 const footerStyle = { marginTop: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px', color: '#94a3b8', fontSize: '11px' };
-
 const overlayStyle = { position: 'fixed', inset: 0, boxShadow: '0 0 0 5000px rgba(15, 23, 42, 0.85)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10000, padding: '20px' };
-const toggleCardStyle = {
-  display: 'flex',
-  alignItems: 'center', // This centers them vertically
-  justifyContent: 'flex-start',
-  gap: '16px', // Increased gap slightly for better breathing room
-  padding: '14px 18px',
-  borderRadius: '14px',
-  border: '2px solid',
-  cursor: 'pointer',
-  transition: 'all 0.2s ease',
-  textAlign: 'left',
-  width: '100%' // Ensure it fills the container
-};
-// ContributeModal.jsx
+const toggleCardStyle = { display: 'flex', alignItems: 'center', justifyContent: 'flex-start', gap: '16px', padding: '14px 18px', borderRadius: '14px', border: '2px solid', cursor: 'pointer', transition: 'all 0.2s ease', textAlign: 'left', width: '100%' };
+const modalStyle = { backgroundColor: 'white', borderRadius: '24px', width: '100%', maxWidth: '420px', maxHeight: '90vh', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)', position: 'relative' };
+const quickGridStyle = { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(80px, 1fr))', gap: '10px', marginTop: '8px', marginBottom: '16px' };
+const quickBtnBase = { padding: '12px 8px', borderRadius: '12px', border: '1.5px solid', fontSize: '14px', fontWeight: '700', cursor: 'pointer', transition: 'all 0.2s ease', display: 'flex', alignItems: 'center', justifyContent: 'center' };
+const inputStyle = { width: '100%', padding: '14px 14px 14px 40px', borderRadius: '12px', border: '1.5px solid #e2e8f0', fontSize: '16px', fontWeight: '700', outline: 'none', boxSizing: 'border-box' };
 
-const modalStyle = { 
-  backgroundColor: 'white', 
-  borderRadius: '24px', 
-  width: '100%', 
-  maxWidth: '420px', 
-  // FIX: Limit height and enable internal scrolling
-  maxHeight: '90vh', 
-  display: 'flex',
-  flexDirection: 'column',
-  overflow: 'hidden', // Keep the outer container clean
-  boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)', 
-  position: 'relative' 
-};
-
-// ADD THIS NEW STYLE for the scrollable area
-const scrollContentStyle = {
-  padding: '24px',
-  overflowY: 'auto',
-  flex: 1
-};
-
-const quickGridStyle = {
-  display: 'grid',
-  gridTemplateColumns: 'repeat(auto-fit, minmax(80px, 1fr))',
-  gap: '10px',
-  marginTop: '8px',
-  marginBottom: '16px'
-};
-
-const quickBtnBase = {
-  padding: '12px 8px',
-  borderRadius: '12px',
-  border: '1.5px solid',
-  fontSize: '14px',
-  fontWeight: '700',
-  cursor: 'pointer',
-  transition: 'all 0.2s ease',
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center'
-};
-
-// Update inputStyle for a cleaner look
-const inputStyle = { 
-  width: '100%', 
-  padding: '14px 14px 14px 40px', 
-  borderRadius: '12px', 
-  border: '1.5px solid #e2e8f0', 
-  fontSize: '16px', 
-  fontWeight: '700', 
-  outline: 'none',
-  boxSizing: 'border-box'
-};
+// NEW: Matching style for the "Remaining" button
+const payRemainingBtnStyle = { background: '#f5f3ff', border: '1px solid #ddd6fe', padding: '4px 10px', borderRadius: '6px', fontSize: '11px', fontWeight: '700', color: '#6366f1', cursor: 'pointer' };
