@@ -15,7 +15,7 @@ export default function Landing() {
         .select('username, display_name, avatar_url, banner_url, bio')
         .not('username', 'is', null) // Ensure they have a username
         .not('display_name', 'is', null) // Ensure they have a display name
-        .limit(5)
+        .limit(4)
         .order('updated_at', { ascending: false });
 
       if (!error && data) {
