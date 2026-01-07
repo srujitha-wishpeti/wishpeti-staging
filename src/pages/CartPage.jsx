@@ -220,10 +220,12 @@ export default function CartPage() {
         // Get the ID of the first order for the transaction record and redirect
         const firstOrderId = orderResults[0].data[0].id;
         let amountInInr;
-        const amountInINR = currency.code === 'INR' 
-                ? finalPayable 
-                : finalPayable /
-                 (currency.rate || 1);
+        if (currency.code === 'INR') {
+          amountInInr = finalPayable;
+        } else {
+          // Back to INR for Razorpay Gateway
+          amountInInr = Math.round((finalPayable / currency.rate));
+        }
 
         console.log(amountInInr);
         // 2. Log the Single Transaction (The "Money" record)

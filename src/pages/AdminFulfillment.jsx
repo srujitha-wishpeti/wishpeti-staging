@@ -210,12 +210,27 @@ export default function AdminFulfillment() {
                   </td>
                   
                   <td style={cellStyle}>
-                      <span style={getStatusStyle(order.gift_status)}>{order.gift_status}</span>
-                      {isRefunded ? (
-                        <div style={refundBadgeStyle}>⚠️ PAYMENT REFUNDED</div>
-                      ) : (
-                        <div style={{fontSize: '10px', marginTop: '4px', color: '#64748b'}}>Pay: {order.payment_status}</div>
+                      {/* Prioritize title, fallback to ID if both missing */}
+                      <div style={{ fontWeight: '600', color: isRefunded ? '#94a3b8' : '#1e293b' }}>
+                          {getItemTitle(order)}
+                      </div>
+                      
+                      {isRefunded && (
+                          <div style={{
+                              marginTop: '8px',
+                              padding: '4px 8px',
+                              backgroundColor: '#fee2e2',
+                              color: '#b91c1c',
+                              fontSize: '11px',
+                              fontWeight: 'bold',
+                              borderRadius: '4px',
+                              border: '1px solid #f87171',
+                              textAlign: 'center'
+                          }}>
+                              ⚠️ PAYMENT REFUNDED - DO NOT SHIP
+                          </div>
                       )}
+                      <div style={{ fontSize: '12px', color: '#64748b', marginTop: '4px' }}>Qty: {getItemQty(order)}</div>
                   </td>
 
                   <td style={cellStyle}>{order.creator_profiles?.full_name || 'Name Missing'}</td>
