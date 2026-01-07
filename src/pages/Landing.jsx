@@ -40,11 +40,10 @@ export default function Landing() {
     return () => { supabase.removeChannel(channel); };
   }, [showToast]);
 
-  const login = async () => {
-    await supabase.auth.signInWithOAuth({
-      provider: 'google',
-    })
-  }
+  // Updated Redirect Function
+  const handleGetStarted = () => {
+    window.location.href = '/auth?mode=login';
+  };
 
   return (
     <div style={{ fontFamily: 'sans-serif', color: '#1a202c' }}>
@@ -58,8 +57,19 @@ export default function Landing() {
         </p>
         
         <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
-          <button onClick={login} style={primaryBtnStyle}>Get Started</button>
-          <a href="#how-it-works" style={secondaryBtnStyle}>How it Works</a>
+          <button 
+            onClick={handleGetStarted} 
+            style={primaryBtnStyle}
+          >
+            Get Started
+          </button>
+          
+          <a 
+            href="#how-it-works" 
+            style={secondaryBtnStyle}
+          >
+            How it Works
+          </a>
         </div>
       </div>
 
@@ -139,7 +149,7 @@ export default function Landing() {
         </div>
       </div>
 
-      {/* FAQ SECTION - ALL QUESTIONS RESTORED */}
+      {/* FAQ SECTION */}
       <div style={{ padding: '80px 32px', maxWidth: '800px', margin: '0 auto' }}>
         <h2 style={{ fontSize: '2rem', textAlign: 'center', marginBottom: '40px' }}>Common Questions</h2>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
@@ -153,7 +163,7 @@ export default function Landing() {
           </div>
           <div style={faqItemStyle}>
             <h4 style={faqQuestionStyle}>What platforms does this work with?</h4>
-            <p style={faqAnswerStyle}>Everywhere! You can post your WishPeti link in your bio on Instagram, TikTok, YouTube, Twitch, or X (Twitter).</p>
+            <p style={faqAnswerStyle}>Everywhere! You can add your WishPeti link to your bio on Instagram, TikTok, YouTube, Twitch, or X (Twitter).</p>
           </div>
           <div style={faqItemStyle}>
             <h4 style={faqQuestionStyle}>Are there any fees?</h4>
