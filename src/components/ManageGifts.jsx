@@ -382,7 +382,7 @@ export default function ManageGifts() {
                   </div>
                   
                   {/* BUTTON LOGIC: Hide Accept/Reject if it's a Crowdfund */}
-                  {gift.gift_status === 'pending' && (!gift.is_crowdfund || gift.is_crowdfund_master) && (
+                  {gift.gift_status === 'pending' && !isCrowdfund && (
                     <div style={{ display: 'flex', gap: '8px' }}>
                       <button 
                         onClick={() => handleAction(gift, 'accepted')} 
