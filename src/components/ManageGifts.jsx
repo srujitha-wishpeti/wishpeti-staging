@@ -71,6 +71,7 @@ export default function ManageGifts() {
         // We show standard gifts (is_crowdfund: false) 
         // AND the 'Master' records for crowdfunding so the list isn't cluttered with tiny partial payments
         .or('is_crowdfund.eq.false,is_crowdfund_master.eq.true')
+        .neq('payment_status', 'refunded')
         .order('created_at', { ascending: false });
 
       if (error) throw error;
