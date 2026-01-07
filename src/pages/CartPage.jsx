@@ -220,13 +220,12 @@ export default function CartPage() {
         // Get the ID of the first order for the transaction record and redirect
         const firstOrderId = orderResults[0].data[0].id;
         let amountInInr;
-        if (currency.code === 'INR') {
-          amountInInr = Math.round(finalPayable * 100);
-        } else {
-          // Back to INR for Razorpay Gateway
-          amountInInr = Math.round((finalPayable / currency.rate) * 100);
-        }
+        const amountInINR = currency.code === 'INR' 
+                ? finalPayable 
+                : finalPayable /
+                 (currency.rate || 1);
 
+        console.log(amountInInr);
         // 2. Log the Single Transaction (The "Money" record)
         // We only do this ONCE per payment, even if there are multiple items
         const { error: transError } = await supabase
