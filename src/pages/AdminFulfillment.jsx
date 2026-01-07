@@ -17,11 +17,9 @@ export default function AdminFulfillment() {
     return () => window.removeEventListener('currencyChanged', handleCurrencyChange);
   }, []);
 
-  // --- LOGIC FIX: TWO-STEP FETCH TO AVOID EMBED ERROR ---
   const fetchOrders = async () => {
     setLoading(true);
     try {
-      // 1. Fetch orders and profiles (No join to wishlist_items yet)
       const { data: orders, error: orderError } = await supabase
         .from('orders')
         .select(`
@@ -40,12 +38,10 @@ export default function AdminFulfillment() {
 
       if (orderError) throw orderError;
 
-      // 2. Collect unique item IDs
       const itemIds = [...new Set(orders.map(o => o.item_id).filter(Boolean))];
 
       let itemsMap = {};
       if (itemIds.length > 0) {
-        // 3. Fetch item details manually
         const { data: items, error: itemError } = await supabase
           .from('wishlist_items')
           .select('id, title, url, quantity, notes, store')
@@ -59,39 +55,25 @@ export default function AdminFulfillment() {
         }, {});
       }
 
-      // 4. Merge data so your existing code can read it
       const combinedData = orders.map(order => ({
         ...order,
-        // We inject the fetched details into item_details
         item_details: itemsMap[order.item_id] || null
       }));
 
       setTasks(combinedData);
     } catch (err) {
       console.error("Fetch error:", err.message);
-      alert("Failed to fetch: " + err.message);
     } finally {
       setLoading(false);
     }
   };
 
-  // --- UPDATED HELPERS TO READ THE NEW DATA STRUCTURE ---
-  const getItemTitle = (order) => {
-    return order?.item_details?.title || (order?.items && order?.items[0]?.title) || 'Unknown Item';
-  };
-
-  const getMerchantUrl = (order) => {
-    return order?.item_details?.url || (order?.items && order?.items[0]?.url) || '#';
-  };
-
-  const getStoreName = (order) => {
-    return order?.item_details?.store || (order?.items && order?.items[0]?.store) || 'Merchant';
-  };
-
+  const getItemTitle = (order) => order?.item_details?.title || 'Unknown Item';
+  const getMerchantUrl = (order) => order?.item_details?.url || '#';
+  const getStoreName = (order) => order?.item_details?.store || 'Merchant';
   const getItemQty = (order) => order?.item_details?.quantity || 1;
   const getItemNotes = (order) => order?.item_details?.notes || '';
 
-  // --- YOUR ORIGINAL UI ACTIONS ---
   const saveShippingInfo = async (orderId) => {
     const cost = costs[orderId];
     const tracking = trackingNumbers[orderId];
@@ -151,7 +133,6 @@ export default function AdminFulfillment() {
     }
   };
 
-  // --- YOUR ORIGINAL STATS CALCULATION ---
   const PLATFORM_FEE_PERCENT = 0.05;
   const stats = tasks.reduce((acc, order) => {
     if (order.payment_status === 'paid') {
@@ -179,7 +160,6 @@ export default function AdminFulfillment() {
         <p style={{ color: '#64748b' }}>Manage physical gift deliveries and creator details.</p>
       </header>
 
-      {/* YOUR ORIGINAL SUMMARY CARDS */}
       <div style={{ display: 'flex', gap: '20px', marginBottom: '30px', flexWrap: 'wrap' }}>
         <div style={summaryCardStyle}>
             <div style={{ color: '#64748b', fontSize: '12px' }}>Gross Revenue</div>
@@ -210,67 +190,85 @@ export default function AdminFulfillment() {
             </tr>
           </thead>
           <tbody>
-            {tasks.map(order => (
-            <tr key={order.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                <td style={cellStyle}>
-                    <div style={{ fontWeight: '600', color: '#1e293b' }}>{getItemTitle(order)}</div>
-                    <div style={{ fontSize: '12px', color: '#64748b' }}>Qty: {getItemQty(order)}</div>
-                    {getItemNotes(order) && (
-                        <div style={{ fontSize: '11px', color: '#b91c1c', marginTop: '4px', background: '#fef2f2', padding: '4px' }}>
-                            Note: {getItemNotes(order)}
-                        </div>
-                    )}
-                    <div style={{ fontSize: '11px', color: '#94a3b8', marginTop: '4px' }}>ID: {order.id.slice(0, 8)}</div>
-                </td>
-                
-                <td style={cellStyle}>
-                    <span style={getStatusStyle(order.gift_status)}>{order.gift_status}</span>
-                    <div style={{fontSize: '10px', marginTop: '4px', color: '#64748b'}}>Pay: {order.payment_status}</div>
-                </td>
+            {tasks.map(order => {
+              const isRefunded = order.payment_status === 'refunded';
+              return (
+              <tr key={order.id} style={{ 
+                borderBottom: '1px solid #f1f5f9',
+                backgroundColor: isRefunded ? '#fcfafa' : 'transparent',
+                opacity: isRefunded ? 0.7 : 1
+              }}>
+                  <td style={cellStyle}>
+                      <div style={{ fontWeight: '600', color: isRefunded ? '#94a3b8' : '#1e293b' }}>{getItemTitle(order)}</div>
+                      <div style={{ fontSize: '12px', color: '#64748b' }}>Qty: {getItemQty(order)}</div>
+                      {getItemNotes(order) && (
+                          <div style={{ fontSize: '11px', color: '#b91c1c', marginTop: '4px', background: '#fef2f2', padding: '4px' }}>
+                              Note: {getItemNotes(order)}
+                          </div>
+                      )}
+                      <div style={{ fontSize: '11px', color: '#94a3b8', marginTop: '4px' }}>ID: {order.id.slice(0, 8)}</div>
+                  </td>
+                  
+                  <td style={cellStyle}>
+                      <span style={getStatusStyle(order.gift_status)}>{order.gift_status}</span>
+                      {isRefunded ? (
+                        <div style={refundBadgeStyle}>⚠️ PAYMENT REFUNDED</div>
+                      ) : (
+                        <div style={{fontSize: '10px', marginTop: '4px', color: '#64748b'}}>Pay: {order.payment_status}</div>
+                      )}
+                  </td>
 
-                <td style={cellStyle}>{order.creator_profiles?.full_name || 'Name Missing'}</td>
+                  <td style={cellStyle}>{order.creator_profiles?.full_name || 'Name Missing'}</td>
 
-                <td style={cellStyle}>
-                    {order.creator_profiles ? (
-                        <div style={{ fontSize: '12px', color: '#475569', lineHeight: '1.4' }}>
-                            <strong>{order.creator_profiles.address_line1}</strong><br/>
-                            {order.creator_profiles.city}, {order.creator_profiles.state} {order.creator_profiles.postal_code}
-                        </div>
-                    ) : <span style={{ color: '#ef4444' }}>Address Missing</span>}
-                </td>
+                  <td style={cellStyle}>
+                      {order.creator_profiles ? (
+                          <div style={{ fontSize: '12px', color: '#475569', lineHeight: '1.4' }}>
+                              <strong>{order.creator_profiles.address_line1}</strong><br/>
+                              {order.creator_profiles.city}, {order.creator_profiles.state} {order.creator_profiles.postal_code}
+                          </div>
+                      ) : <span style={{ color: '#ef4444' }}>Address Missing</span>}
+                  </td>
 
-                <td style={cellStyle}>
-                    <button onClick={() => window.open(getMerchantUrl(order), '_blank')} style={actionBtnStyle}>
-                        Buy on {getStoreName(order)}
-                    </button>
-                </td>
+                  <td style={cellStyle}>
+                      <button 
+                        onClick={() => window.open(getMerchantUrl(order), '_blank')} 
+                        style={{...actionBtnStyle, backgroundColor: isRefunded ? '#94a3b8' : '#4f46e5', cursor: isRefunded ? 'not-allowed' : 'pointer'}}
+                        disabled={isRefunded}
+                      >
+                          Buy on {getStoreName(order)}
+                      </button>
+                  </td>
 
-                <td style={cellStyle}>
-                    <div style={{ fontWeight: 'bold' }}>{formatPrice(order.total_amount, order.currency_code, 1)}</div>
-                </td>
+                  <td style={cellStyle}>
+                      <div style={{ fontWeight: 'bold' }}>{formatPrice(order.total_amount, order.currency_code, 1)}</div>
+                  </td>
 
-                <td style={cellStyle}>
-                    {order.invoice_url ? (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                            <a href={order.invoice_url} target="_blank" rel="noreferrer" style={viewInvoiceBtn}>View ↗</a>
-                            <button onClick={() => updateInvoiceUrl(order.id, null)} style={deleteBtnStyle}>Remove</button>
-                        </div>
-                    ) : (
-                        <input type="file" onChange={(e) => uploadInvoice(order.id, e.target.files[0])} style={{ fontSize: '10px' }} />
-                    )}
-                </td>
+                  <td style={cellStyle}>
+                      {order.invoice_url ? (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                              <a href={order.invoice_url} target="_blank" rel="noreferrer" style={viewInvoiceBtn}>View ↗</a>
+                              <button onClick={() => updateInvoiceUrl(order.id, null)} style={deleteBtnStyle}>Remove</button>
+                          </div>
+                      ) : (
+                          <input type="file" disabled={isRefunded} onChange={(e) => uploadInvoice(order.id, e.target.files[0])} style={{ fontSize: '10px' }} />
+                      )}
+                  </td>
 
-                <td style={cellStyle}>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
-                        <input type="number" placeholder="Cost (₹)" value={costs[order.id] || order.actual_purchase_cost || ''} 
-                               onChange={(e) => setCosts({...costs, [order.id]: e.target.value})} style={inputStyle} />
-                        <input type="text" placeholder="Tracking ID" value={trackingNumbers[order.id] || order.tracking_number || ''}
-                               onChange={(e) => setTrackingNumbers({...trackingNumbers, [order.id]: e.target.value})} style={inputStyle} />
-                        <button onClick={() => saveShippingInfo(order.id)} style={smallSaveBtnStyle}>Update</button>
-                    </div>
-                </td>
-            </tr>
-          ))}
+                  <td style={cellStyle}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+                          <input type="number" placeholder="Cost (₹)" disabled={isRefunded} value={costs[order.id] || order.actual_purchase_cost || ''} 
+                                 onChange={(e) => setCosts({...costs, [order.id]: e.target.value})} style={inputStyle} />
+                          <input type="text" placeholder="Tracking ID" disabled={isRefunded} value={trackingNumbers[order.id] || order.tracking_number || ''}
+                                 onChange={(e) => setTrackingNumbers({...trackingNumbers, [order.id]: e.target.value})} style={inputStyle} />
+                          <button 
+                            onClick={() => saveShippingInfo(order.id)} 
+                            style={{...smallSaveBtnStyle, backgroundColor: isRefunded ? '#cbd5e1' : '#10b981'}}
+                            disabled={isRefunded}
+                          >Update</button>
+                      </div>
+                  </td>
+              </tr>
+            )})}
           </tbody>
         </table>
       </div>
@@ -278,7 +276,6 @@ export default function AdminFulfillment() {
   );
 }
 
-// --- YOUR ORIGINAL STYLES REMAIN UNCHANGED ---
 const cellStyle = { padding: '16px 20px', fontSize: '14px', verticalAlign: 'top' };
 const actionBtnStyle = { padding: '8px 12px', backgroundColor: '#4f46e5', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: '600' };
 const summaryCardStyle = { backgroundColor: '#fff', padding: '20px', borderRadius: '12px', border: '1px solid #e2e8f0', flex: '1', minWidth: '200px' };
@@ -286,3 +283,4 @@ const inputStyle = { width: '100%', padding: '6px', fontSize: '12px', borderRadi
 const smallSaveBtnStyle = { padding: '6px 10px', backgroundColor: '#10b981', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '11px', fontWeight: '600' };
 const viewInvoiceBtn = { fontSize: '11px', color: '#4f46e5', textDecoration: 'none', fontWeight: '600', padding: '4px 8px', backgroundColor: '#eef2ff', borderRadius: '4px', border: '1px solid #c7d2fe', textAlign: 'center' };
 const deleteBtnStyle = { padding: '4px 8px', backgroundColor: '#fee2e2', color: '#b91c1c', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '10px' };
+const refundBadgeStyle = { marginTop: '8px', padding: '4px 6px', backgroundColor: '#fee2e2', color: '#b91c1c', fontSize: '10px', fontWeight: 'bold', borderRadius: '4px', border: '1px solid #f87171', textAlign: 'center' };
