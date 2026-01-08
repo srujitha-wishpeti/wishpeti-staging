@@ -81,14 +81,15 @@ export default function ContributeModal({ item, onClose, onSuccess, isOwner }) {
     setAmount(exactAmount.toString());
   };
 
-  const handlePayment = async () => {
+  const handlePayment = () => {
     let inputAmount = parseFloat(amount);
+    
+    // 1. Synchronous validation
     if (!inputAmount || inputAmount <= 0 || !buyerEmail) {
       alert("Please enter a valid amount and email.");
       return;
     }
 
-    // UPDATED: Rounding UP logic
     if (inputAmount > displayRemaining) {
       inputAmount = Math.ceil(displayRemaining * 100) / 100;
       setAmount(inputAmount.toString()); 
@@ -96,30 +97,33 @@ export default function ContributeModal({ item, onClose, onSuccess, isOwner }) {
 
     setLoading(true);
 
+    // 2. Preparation (No Awaits here)
+    const amountInINR = currency.code === 'INR' ? inputAmount : (inputAmount / rate);
+    const amountInPaise = Math.round(amountInINR * 100);
+
+    const options = {
+      key: "rzp_test_RtgvVK9ZMU6pKm", 
+      amount: amountInPaise, 
+      currency: "INR", 
+      display_currency: currency.code,
+      display_amount: inputAmount,
+      name: "WishPeti",
+      description: `Contribution for ${item.title}`,
+      prefill: {
+        name: isAnonymous ? "Anonymous" : buyerName,
+        email: buyerEmail
+      },
+      handler: async function (response) {
+        // DB work happens AFTER the pop-up is gone
+        await handleContributionRecord(response, inputAmount); 
+        onSuccess(); 
+      },
+      theme: { color: "#6366f1" },
+      modal: { ondismiss: () => setLoading(false) }
+    };
+
+    // 3. Open Razorpay immediately
     try {
-      const amountInINR = currency.code === 'INR' ? inputAmount : (inputAmount / rate);
-      const amountInPaise = Math.round(amountInINR * 100);
-
-      const options = {
-        key: "rzp_test_RtgvVK9ZMU6pKm", 
-        amount: amountInPaise, 
-        currency: "INR", 
-        display_currency: currency.code,
-        display_amount: inputAmount,
-        name: "WishPeti",
-        description: `Contribution for ${item.title}`,
-        prefill: {
-          name: isAnonymous ? "Anonymous" : buyerName,
-          email: buyerEmail
-        },
-        handler: async function (response) {
-          await handleContributionRecord(response, inputAmount); 
-          onSuccess(); 
-        },
-        theme: { color: "#6366f1" },
-        modal: { ondismiss: () => setLoading(false) }
-      };
-
       const rzp = new window.Razorpay(options);
       rzp.on('payment.failed', function (response) {
         setLoading(false);
