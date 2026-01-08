@@ -119,18 +119,24 @@ export default function CartPage() {
   const isFormIncomplete = !senderName.trim() || !senderEmail.trim() || !senderEmail.includes('@');
 
   const handleCheckout = async () => {
-    let amountInPaise;
+    // 1. Instant loading state
+    setLoading(true);
+    
     const firstItem = cartItems[0];
     const creatorId = firstItem?.creator_id;
 
+    // 2. Calculate amounts synchronously
+    let amountInPaise;
     if (currency.code === 'INR') {
       amountInPaise = Math.round(finalPayable * 100);
     } else {
-      // Back to INR for Razorpay Gateway
       amountInPaise = Math.round((finalPayable / currency.rate) * 100);
     }
 
-    await logSupportEvent('checkout_initiated', creatorId, { cart_total: finalPayable });
+    // 3. FIRE AND FORGET: Don't 'await' the log. This keeps the execution thread 
+    // "active" from the user click to the pop-up call.
+    logSupportEvent('checkout_initiated', creatorId, { cart_total: finalPayable });
+
     const options = {
       key: "rzp_test_RtgvVK9ZMU6pKm", 
       amount: amountInPaise, 
@@ -140,30 +146,23 @@ export default function CartPage() {
       name: "WishPeti",
       description: `Gifting ${cartItems.length} items`,
       handler: async function (response) {
+        // Handler stays async because it's triggered after payment
         await handlePaymentSuccess(response);
       },
-      config: {
-        display: {
-          hide_topbar: false,
-          preferences: {
-            show_default_blocks: true 
-          }
-        }
-      },
-      prefill: { name: senderName, email: senderEmail, contat: "+919972769491" }, //contact number default for better conversion rate
+      prefill: { name: senderName, email: senderEmail, contact: "+919972769491" },
       theme: { color: "#6366f1" },
       modal: {
         ondismiss: () => {
+          setLoading(false); // Ensure loading is reset on close
           showToast("Payment cancelled. Your cart is still saved!", "info");
           logSupportEvent('payment_modal_closed', creatorId, { reason: 'User cancelled' });
         }
       }
-
     };
 
+    // 4. Initialize and Open immediately
     const rzp = new window.Razorpay(options);
-
-    // ADD THIS LISTENER for specific payment failures (e.g. declined cards)
+    
     rzp.on('payment.failed', function (response) {
       setLoading(false);
       showToast(`Payment failed: ${response.error.description}`, "error");
