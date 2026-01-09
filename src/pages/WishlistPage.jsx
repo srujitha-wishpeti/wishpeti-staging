@@ -274,7 +274,7 @@ const totalGiftValue = wishlist.reduce((acc, item) => {
     const price = typeof item.price === 'string' 
         ? parseFloat(item.price.replace(/[^0-9.]/g, '')) 
         : item.price;
-    return acc + (isNaN(price) ? 0 : price);
+    return acc + (isNaN(price * item.quantity) ? 0 : price* item.quantity);
 }, 0);
 
 // For now, we can set pendingGifts to 0 or count items marked as 'unbought' 
@@ -550,9 +550,9 @@ const totalGiftValue = wishlist.reduce((acc, item) => {
                         </div>
                         
                         <div style={{ display: 'flex', gap: '16px', fontSize: '13px', fontWeight: '600', color: '#64748b' }}>
-                            <span>{wishlist.length} items</span>
+                            <span>{(wishlist.reduce((acc, item) => acc + (parseFloat(item.quantity) || 0), 0))} items</span>
                             <span>•</span>
-                            <span>{getCurrencySymbol(currency.code)}{(wishlist.reduce((acc, item) => acc + (parseFloat(item.price) || 0), 0) * currency.rate).toFixed(2)}</span>
+                            <span>{getCurrencySymbol(currency.code)}{(wishlist.reduce((acc, item) => acc + (parseFloat(item.price*item.quantity) || 0), 0) * currency.rate).toFixed(2)}</span>
                         </div>
                     </div>
 
@@ -668,7 +668,7 @@ const totalGiftValue = wishlist.reduce((acc, item) => {
             <div style={statDividerStyle} />
             <div style={statItemStyle}>
                 <span style={statLabelStyle}>ITEMS IN PETI</span>
-                <span style={statValueStyle}>{wishlist.length}</span>
+                <span style={statValueStyle}>{(wishlist.reduce((acc, item) => acc + (parseFloat(item.quantity) || 0), 0))}</span>
             </div>
             <div style={statDividerStyle} />
             <div style={statItemStyle}>
