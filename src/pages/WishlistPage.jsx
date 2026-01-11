@@ -641,7 +641,7 @@ const totalGiftValue = wishlist.reduce((acc, item) => {
           </p>
         </div>
         <button 
-          onClick={() => navigate('/signup?claim=' + profile?.username)}
+          onClick={() => navigate('/auth?mode=signup&claim=' + profile?.username)}
           style={claimButtonStyle}
         >
           Claim Profile & Unlock Gifts

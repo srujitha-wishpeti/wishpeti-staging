@@ -12,7 +12,11 @@ export default function OnBoarding() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [fetching, setFetching] = useState(true);
-  const [isExistingUser, setIsExistingUser] = useState(false);
+  
+  // Logic States
+  const [isUsernameFixed, setIsUsernameFixed] = useState(false);
+  const [isClaiming, setIsClaiming] = useState(false);
+  
   const [step, setStep] = useState(1); 
   const showToast = useToast();
 
@@ -48,20 +52,48 @@ export default function OnBoarding() {
   useEffect(() => {
     const fetchProfile = async () => {
       if (!session?.user?.id) return;
+      
       try {
-        const { data, error } = await supabase
+        // 1. Check if profile exists by ID (Regular user or already claimed)
+        const { data: existingById } = await supabase
           .from('creator_profiles')
           .select('*')
           .eq('id', session.user.id)
           .maybeSingle();
 
-        if (error) throw error;
-        if (data) {
-          setFormData({
-            ...data,
-            social_links: data.social_links || { instagram: '', twitter: '', youtube: '', spotify: '' }
-          });
-          if (data.username?.trim()) setIsExistingUser(true);
+        if (existingById && existingById.username) {
+          setFormData(prev => ({
+            ...prev,
+            ...existingById,
+            social_links: existingById.social_links || prev.social_links
+          }));
+          setIsUsernameFixed(true); 
+          setIsClaiming(false);
+        } else {
+          // 2. NO PROFILE BY ID: Check metadata for a reserved handle claim
+          const metaUsername = session.user.user_metadata?.username || session.user.user_metadata?.preferred_username;
+          
+          if (metaUsername) {
+            const { data: reservedProfile } = await supabase
+              .from('creator_profiles')
+              .select('*')
+              .eq('username', metaUsername)
+              .maybeSingle();
+
+            if (reservedProfile && !reservedProfile.is_profile_claimed) {
+              setFormData(prev => ({
+                ...prev,
+                ...reservedProfile,
+                social_links: reservedProfile.social_links || prev.social_links
+              }));
+              setIsClaiming(true);
+              setIsUsernameFixed(true); 
+            } else {
+              // Fresh signup
+              setFormData(prev => ({ ...prev, username: metaUsername, display_name: metaUsername }));
+              setIsUsernameFixed(false);
+            }
+          }
         }
       } catch (err) {
         console.error("Error fetching profile:", err.message);
@@ -69,6 +101,7 @@ export default function OnBoarding() {
         setFetching(false);
       }
     };
+
     if (!authLoading && session) fetchProfile();
   }, [session, authLoading]);
 
@@ -77,6 +110,10 @@ export default function OnBoarding() {
     setLoading(true);
     try {
       const cleanUsername = formData.username.toLowerCase().trim();
+      
+      // Use 'username' for conflict if claiming, otherwise use 'id'
+      const conflictTarget = isClaiming ? 'username' : 'id';
+
       const { error } = await supabase.from('creator_profiles').upsert({
         id: session.user.id,
         username: cleanUsername,
@@ -84,12 +121,18 @@ export default function OnBoarding() {
         bio: formData.bio,
         avatar_url: formData.avatar_url,
         banner_url: formData.banner_url,
-        social_links: formData.social_links
-      });
+        social_links: formData.social_links,
+        is_profile_claimed: true,
+        email: session.user.email,
+        updated_at: new Date()
+      }, { onConflict: conflictTarget });
+
       if (error) throw error;
+      
+      setIsUsernameFixed(true);
       setStep(2); 
     } catch (err) {
-      alert(err.message);
+      showToast("Sync Error: " + err.message);
     } finally {
       setLoading(false);
     }
@@ -100,14 +143,33 @@ export default function OnBoarding() {
     setLoading(true);
     try {
       const { error } = await supabase.from('creator_profiles').upsert({
+        ...formData,
         id: session.user.id,
-        ...formData 
-      });
+        is_profile_claimed: true,
+        updated_at: new Date()
+      }, { onConflict: 'id' });
+
       if (error) throw error;
       showToast("Profile fully setup! 🚀");
       navigate('/dashboard');
     } catch (err) {
-      alert(err.message);
+      showToast("Error saving address: " + err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSkipShipping = async () => {
+    setLoading(true);
+    try {
+      const { error } = await supabase
+        .from('creator_profiles')
+        .update({ is_profile_claimed: true })
+        .eq('id', session.user.id);
+      if (error) throw error;
+      navigate('/dashboard');
+    } catch (err) {
+      showToast("Error: " + err.message);
     } finally {
       setLoading(false);
     }
@@ -130,10 +192,28 @@ export default function OnBoarding() {
 
   if (authLoading || fetching) return <div style={{ marginTop: '120px', textAlign: 'center' }}>Loading...</div>;
 
+  // --- STYLES (Preserved exactly from your original) ---
+  const containerStyle = { paddingTop: '60px', paddingBottom: '80px', backgroundColor: '#f8fafc', minHeight: '100vh', display: 'flex', justifyContent: 'center' };
+  const cardStyle = { width: '100%', maxWidth: '600px', background: 'white', padding: '40px', borderRadius: '28px', border: '1px solid #e2e8f0', boxShadow: '0 10px 30px rgba(0,0,0,0.04)' };
+  const avatarPositioner = { position: 'absolute', left: '50%', transform: 'translateX(-50%)', bottom: '-80px', zIndex: 10, lineHeight: '0' };
+  const avatarTransparentStyle = { padding: '0px', backgroundColor: 'transparent', borderRadius: '50%', display: 'inline-block' };
+  const inputStyle = { width: '100%', padding: '14px 16px', marginBottom: '20px', borderRadius: '14px', border: '1px solid #cbd5e1', fontSize: '16px', boxSizing: 'border-box' };
+  const labelStyle = { display: 'block', fontSize: '0.8rem', fontWeight: '700', marginBottom: '8px', color: '#64748b', textTransform: 'uppercase' };
+  const btnStyle = { width: '100%', padding: '16px', background: '#6366f1', color: 'white', border: 'none', borderRadius: '14px', fontWeight: '700', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' };
+  const skipBtnStyle = { width: '100%', background: 'none', border: '1px solid #e2e8f0', color: '#64748b', padding: '14px', borderRadius: '14px', marginTop: '12px', cursor: 'pointer', fontWeight: '600' };
+  const backBtnStyle = { width: '100%', border: 'none', background: 'none', color: '#94a3b8', marginTop: '20px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' };
+  const privacyBannerStyle = { backgroundColor: '#f0fdf4', padding: '16px', borderRadius: '14px', color: '#166534', fontSize: '0.85rem', display: 'flex', alignItems: 'center', marginBottom: '24px', border: '1px solid #dcfce7' };
+  const progressContainer = { display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '40px', gap: '12px' };
+  const progressCircle = { width: '32px', height: '32px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold' };
+  const progressLine = { width: '60px', height: '3px' };
+  const socialGridStyle = { display: 'flex', flexDirection: 'column', gap: '12px' };
+  const socialInputWrapper = { position: 'relative', display: 'flex', alignItems: 'center' };
+  const socialIconStyle = { position: 'absolute', left: '14px', color: '#6366f1' };
+  const socialInputStyle = { width: '100%', padding: '12px 16px 12px 42px', borderRadius: '12px', border: '1px solid #e2e8f0', fontSize: '14px', outline: 'none' };
+
   return (
     <div className="onboarding-container" style={containerStyle}>
       <div style={cardStyle}>
-        {/* Progress Tracker */}
         <div style={progressContainer}>
             <div style={{...progressCircle, backgroundColor: '#6366f1', color: 'white'}}>1</div>
             <div style={{...progressLine, backgroundColor: step === 2 ? '#6366f1' : '#e2e8f0'}}></div>
@@ -143,14 +223,16 @@ export default function OnBoarding() {
         {step === 1 ? (
           <form onSubmit={saveStep1}>
             <div style={{ textAlign: 'center', marginBottom: '32px' }}>
-                <h2 style={{ fontSize: '1.8rem', fontWeight: '800', color: '#0f172a' }}>Create Your Identity</h2>
-                <p style={{ color: '#64748b' }}>Choose how supporters will see you.</p>
+                <h2 style={{ fontSize: '1.8rem', fontWeight: '800', color: '#0f172a' }}>
+                  {isUsernameFixed ? 'Profile Settings' : 'Create Your Identity'}
+                </h2>
+                <p style={{ color: '#64748b' }}>
+                  {isClaiming ? 'Claim your reserved handle below.' : 'Choose how supporters will see you.'}
+                </p>
             </div>
 
-            {/* HEADER AREA: Banner and Avatar */}
-            <div style={{ position: 'relative', marginBottom: '0px' }}> 
+            <div style={{ position: 'relative' }}> 
               <BannerUpload url={formData.banner_url} onUpload={(url) => setFormData({ ...formData, banner_url: url })} />
-              
               <div style={avatarPositioner}>
                 <div style={avatarTransparentStyle}>
                   <AvatarUpload url={formData.avatar_url} onUpload={(url) => setFormData({ ...formData, avatar_url: url })} />
@@ -158,17 +240,27 @@ export default function OnBoarding() {
               </div>
             </div>
 
-            {/* PHYSICAL SPACER: Reserves space for the floating avatar so it doesn't overlap labels */}
             <div style={{ height: '60px', width: '100%' }}></div>
 
             <div style={{ display: 'flex', flexDirection: 'column' }}>
               <label style={labelStyle}>Public Display Name</label>
               <input type="text" required placeholder="Display Name" value={formData.display_name} onChange={(e) => setFormData({ ...formData, display_name: e.target.value })} style={inputStyle} />
 
-              <label style={labelStyle}>Username</label>
+              <label style={labelStyle}>Username {isUsernameFixed && '(Locked)'}</label>
               <div style={{ position: 'relative', marginBottom: '20px' }}>
                   <span style={{ position: 'absolute', left: '14px', top: '13px', color: '#94a3b8' }}>@</span>
-                  <input disabled={isExistingUser} type="text" value={formData.username} onChange={(e) => setFormData({ ...formData, username: e.target.value.toLowerCase().replace(/\s/g, '') })} style={{ ...inputStyle, paddingLeft: '34px' }} />
+                  <input 
+                    disabled={isUsernameFixed} 
+                    type="text" 
+                    value={formData.username} 
+                    onChange={(e) => setFormData({ ...formData, username: e.target.value.toLowerCase().replace(/\s/g, '') })} 
+                    style={{ 
+                      ...inputStyle, 
+                      paddingLeft: '34px', 
+                      backgroundColor: isUsernameFixed ? '#f8fafc' : 'white',
+                      cursor: isUsernameFixed ? 'not-allowed' : 'text'
+                    }} 
+                  />
               </div>
 
               <label style={labelStyle}>Bio</label>
@@ -179,39 +271,19 @@ export default function OnBoarding() {
                   <div style={socialGridStyle}>
                       <div style={socialInputWrapper}>
                           <Instagram size={18} style={socialIconStyle} />
-                          <input 
-                              placeholder="Instagram URL" 
-                              style={socialInputStyle} 
-                              value={formData.social_links?.instagram || ''} 
-                              onChange={(e) => setFormData({...formData, social_links: {...formData.social_links, instagram: e.target.value}})}
-                          />
+                          <input placeholder="Instagram URL" style={socialInputStyle} value={formData.social_links?.instagram || ''} onChange={(e) => setFormData({...formData, social_links: {...formData.social_links, instagram: e.target.value}})} />
                       </div>
                       <div style={socialInputWrapper}>
                           <Twitter size={18} style={socialIconStyle} />
-                          <input 
-                              placeholder="Twitter/X URL" 
-                              style={socialInputStyle} 
-                              value={formData.social_links?.twitter || ''} 
-                              onChange={(e) => setFormData({...formData, social_links: {...formData.social_links, twitter: e.target.value}})}
-                          />
+                          <input placeholder="Twitter/X URL" style={socialInputStyle} value={formData.social_links?.twitter || ''} onChange={(e) => setFormData({...formData, social_links: {...formData.social_links, twitter: e.target.value}})} />
                       </div>
                       <div style={socialInputWrapper}>
                           <Youtube size={18} style={socialIconStyle} />
-                          <input 
-                              placeholder="YouTube URL" 
-                              style={socialInputStyle} 
-                              value={formData.social_links?.youtube || ''} 
-                              onChange={(e) => setFormData({...formData, social_links: {...formData.social_links, youtube: e.target.value}})}
-                          />
+                          <input placeholder="YouTube URL" style={socialInputStyle} value={formData.social_links?.youtube || ''} onChange={(e) => setFormData({...formData, social_links: {...formData.social_links, youtube: e.target.value}})} />
                       </div>
                       <div style={socialInputWrapper}>
                           <Music size={18} style={socialIconStyle} />
-                          <input 
-                              placeholder="Spotify URL" 
-                              style={socialInputStyle} 
-                              value={formData.social_links?.spotify || ''} 
-                              onChange={(e) => setFormData({...formData, social_links: {...formData.social_links, spotify: e.target.value}})}
-                          />
+                          <input placeholder="Spotify URL" style={socialInputStyle} value={formData.social_links?.spotify || ''} onChange={(e) => setFormData({...formData, social_links: {...formData.social_links, spotify: e.target.value}})} />
                       </div>
                   </div>
               </div>
@@ -259,7 +331,7 @@ export default function OnBoarding() {
             </div>
 
             <button type="submit" disabled={loading} style={btnStyle}>Complete Setup</button>
-            <button type="button" onClick={() => navigate('/dashboard')} style={skipBtnStyle}>I'll complete this later</button>
+            <button type="button" onClick={handleSkipShipping} style={skipBtnStyle}>I'll complete this later</button>
             <button type="button" onClick={() => setStep(1)} style={backBtnStyle}><ArrowLeft size={16} /> Back to Profile</button>
           </form>
         )}
@@ -267,39 +339,3 @@ export default function OnBoarding() {
     </div>
   );
 }
-
-// STYLES
-const containerStyle = { paddingTop: '60px', paddingBottom: '80px', backgroundColor: '#f8fafc', minHeight: '100vh', display: 'flex', justifyContent: 'center' };
-const cardStyle = { width: '100%', maxWidth: '600px', background: 'white', padding: '40px', borderRadius: '28px', border: '1px solid #e2e8f0', boxShadow: '0 10px 30px rgba(0,0,0,0.04)' };
-
-const avatarPositioner = { 
-  position: 'absolute', 
-  left: '50%', 
-  transform: 'translateX(-50%)', 
-  bottom: '-80px', 
-  zIndex: 10, 
-  lineHeight: '0' 
-};
-
-// Removed white ring/shadow to make it "transparent" relative to the background
-const avatarTransparentStyle = { 
-  padding: '0px', 
-  backgroundColor: 'transparent', 
-  borderRadius: '50%', 
-  display: 'inline-block' 
-};
-
-const inputStyle = { width: '100%', padding: '14px 16px', marginBottom: '20px', borderRadius: '14px', border: '1px solid #cbd5e1', fontSize: '16px', boxSizing: 'border-box' };
-const labelStyle = { display: 'block', fontSize: '0.8rem', fontWeight: '700', marginBottom: '8px', color: '#64748b', textTransform: 'uppercase' };
-const btnStyle = { width: '100%', padding: '16px', background: '#6366f1', color: 'white', border: 'none', borderRadius: '14px', fontWeight: '700', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' };
-const skipBtnStyle = { width: '100%', background: 'none', border: '1px solid #e2e8f0', color: '#64748b', padding: '14px', borderRadius: '14px', marginTop: '12px', cursor: 'pointer', fontWeight: '600' };
-const backBtnStyle = { width: '100%', border: 'none', background: 'none', color: '#94a3b8', marginTop: '20px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' };
-const privacyBannerStyle = { backgroundColor: '#f0fdf4', padding: '16px', borderRadius: '14px', color: '#166534', fontSize: '0.85rem', display: 'flex', alignItems: 'center', marginBottom: '24px', border: '1px solid #dcfce7' };
-const progressContainer = { display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '40px', gap: '12px' };
-const progressCircle = { width: '32px', height: '32px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold' };
-const progressLine = { width: '60px', height: '3px' };
-
-const socialGridStyle = { display: 'flex', flexDirection: 'column', gap: '12px' };
-const socialInputWrapper = { position: 'relative', display: 'flex', alignItems: 'center' };
-const socialIconStyle = { position: 'absolute', left: '14px', color: '#6366f1' };
-const socialInputStyle = { width: '100%', padding: '12px 16px 12px 42px', borderRadius: '12px', border: '1px solid #e2e8f0', fontSize: '14px', outline: 'none' };
