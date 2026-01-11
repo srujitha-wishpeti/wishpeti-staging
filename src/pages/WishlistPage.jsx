@@ -107,7 +107,8 @@ const nearestItem = getNearestGoal();
         bio: profile.bio || '',
         avatar_url: profile.avatar_url || '',
         banner_url: profile.banner_url || '',
-        social_links: profile.social_links || { instagram: '', twitter: '', youtube: '', spotify: '' }
+        social_links: profile.social_links || { instagram: '', twitter: '', youtube: '', spotify: '' },
+        is_profile_claimed: profile.is_profile_claimed || false
       });
     }
   }, [profile]);
@@ -417,10 +418,37 @@ const totalGiftValue = wishlist.reduce((acc, item) => {
 
   if (loading || !profile) return <div className="loading-state">Loading...</div>;
 
+  const is_profile_claimed = profile?.is_profile_claimed;
+
+  console.log(is_profile_claimed);
+
+    // Add this helper for the "Claim" UI
+  const ReservedBadge = () => (
+    <div style={{
+        position: 'absolute',
+        top: '20px',
+        left: '20px',
+        background: '#f59e0b', // Amber/Gold color
+        color: 'white',
+        padding: '6px 12px',
+        borderRadius: '20px',
+        fontSize: '12px',
+        fontWeight: '800',
+        zIndex: 100,
+        display: 'flex',
+        alignItems: 'center',
+        gap: '6px',
+        boxShadow: '0 4px 12px rgba(245, 158, 11, 0.3)'
+    }}>
+        <Sparkles size={14} /> RESERVED PROFILE
+    </div>
+  );
+
   return (
     <div className="wishlist-modern-page">
         <RealtimeAlerts />
-      <header className="wishlist-hero-card" style={{ 
+        {!is_profile_claimed && <ReservedBadge />}
+      <header className={`wishlist-hero-card ${!is_profile_claimed ? 'reserved-mode' : ''}`} style={{ 
             padding: '0', 
             overflow: 'hidden', 
             borderRadius: '24px', // Keeps the card corners rounded
@@ -602,7 +630,24 @@ const totalGiftValue = wishlist.reduce((acc, item) => {
         </div>
       </header>
 
-      {!isOwner && wishlist.length > 0 && (
+      {!is_profile_claimed ? (
+      <section className="claim-profile-cta" style={claimCTAStyle}>
+        <div style={{ flex: 1 }}>
+          <h4 style={{ margin: 0, fontSize: '18px', fontWeight: '800', color: '#1e293b' }}>
+            Is this you, {profile?.display_name}?
+          </h4>
+          <p style={{ margin: '4px 0 0', fontSize: '14px', color: '#64748b' }}>
+            This profile and its gifts are reserved. Claim it now to start receiving support from your fans.
+          </p>
+        </div>
+        <button 
+          onClick={() => navigate('/signup?claim=' + profile?.username)}
+          style={claimButtonStyle}
+        >
+          Claim Profile & Unlock Gifts
+        </button>
+      </section>
+    ) : (!isOwner && wishlist.length > 0 && (
         <section className="surprise-me-card" style={surpriseCardStyle}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1 }}>
                 <div style={iconCircleStyle}><Sparkles size={18} color="#6366f1" /></div>
@@ -650,7 +695,7 @@ const totalGiftValue = wishlist.reduce((acc, item) => {
                 </button>
             </div>
         </section>
-      )}
+    ))}
 
       {isOwner && (
         <section className="creator-stats-bar" style={dashboardStatsStyle}>
@@ -725,7 +770,7 @@ const totalGiftValue = wishlist.reduce((acc, item) => {
       
 
       {/* ITEMS DISPLAY */}
-      <main className="wishlist-display-area">
+      <main className="wishlist-display-area" style={{ opacity: is_profile_claimed ? 1 : 0.7 }}>
         <div className={`wishlist-container-${viewMode}`}>
             {wishlist
             .filter(item => (item.title || "").toLowerCase().includes(searchQuery.toLowerCase()))
@@ -1211,4 +1256,44 @@ const socialInputStyle = {
   width: '100%', 
   paddingLeft: '42px', // This creates the space for the icon
   marginBottom: 0 // Overriding default margin to keep the grid tight
+};
+
+// --- Updated Styles in WishlistPage.jsx ---
+const claimCTAStyle = {
+  maxWidth: '800px',
+  margin: '40px auto',
+  padding: '40px 32px',
+  background: 'linear-gradient(135deg, #FFFDF5 0%, #FEF3C7 100%)', // Premium Cream/Gold
+  borderRadius: '32px',
+  border: '1px solid #FDE68A',
+  textAlign: 'center',
+  boxShadow: '0 20px 40px -15px rgba(251, 191, 36, 0.15)',
+};
+
+const claimBadgeStyle = {
+  display: 'inline-flex',
+  alignItems: 'center',
+  gap: '8px',
+  padding: '8px 20px',
+  backgroundColor: '#92400E', // Rich Amber
+  color: '#FFFFFF',
+  borderRadius: '100px',
+  fontSize: '13px',
+  fontWeight: '700',
+  letterSpacing: '0.05em',
+  textTransform: 'uppercase',
+  marginBottom: '20px'
+};
+
+const claimButtonStyle = {
+  padding: '16px 40px',
+  backgroundColor: '#92400E',
+  color: '#FFFFFF',
+  border: 'none',
+  borderRadius: '16px',
+  fontSize: '18px',
+  fontWeight: '700',
+  cursor: 'pointer',
+  transition: 'transform 0.2s ease',
+  boxShadow: '0 10px 15px -3px rgba(146, 64, 14, 0.3)'
 };

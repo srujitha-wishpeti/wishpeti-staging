@@ -14,6 +14,7 @@ export default function Landing() {
         .select('username, display_name, avatar_url, banner_url, bio')
         .not('username', 'is', null)
         .not('display_name', 'is', null)
+        .eq('is_profile_claimed', true)
         .limit(4)
         .order('updated_at', { ascending: false });
 
