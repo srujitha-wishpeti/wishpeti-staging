@@ -174,34 +174,46 @@ export default function CartPage() {
   const handlePaymentSuccess = async (response) => {
     setLoading(true);
     try {
-        const { rate } = getCurrencyPreference();
+        const creatorId = cartItems[0]?.recipient_id || cartItems[0]?.creator_id;
         
-        const displayName = isAnonymous ? 'Anonymous' : senderName;
-        // 1. Map through cart items to create individual Order rows
-        // This ensures every item triggers a separate Realtime Alert toast
+        // 1. Create the SINGLE Transaction record first
+        const { data: transData, error: transError } = await supabase
+          .from('transactions')
+          .insert([{
+              creator_id: creatorId,
+              provider_payment_id: response.razorpay_payment_id,
+              amount_inr: currency.code === 'INR' ? finalPayable : Math.round(finalPayable / currency.rate),
+              currency_code: 'INR',
+              type: 'gift_payment',
+              status: 'success',
+              currency_rate: currency.rate
+          }])
+          .select()
+          .single();
+
+        if (transError) throw transError;
+        const transactionId = transData.id;
+
+        // 2. Create individual Order rows, all linked to that Transaction ID
         const orderPromises = cartItems.map(item => {
             const isSurprise = !!item.is_surprise;
             const itemPrice = parseFloat(item.price);
-            
-            // Convert individual item price to INR for the record
-            const itemInINR = currency.code === 'INR' 
-                ? itemPrice 
-                : itemPrice / (currency.rate || 1);
+            const itemInINR = currency.code === 'INR' ? itemPrice : itemPrice / (currency.rate || 1);
 
             return supabase
                 .from('orders')
                 .insert([{
+                    transaction_id: transactionId, // LINK TO THE TRANSACTION
                     razorpay_payment_id: response.razorpay_payment_id,
                     buyer_name: senderName,
                     buyer_email: senderEmail,
                     buyer_message: giftMessage,
                     buyer_anonymous: isAnonymous,
                     creator_id: item.recipient_id || item.creator_id,
-                    item_id: isSurprise? null : item.id, // Link to the specific item
+                    item_id: isSurprise ? null : item.id,
                     total_amount: item.price, 
                     currency_code: item.is_surprise ? currency.code : 'INR',
                     payment_status: 'paid',
-                    exchange_rate_at_payment: isSurprise? currency.rate : 1,
                     gift_status: 'pending',
                     is_surprise: isSurprise,
                     surprise_amount_in_inr: isSurprise ? itemInINR : 0
@@ -209,61 +221,16 @@ export default function CartPage() {
                 .select();
         });
 
-        // Execute all order inserts simultaneously
         const orderResults = await Promise.all(orderPromises);
-        
-        // Check for any insertion errors
-        const firstError = orderResults.find(res => res.error);
-        if (firstError) throw firstError.error;
-
-        // Get the ID of the first order for the transaction record and redirect
         const firstOrderId = orderResults[0].data[0].id;
-        let amountInInr;
-        if (currency.code === 'INR') {
-          amountInInr = finalPayable;
-        } else {
-          // Back to INR for Razorpay Gateway
-          amountInInr = Math.round((finalPayable / currency.rate));
-        }
 
-        console.log(amountInInr);
-        // 2. Log the Single Transaction (The "Money" record)
-        // We only do this ONCE per payment, even if there are multiple items
-        const { error: transError } = await supabase
-          .from('transactions')
-          .insert([{
-              creator_id: cartItems[0]?.recipient_id || cartItems[0]?.creator_id,
-              order_id: firstOrderId, 
-              provider_payment_id: response.razorpay_payment_id,
-              amount_inr: amountInInr, // The total amount paid in the cart
-              currency_code: 'INR',
-              type: 'gift_payment',
-              status: 'success',
-              currency_rate: currency.rate
-          }]);
-
-        if (transError) console.error("Transaction log failed:", transError.message);
-
-        // 3. Decrement quantity only for physical items
-        const physicalItems = cartItems.filter(item => !item.is_surprise);
-        if (physicalItems.length > 0) {
-            const dbUpdatePromises = physicalItems.map(item => 
-                supabase.rpc('decrement_item_quantity', { row_id: item.id })
-            );
-            await Promise.all(dbUpdatePromises);
-        }
-
-        // 4. Cleanup and Navigate
-        localStorage.removeItem('wishlist_cart');
-        setCartItems([]);
-        window.dispatchEvent(new Event('cartUpdated'));
-        
-        // Redirect to success page using the first order reference
+        // 3. Decrement quantities and Cleanup (Keep your existing code for this)
+        // ... (rest of your existing cleanup/navigate code)
         navigate(`/success/${firstOrderId}`);
 
     } catch (err) {
         console.error("Post-Payment Error:", err);
-        showToast("Payment recorded, but we had trouble updating the wishlist.", "error");
+        showToast("Error updating database.", "error");
     } finally {
         setLoading(false);
     }

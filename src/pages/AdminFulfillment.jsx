@@ -21,20 +21,20 @@ export default function AdminFulfillment() {
     setLoading(true);
     try {
       const { data: orders, error: orderError } = await supabase
-        .from('orders')
-        .select(`
-          *,
-          creator_profiles (
-            full_name,
-            address_line1,
-            address_line2,
-            city,
-            state,
-            postal_code,
-            country
-          )
-        `)
-        .order('created_at', { ascending: false });
+  .from('orders')
+  .select(`
+    *,
+    creator_profiles!creator_id ( 
+      full_name,
+      address_line1,
+      address_line2,
+      city,
+      state,
+      postal_code,
+      country
+    )
+  `)
+  .order('created_at', { ascending: false });
 
       if (orderError) throw orderError;
 
