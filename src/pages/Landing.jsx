@@ -1,5 +1,7 @@
 import { supabase } from '../services/supabaseClient';
 import { useToast } from '../context/ToastContext';
+import { FoundingBadge, VerifiedBadge } from '../components/ui/Badges';
+
 import React, { useEffect, useState } from 'react';
 
 export default function Landing() {
@@ -11,7 +13,7 @@ export default function Landing() {
     const fetchFeatured = async () => {
       const { data, error } = await supabase
         .from('creator_profiles')
-        .select('username, display_name, avatar_url, banner_url, bio')
+        .select('username, display_name, avatar_url, banner_url, bio, is_founding_member, is_verified')
         .not('username', 'is', null)
         .not('display_name', 'is', null)
         .eq('is_profile_claimed', true)
@@ -114,13 +116,29 @@ export default function Landing() {
                   </div>
                 </div>
 
-                <div style={{ padding: '0 15px 20px 15px' }}>
-                  <h3 style={{ margin: '0 0 4px 0', fontSize: '1.1rem' }}>{creator.display_name}</h3>
-                  <p style={{ color: '#4f46e5', fontSize: '0.8rem', fontWeight: 'bold', marginBottom: '8px' }}>@{creator.username}</p>
-                  <p style={{ fontSize: '0.85rem', color: '#64748b', height: '38px', overflow: 'hidden', lineHeight: '1.4', marginBottom: '12px' }}>
-                    {creator.bio || "Digital Creator"}
+                <div style={{ padding: '0 15px 20px 15px', textAlign: 'center' }}>
+                  {/* Flex container ensures name and badges stay on one aligned line */}
+                  <div style={{ 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    justifyContent: 'center', 
+                    gap: '6px', 
+                    marginBottom: '4px' ,
+                  }}>
+                    <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 'bold' }}>
+                      {creator.display_name}
+                    </h3>
+                    {/* Container for Badges ensures they stay perfectly aligned with name */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      {creator.is_verified && <VerifiedBadge />}
+                    </div>
+                  </div>
+                  <p style={{ color: '#4f46e5', fontSize: '0.8rem', fontWeight: 'bold', marginBottom: '8px' }}>
+                    @{creator.username}
                   </p>
-                  <a href={`/${creator.username}`} style={viewProfileBtn}>View WishPeti</a>
+                  <a href={`/${creator.username}`} style={viewProfileBtn}>
+                    View WishPeti
+                  </a>
                 </div>
               </div>
             ))}
@@ -195,7 +213,10 @@ const profileCardStyle = {
   textAlign: 'center',
   overflow: 'hidden',
   position: 'relative',
-  boxShadow: '0 4px 12px rgba(0,0,0,0.03)'
+  boxShadow: '0 4px 12px rgba(0,0,0,0.03)',
+  display: 'flex',
+  flexDirection: 'column',
+  height: '100%'
 };
 
 const profileBannerSmall = { height: '90px', backgroundColor: '#f1f5f9', width: '100%' };
@@ -222,7 +243,7 @@ const profileAvatarStyle = {
 
 const primaryBtnStyle = { padding: '12px 24px', backgroundColor: '#000', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' };
 const secondaryBtnStyle = { padding: '12px 24px', backgroundColor: '#fff', color: '#000', border: '1px solid #cbd5e0', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', textDecoration: 'none' };
-const viewProfileBtn = { display: 'block', padding: '10px', backgroundColor: '#4f46e5', color: '#fff', borderRadius: '10px', textDecoration: 'none', fontSize: '0.85rem', fontWeight: '700' };
+const viewProfileBtn = { display: 'block', padding: '10px', backgroundColor: '#4f46e5', color: '#fff', borderRadius: '10px', textDecoration: 'none', fontSize: '0.85rem', fontWeight: '700', marginTop: 'auto' };
 
 const stepCardStyle = { flex: '1', minWidth: '250px', padding: '24px', backgroundColor: '#fff', borderRadius: '12px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)', textAlign: 'left' };
 const numberCircle = { width: '32px', height: '32px', borderRadius: '50%', backgroundColor: '#4f46e5', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '16px', fontWeight: 'bold' };

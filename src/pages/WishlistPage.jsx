@@ -30,6 +30,7 @@ import { useCurrency } from '../context/CurrencyContext';
 import { useToast } from '../context/ToastContext';
 import { getCurrencySymbol } from '../utils/currency';
 import {logSupportEvent} from '../utils/supportLogger';
+import { FoundingBadge, VerifiedBadge } from '../components/ui/Badges';
 
 export default function WishlistPage() {  
   const { username } = useParams();
@@ -532,7 +533,7 @@ const totalGiftValue = wishlist.reduce((acc, item) => {
                         paddingTop: '10px' 
                     }}>
                         <h1 style={{ margin: 0, fontSize: '26px', fontWeight: 'bold', color: '#1e293b' }}>
-                            {profile?.display_name}
+                            {profile?.display_name}{profile?.is_verified && <VerifiedBadge />}
                         </h1>
                         <p style={{ margin: 0, color: '#64748b', fontSize: '15px' }}>@{profile?.username}</p>
                         

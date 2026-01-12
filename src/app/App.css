@@ -67,3 +67,14 @@ input:-webkit-autofill:focus {
   -webkit-text-fill-color: #9ca3af !important;
   opacity: 1;
 }
+
+@keyframes glow {
+  0% { box-shadow: 0 2px 4px rgba(99, 102, 241, 0.2); }
+  50% { box-shadow: 0 4px 15px rgba(99, 102, 241, 0.6); }
+  100% { box-shadow: 0 2px 4px rgba(99, 102, 241, 0.2); }
+}
+
+/* Apply this to the badge if you want a constant subtle pulse */
+.founding-badge-pulse {
+  animation: glow 3s infinite ease-in-out;
+}
