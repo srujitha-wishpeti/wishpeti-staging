@@ -177,6 +177,7 @@ export default function CartPage() {
         const creatorId = cartItems[0]?.recipient_id || cartItems[0]?.creator_id;
         
         // 1. Create the SINGLE Transaction record first
+        // This is our "Money" anchor
         const { data: transData, error: transError } = await supabase
           .from('transactions')
           .insert([{
@@ -194,8 +195,8 @@ export default function CartPage() {
         if (transError) throw transError;
         const transactionId = transData.id;
 
-        // 2. Create individual Order rows, all linked to that Transaction ID
-        const orderPromises = cartItems.map(item => {
+        // 2. Create individual Order rows
+        const orderPromises = cartItems.map((item, index) => {
             const isSurprise = !!item.is_surprise;
             const itemPrice = parseFloat(item.price);
             const itemInINR = currency.code === 'INR' ? itemPrice : itemPrice / (currency.rate || 1);
@@ -203,7 +204,7 @@ export default function CartPage() {
             return supabase
                 .from('orders')
                 .insert([{
-                    transaction_id: transactionId, // LINK TO THE TRANSACTION
+                    transaction_id: transactionId, // The new link
                     razorpay_payment_id: response.razorpay_payment_id,
                     buyer_name: senderName,
                     buyer_email: senderEmail,
@@ -216,21 +217,41 @@ export default function CartPage() {
                     payment_status: 'paid',
                     gift_status: 'pending',
                     is_surprise: isSurprise,
-                    surprise_amount_in_inr: isSurprise ? itemInINR : 0
+                    surprise_amount_in_inr: isSurprise ? itemInINR : 0,
+                    // IMPORTANT: Only send notification for the first item to avoid spamming
+                    send_notification: index === 0 
                 }])
                 .select();
         });
 
         const orderResults = await Promise.all(orderPromises);
+        
+        // Check for any insertion errors
+        const firstError = orderResults.find(res => res.error);
+        if (firstError) throw firstError.error;
+
         const firstOrderId = orderResults[0].data[0].id;
 
-        // 3. Decrement quantities and Cleanup (Keep your existing code for this)
-        // ... (rest of your existing cleanup/navigate code)
+        // 3. RESTORED: Decrement quantities for physical items
+        const physicalItems = cartItems.filter(item => !item.is_surprise);
+        if (physicalItems.length > 0) {
+            const dbUpdatePromises = physicalItems.map(item => 
+                supabase.rpc('decrement_item_quantity', { row_id: item.id })
+            );
+            await Promise.all(dbUpdatePromises);
+        }
+
+        // 4. RESTORED: Cleanup (Critical for mobile & local state)
+        localStorage.removeItem('wishlist_cart');
+        setCartItems([]);
+        window.dispatchEvent(new Event('cartUpdated'));
+        
+        // 5. Navigate to success
         navigate(`/success/${firstOrderId}`);
 
     } catch (err) {
         console.error("Post-Payment Error:", err);
-        showToast("Error updating database.", "error");
+        showToast("Payment recorded, but we had trouble updating the wishlist.", "error");
     } finally {
         setLoading(false);
     }
