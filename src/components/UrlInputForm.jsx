@@ -1,5 +1,5 @@
 import React, { useState } from 'react'; // Added useState
-import { Sparkles, X, Loader2, Lock } from 'lucide-react';
+import { Sparkles, X, Loader2, Lock, Check } from 'lucide-react';
 import { useCurrency } from '../context/CurrencyContext';
 import { supabase } from '../services/supabaseClient';
 import { useToast } from '../context/ToastContext';
@@ -23,14 +23,30 @@ export default function UrlInputForm({
   const showToast = useToast();
   const [uploading, setUploading] = useState(false);
   // SAFETY LOCK: Disable editing critical financial fields if money has been raised
-  const hasFunds = editableData?.amount_raised > 0;
+// Replace the old isLocked line with this:
+const isLocked = (editableData?.amount_raised > 0) || 
+                 (editableData?.status === 'claimed') || 
+                 (editableData?.status === 'purchased') ||
+                 (editableData?.status === 'waiting_for_claim'); // Added for the giveaway winner flow
 
   const { currency, formatPrice, convertPrice } = useCurrency(); // Added currency logic
 
   const handleEdit = (field, value) => {
-    if (hasFunds && (field === 'price' || field === 'quantity' || field === 'is_crowdfund')) {
-      return; // Do nothing if field is locked
+    // Lock critical fields if money has already been raised
+    if (isLocked && (field === 'price' || field === 'quantity' || field === 'is_crowdfund' || field === 'is_giveaway')) {
+      return;
     }
+
+    // SPECIAL LOGIC: If marking as giveaway, automatically enable crowdfunding
+    if (field === 'is_giveaway' && value === true) {
+      setEditableData(prev => ({ 
+        ...prev, 
+        is_giveaway: true, 
+        is_crowdfund: true 
+      }));
+      return;
+    }
+
     setEditableData(prev => ({ ...prev, [field]: value }));
   };
 
@@ -183,7 +199,7 @@ export default function UrlInputForm({
                 {/* Price & Quantity Grid */}
                 <div>
                   <label style={labelStyle}>Price (Original Cost)</label>
-                  <div style={{ ...priceContainerStyle, backgroundColor: hasFunds ? '#f8fafc' : '#fff' }}>
+                  <div style={{ ...priceContainerStyle, backgroundColor: isLocked ? '#f8fafc' : '#fff' }}>
                     <div style={currencySideLabel}>{currencyCode}</div>
                     <div style={inputWithSymbolStyle}>
                       <span style={symbolStyle}>{currencySymbol}</span>
@@ -196,7 +212,7 @@ export default function UrlInputForm({
                           // Only parse if it's a valid number string or empty
                           handleEdit('price', val === '' ? '' : parseFloat(val));
                         }}
-                        disabled={hasFunds}
+                        disabled={isLocked}
                         style={blankInputStyle}
                         placeholder="0.00"
                         step="0.01" // Allows decimals
@@ -210,11 +226,11 @@ export default function UrlInputForm({
                     type="number" 
                     value={editableData.quantity || 1} 
                     onChange={(e) => handleEdit('quantity', e.target.value)}
-                    disabled={hasFunds}
+                    disabled={isLocked}
                     style={{ 
                       ...inputStyle, 
-                      backgroundColor: hasFunds ? '#f8fafc' : '#fff',
-                      cursor: hasFunds ? 'not-allowed' : 'pointer'
+                      backgroundColor: isLocked ? '#f8fafc' : '#fff',
+                      cursor: isLocked ? 'not-allowed' : 'pointer'
                     }}
                   />
                 </div>
@@ -238,14 +254,14 @@ export default function UrlInputForm({
 
               {/* CROWDFUNDING SECTION */}
               <div 
-                onClick={() => !hasFunds && handleEdit('is_crowdfund', !editableData.is_crowdfund)}
+                onClick={() => !isLocked && handleEdit('is_crowdfund', !editableData.is_crowdfund)}
                 style={{
                   ...crowdfundCardStyle,
                   borderColor: editableData.is_crowdfund ? '#6366f1' : '#e2e8f0',
-                  backgroundColor: hasFunds ? '#f8fafc' : (editableData.is_crowdfund ? '#f5f3ff' : '#fff'),
+                  backgroundColor: isLocked ? '#f8fafc' : (editableData.is_crowdfund ? '#f5f3ff' : '#fff'),
                   borderWidth: '2px',
-                  cursor: hasFunds ? 'not-allowed' : 'pointer',
-                  opacity: hasFunds ? 0.8 : 1,
+                  cursor: isLocked ? 'not-allowed' : 'pointer',
+                  opacity: isLocked ? 0.8 : 1,
                   marginBottom: '1.25rem'
                 }}
               >
@@ -254,8 +270,8 @@ export default function UrlInputForm({
                     type="checkbox" 
                     checked={editableData.is_crowdfund || false}
                     readOnly 
-                    disabled={hasFunds}
-                    style={{ width: '18px', height: '18px', cursor: hasFunds ? 'not-allowed' : 'pointer' }}
+                    disabled={isLocked}
+                    style={{ width: '18px', height: '18px', cursor: isLocked ? 'not-allowed' : 'pointer' }}
                   />
                 </div>
                 <div style={{ flex: 1, marginLeft: '12px' }}>
@@ -263,14 +279,65 @@ export default function UrlInputForm({
                     Enable Crowdfunding 💰
                   </div>
                   <div style={{ fontSize: '12px', color: '#64748b', lineHeight: '1.4' }}>
-                    {hasFunds 
+                    {isLocked 
                       ? "Locked: Contributions have already started." 
                       : "Fans can contribute any amount."}
                   </div>
                 </div>
               </div>
+              
+              {/* --- COMMUNITY GIVEAWAY OPTION --- */}
+              <div 
+                onClick={() => !isLocked && handleEdit('is_giveaway', !editableData.is_giveaway)}
+                style={{
+                  ...crowdfundCardStyle,
+                  cursor: isLocked ? 'not-allowed' : 'pointer',
+                  backgroundColor: editableData.is_giveaway ? '#EEF2FF' : '#ffffff',
+                  borderColor: editableData.is_giveaway ? '#6366f1' : '#e2e8f0',
+                  borderWidth: '1.5px',
+                  marginTop: '-8px', // Pull it closer to the crowdfund box
+                  opacity: isLocked && !editableData.is_giveaway ? 0.6 : 1
+                }}
+              >
+                <div style={{
+                  width: '44px',
+                  height: '44px',
+                  borderRadius: '10px',
+                  backgroundColor: editableData.is_giveaway ? '#6366f1' : '#f1f5f9',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: editableData.is_giveaway ? 'white' : '#64748b',
+                  transition: 'all 0.2s'
+                }}>
+                  <Sparkles size={22} />
+                </div>
+                
+                <div style={{ flex: 1 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span style={{ fontWeight: '700', fontSize: '14px', color: '#1e293b' }}>Community Giveaway</span>
+                    {isLocked && <Lock size={12} color="#94a3b8" />}
+                  </div>
+                  <p style={{ fontSize: '11px', color: '#64748b', margin: 0 }}>
+                    Contributors enter a draw to win this item.
+                  </p>
+                </div>
 
-              {hasFunds && (
+                <div style={{
+                  width: '20px',
+                  height: '20px',
+                  borderRadius: '6px',
+                  border: `2px solid ${editableData.is_giveaway ? '#6366f1' : '#cbd5e1'}`,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  backgroundColor: editableData.is_giveaway ? '#6366f1' : 'transparent'
+                }}>
+                  {editableData.is_giveaway && <Check size={14} color="white" />}
+                </div>
+              </div>
+
+              {isLocked && (
                 <div style={{ ...lockNoticeStyle, marginBottom: '1.25rem' }}>
                   <Lock size={12} />
                   <span>Funding active: Financial settings are locked.</span>

@@ -17,6 +17,7 @@ import ScrollToTop from "../components/ScrollToTop";
 import ItemDetailView from '../pages/ItemDetailView';
 import CookieBanner from '../components/CookieBanner';
 import NotFoundPage from '../pages/NotFoundPage';
+import WinnerClaimPage from '../pages/WinnerClaimPage';
 
 export default function AppRoutes() {
   const { session, loading } = useAuth();
@@ -47,7 +48,7 @@ export default function AppRoutes() {
       {/* PUBLIC GIFTING FLOW */}
       <Route path="/:username/item/:itemId" element={<ItemDetailView />} />
       <Route path="/:username" element={<WishlistPage />} />
-      
+      <Route path="/claim_token/:token" element={<WinnerClaimPage />} />
       <Route path="/track/:orderId" element={<TrackOrder />} />
       <Route path="/cart" element={<CartPage />} />
       <Route path="/success/:orderId" element={<SuccessPage />} />

@@ -30,6 +30,7 @@ export default function AddWishlistItem({
     selectedSize: '',
     selectedColor: '',
     is_crowdfund: false,
+    is_giveaway: false,
     amount_raised: 0
   });
 
@@ -59,6 +60,7 @@ export default function AddWishlistItem({
         selectedSize: initialData.variants?.selectedSize || '',
         selectedColor: initialData.variants?.selectedColor || '',
         is_crowdfund: initialData.is_crowdfund || false,
+        is_giveaway: initialData.is_giveaway || false,
         amount_raised: initialData.amount_raised || 0
       });
     }
@@ -103,7 +105,8 @@ export default function AddWishlistItem({
         notes: '',
         selectedSize: '',
         selectedColor: '',
-        is_crowdfund: false
+        is_crowdfund: false,
+        is_giveaway: false
       });
       
       if (parseFloat(displayValue) <= 0) {
@@ -125,7 +128,8 @@ export default function AddWishlistItem({
         notes: '',
         selectedSize: '',
         selectedColor: '',
-        is_crowdfund: false
+        is_crowdfund: false,
+        is_giveaway: false
       });
     } finally {
       setScraping(false);
@@ -180,6 +184,7 @@ export default function AddWishlistItem({
             image: editableData.image,
             notes: editableData.notes,
             is_crowdfund: editableData.is_crowdfund,
+            is_giveaway: editableData.is_giveaway,
             status: qty > 0 ? 'available' : 'claimed',
             variants: {
                 selectedSize: editableData.selectedSize,

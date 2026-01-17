@@ -199,6 +199,44 @@ export default function ContributeModal({ item, onClose, onSuccess, isOwner }) {
 
   const isGoalReached = displayRemaining <= 0.01;
 
+  const handleSelectWinner = async (giverData) => {
+    setLoading(true);
+    try {
+      // 1. Generate a longer, safer token
+      const token = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+      
+      // 2. Database update
+      const { error: dbError } = await supabase
+        .from('wishlist_items')
+        .update({ 
+          status: 'waiting_for_claim',
+          claim_token: token,
+          winner_name: giverData?.buyer_name || 'Giveaway Winner'
+        })
+        .eq('id', item.id);
+
+      if (dbError) {
+        console.error("Supabase Error details:", dbError);
+        alert(`Database Error: ${dbError.message}. Did you add the claim_token column?`);
+        return;
+      }
+
+      // 3. Only if DB succeeds, copy link
+      const claimLink = `${window.location.origin}/claim_token/${token}`;
+      await navigator.clipboard.writeText(claimLink);
+      
+      alert("🏆 Success! Claim link copied to clipboard.");
+      
+      if (onSuccess) onSuccess(); 
+      onClose();
+    } catch (err) {
+      console.error("General Error:", err);
+      alert("An unexpected error occurred.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div style={overlayStyle}>
       <div style={modalStyle}>
@@ -236,6 +274,43 @@ export default function ContributeModal({ item, onClose, onSuccess, isOwner }) {
                         <div style={{fontWeight: '700'}}>{recentGivers.length}</div>
                     </div>
                 </div>
+                {/* --- GIVEAWAY MANAGEMENT SECTION --- */}
+                {isOwner && item.is_giveaway && isGoalReached && (
+                  item.status === 'waiting_for_claim' ? (
+                    <div style={activeStatusStyle}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <div style={{ color: '#10b981', fontWeight: '800', fontSize: '14px' }}>Link Active! 🎉</div>
+                      </div>
+                      <p style={{ fontSize: '11px', color: '#64748b', margin: 0 }}>
+                        The claim link is ready. Send it to your winner so they can enter their address.
+                      </p>
+                      <button 
+                        onClick={() => {
+                          const link = `${window.location.origin}/claim_token/${item.claim_token}`;
+                          navigator.clipboard.writeText(link);
+                          alert("Link copied again! 📋");
+                        }}
+                        style={{ ...generateBtnStyle, backgroundColor: '#1e293b', marginTop: '4px' }}
+                      >
+                        Copy Link Again
+                      </button>
+                    </div>
+                  ) : (
+                    <div style={generateBoxStyle}>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: '14px', fontWeight: '800', color: '#1e293b' }}>Goal Reached! 🏆</div>
+                        <div style={{ fontSize: '11px', color: '#64748b' }}>Generate a claim link for your winner.</div>
+                      </div>
+                      <button 
+                        onClick={() => handleSelectWinner({ buyer_name: 'Giveaway Winner' })}
+                        disabled={loading}
+                        style={generateBtnStyle}
+                      >
+                        {loading ? 'Generating...' : 'Copy Claim Link'}
+                      </button>
+                    </div>
+                  )
+                )}
 
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <label style={labelStyle}>Contribution History</label>
@@ -416,3 +491,40 @@ const inputStyle = { width: '100%', padding: '14px 14px 14px 40px', borderRadius
 
 // NEW: Matching style for the "Remaining" button
 const payRemainingBtnStyle = { background: '#f5f3ff', border: '1px solid #ddd6fe', padding: '4px 10px', borderRadius: '6px', fontSize: '11px', fontWeight: '700', color: '#6366f1', cursor: 'pointer' };
+const activeStatusStyle = {
+  display: 'flex',
+  flexDirection: 'column',
+  width: '100%',
+  boxSizing: 'border-box', // Fixes the width overflow
+  padding: '16px',
+  backgroundColor: '#f0fdf4',
+  borderRadius: '16px',
+  border: '1px solid #bbf7d0',
+  gap: '8px',
+  marginBottom: '20px'
+};
+
+const generateBoxStyle = {
+  display: 'flex',
+  alignItems: 'center',
+  width: '100%',
+  boxSizing: 'border-box', // Fixes the width overflow
+  padding: '16px',
+  backgroundColor: '#f5f3ff',
+  borderRadius: '16px',
+  border: '1px solid #ddd6fe',
+  marginBottom: '20px',
+  gap: '12px'
+};
+
+const generateBtnStyle = {
+  padding: '10px 16px',
+  borderRadius: '10px',
+  backgroundColor: '#6366f1',
+  color: 'white',
+  fontSize: '12px',
+  fontWeight: '700',
+  border: 'none',
+  cursor: 'pointer',
+  transition: 'opacity 0.2s'
+};

@@ -197,7 +197,8 @@ const nearestItem = getNearestGoal();
                 *,
                 orders!fk_item (*)
             `, { count: 'exact' }) // <--- REQUIRED FOR PAGINATION
-            .eq('creator_id', profileId)
+            .or(`creator_id.eq.${profileId},winner_id.eq.${profileId}`)
+            //.eq('creator_id', profileId)
             .order('priority_level', { ascending: true })
             .order('amount_raised', { ascending: false })
             .order('created_at', { ascending: false })
@@ -444,6 +445,33 @@ const totalGiftValue = wishlist.reduce((acc, item) => {
         <Sparkles size={14} /> RESERVED PROFILE
     </div>
   );
+  
+  const handleGenerateClaimLink = async (item) => {
+    const claimToken = crypto.randomUUID();
+    const claimLink = `${window.location.origin}/claim/${claimToken}`;
+    
+    // Update Supabase to store the token for this item
+    const { error } = await supabase
+        .from('wishlist_items')
+        .update({ 
+        claim_token: claimToken,
+        status: 'waiting_for_claim' 
+        })
+        .eq('id', item.id);
+
+    if (!error) {
+        navigator.clipboard.writeText(claimLink);
+        showToast("Claim link copied! Send this to your winner. 🏆");
+        loadData();
+    }
+    };
+
+  // Split the wishlist into two distinct groups
+  const giveawayItems = wishlist.filter(item => 
+    item.is_giveaway && (item.status !== 'purchased' || item.winner_id === profile.id || item.creator_id === profile?.id)
+  );
+
+  const regularItems = wishlist.filter(item => !item.is_giveaway || item.status === 'purchased');
 
   return (
     <div className="wishlist-modern-page">
@@ -772,8 +800,51 @@ const totalGiftValue = wishlist.reduce((acc, item) => {
 
       {/* ITEMS DISPLAY */}
       <main className="wishlist-display-area" style={{ opacity: is_profile_claimed ? 1 : 0.7 }}>
+        {giveawayItems.length > 0 && (
+            <section className="community-giveaway-section" style={{ marginBottom: '60px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '24px' }}>
+                <div style={{ background: '#eef2ff', padding: '10px', borderRadius: '12px' }}>
+                <Sparkles size={24} color="#6366f1" />
+                </div>
+                <div>
+                <h2 style={{ fontSize: '22px', fontWeight: '800', color: '#1e293b', margin: 0 }}>Community Giveaways</h2>
+                <p style={{ fontSize: '14px', color: '#64748b', margin: 0 }}>Contribute to fill the Peti and enter the draw!</p>
+                </div>
+            </div>
+            
+            <div className={`wishlist-container-${viewMode}`}>
+                {giveawayItems.map(item => (
+                <WishlistItemCard 
+                    key={item.id} 
+                    item={item} 
+                    isOwner={isOwner && item.winner_id !== profile?.id} 
+                    isWonItem={item.winner_id === profile?.id}
+                    isGiveaway={true} // New flag for the card
+                    onEdit={handleEditItem} 
+                    onAddToCart={() => handleAddToCart(item)}
+                    currencySettings={currency}
+                />
+                ))}
+            </div>
+            {/* Visual Divider */}
+            <div style={{ height: '1px', background: 'linear-gradient(to right, transparent, #e2e8f0, transparent)', margin: '50px 0' }} />
+            </section>
+        )}
+
+        <div style={{ marginBottom: '32px', textAlign: 'left' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
+                <Grid size={20} style={{ color: '#64748b' }} />
+                <h2 style={{ fontSize: '24px', fontWeight: '800', color: '#1e293b', margin: 0 }}>
+                {profile?.username}'s WishPeti
+                </h2>
+            </div>
+            <p style={{ color: '#64748b', fontSize: '14px', marginLeft: '30px' }}>
+                Explore all the items {profile?.username} is currently wishing for.
+            </p>
+        </div>
         <div className={`wishlist-container-${viewMode}`}>
             {wishlist
+            .filter(item => !item.is_giveaway)
             .filter(item => (item.title || "").toLowerCase().includes(searchQuery.toLowerCase()))
             .sort((a, b) => {
                 const aClaimed = a.status === 'claimed' || a.status === 'purchased' || a.quantity <= 0;
@@ -800,7 +871,8 @@ const totalGiftValue = wishlist.reduce((acc, item) => {
                 <WishlistItemCard 
                 key={item.id} 
                 item={item} 
-                isOwner={isOwner} 
+                isOwner={isOwner && item.winner_id !== profile?.id} 
+                isWonItem={item.winner_id === profile?.id}
                 onEdit={handleEditItem} 
                 onUpdate={loadData} // Added this to refresh UI when priority changes
                 onDelete={() => confirmDelete(item.id)}

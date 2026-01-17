@@ -17,6 +17,7 @@ export default function Auth() {
   const params = new URLSearchParams(location.search);
   const mode = params.get('mode') || 'signup';
   const claimUsername = params.get('claim'); // Detect marketing claim
+  const prizeToken = params.get('claim_token');
 
   // --- Styles (Existing Styles Maintained) ---
   const containerStyle = { minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#f9fafb', padding: '20px' };
@@ -32,13 +33,14 @@ export default function Auth() {
   const [isSignup, setIsSignup] = useState(mode === 'signup' || !!claimUsername);
   
   useEffect(() => {
-    if (claimUsername) {
-        setUsername(claimUsername);
-        setIsSignup(true); // Force signup for claiming
+    // If they are claiming a reserved handle OR a prize, force Signup mode
+    if (claimUsername || prizeToken) {
+        if (claimUsername) setUsername(claimUsername);
+        setIsSignup(true); 
     } else {
         setIsSignup(mode === 'signup');
     }
-  }, [mode, claimUsername]);
+  }, [mode, claimUsername, prizeToken]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -47,7 +49,7 @@ export default function Auth() {
 
     try {
       if (isSignup) {
-        // If not claiming, check for existing user normally
+         // If not claiming, check for existing user normally
         if (!claimUsername) {
             const { data: existingUser } = await supabase
               .from('creator_profiles')
@@ -60,26 +62,63 @@ export default function Auth() {
               setLoading(false);
               return;
             }
-        }
-        
+          }
+
+        // 2. Auth Signup
         const { data, error: signUpError } = await supabase.auth.signUp({
           email,
           password,
           options: {
-            data: { username: username.toLowerCase() } // Pass to metadata for onboarding
+            data: { username: username.toLowerCase() }
           }
         });
 
         if (signUpError) throw signUpError;
 
         if (data.user) {
-          showToast("Account created! Let's verify your reserved profile. 🎁");
+          // 3. Prize Transfer Logic
+          if (prizeToken) {
+            const { error: updateError } = await supabase
+              .from('wishlist_items')
+              .update({ 
+                winner_id: data.user.id, 
+                status: 'purchased', 
+                claim_token: null 
+              })
+              .eq('claim_token', prizeToken);
+
+            if (updateError) throw updateError;
+            
+            showToast("Prize claimed! Please add your shipping address in onboarding. 🎁");
+            navigate('/onboarding?claimed=true');
+            return;
+          }
+
+          // 4. Standard Onboarding Logic
+          const welcomeMsg = claimUsername 
+            ? "Account created! Let's verify your reserved profile. 🎁" 
+            : "Welcome! Let's set up your profile.";
+          
+          showToast(welcomeMsg);
           setTimeout(() => { navigate('/onboarding'); }, 500);
         }
       } else {
-        const { error: loginError } = await supabase.auth.signInWithPassword({ email, password });
+        // 5. Login Logic
+        const { data, error: loginError } = await supabase.auth.signInWithPassword({ email, password });
         if (loginError) throw loginError;
-        showToast("Welcome back!");
+
+        // Check if they logged in while having a prize link open
+        if (data.user && prizeToken) {
+          await supabase
+            .from('wishlist_items')
+            .update({ winner_id: data.user.id, status: 'purchased', claim_token: null })
+            .eq('claim_token', prizeToken);
+          
+          showToast("Welcome back! Your prize has been linked to your account. 🎁");
+        } else {
+          showToast("Welcome back!");
+        }
+        
         navigate('/dashboard');
       }
     } catch (err) {
