@@ -651,7 +651,7 @@ const totalGiftValue = wishlist.reduce((acc, item) => {
                                 style={{...shareButtonStyle, flex: 2}} 
                                 onClick={() => {
                                 // FIX: Construct the public URL manually using origin + username
-                                const publicUrl = `${window.location.origin}/${username}`;
+                                const publicUrl = `${window.location.origin}/${profile?.username}`;
                                 navigator.clipboard.writeText(publicUrl);
                                 
                                 showToast("Link copied! 🔗");
@@ -659,7 +659,7 @@ const totalGiftValue = wishlist.reduce((acc, item) => {
                                 // Optional: Trigger native share drawer if on mobile
                                 if (navigator.share) {
                                     navigator.share({
-                                    title: `${username}'s Wishlist`,
+                                    title: `${profile?.username}'s Wishlist`,
                                     url: publicUrl,
                                     }).catch(() => {});
                                 }
