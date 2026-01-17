@@ -646,10 +646,25 @@ const totalGiftValue = wishlist.reduce((acc, item) => {
                                 <option value="GBP">GBP (£)</option>
                                 <option value="EUR">EUR (€)</option>
                             </select>
-                            <button className="modern-share-btn" style={{...shareButtonStyle, flex: 2}} onClick={() => {
-                                navigator.clipboard.writeText(window.location.href);
+                            <button 
+                                className="modern-share-btn" 
+                                style={{...shareButtonStyle, flex: 2}} 
+                                onClick={() => {
+                                // FIX: Construct the public URL manually using origin + username
+                                const publicUrl = `${window.location.origin}/${username}`;
+                                navigator.clipboard.writeText(publicUrl);
+                                
                                 showToast("Link copied! 🔗");
-                            }}>
+                                
+                                // Optional: Trigger native share drawer if on mobile
+                                if (navigator.share) {
+                                    navigator.share({
+                                    title: `${username}'s Wishlist`,
+                                    url: publicUrl,
+                                    }).catch(() => {});
+                                }
+                                }}
+                            >
                                 <Share2 size={16} /> Share List
                             </button>
                         </div>
