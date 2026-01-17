@@ -141,7 +141,14 @@ export default function ContributeModal({ item, onClose, onSuccess, isOwner }) {
       ? parseFloat((paidAmount / rate).toFixed(2)) 
       : paidAmount;
 
+    // 1. Calculate if this specific contribution completes the goal
+    const newRaisedTotal = (item.amount_raised || 0) + contributionInINR;
+    // Using a small epsilon (0.1) to handle floating point rounding issues
+    const isNowFullyFunded = newRaisedTotal >= (totalGoalBase - 0.1); 
+
     logSupportEvent('contribution_to_crowdfund', item.creator_id, { amount: contributionInINR });
+    
+    // 2. Insert the order with the MASTER flag if it completes the goal
     const { data: newOrder, error: orderError } = await supabase
         .from('orders')
         .insert([{
@@ -149,9 +156,12 @@ export default function ContributeModal({ item, onClose, onSuccess, isOwner }) {
           item_id: item.id,
           creator_id: item.creator_id,
           total_amount: contributionInINR,
-          exchange_rate_at_payment:currency.rate,
+          exchange_rate_at_payment: currency.rate,
           payment_status: 'paid',
           is_crowdfund: true,
+          // --- THE FIX ---
+          is_crowdfund_master: isNowFullyFunded, 
+          // ----------------
           gift_status: 'pending',
           buyer_name: isAnonymous ? "Anonymous" : (buyerName || "Kind Supporter"),
           buyer_email: buyerEmail,
@@ -162,6 +172,7 @@ export default function ContributeModal({ item, onClose, onSuccess, isOwner }) {
 
     if (orderError) throw orderError;
 
+    // 3. Log the transaction
     const { error: transError } = await supabase
     .from('transactions')
     .insert([{
@@ -177,11 +188,7 @@ export default function ContributeModal({ item, onClose, onSuccess, isOwner }) {
 
     if (transError) console.error("Transaction log failed:", transError.message);
 
-    const newRaisedTotal = (item.amount_raised || 0) + contributionInINR;
-    
-    // Check if fully funded using a small epsilon to account for currency conversion rounding
-    const isNowFullyFunded = newRaisedTotal >= (totalGoalBase - 0.1); 
-    
+    // 4. Update the wishlist item status
     const updatePayload = { amount_raised: isNowFullyFunded ? totalGoalBase : newRaisedTotal };
     if (isNowFullyFunded) {
         updatePayload.status = 'claimed';
@@ -194,7 +201,9 @@ export default function ContributeModal({ item, onClose, onSuccess, isOwner }) {
         .eq('id', item.id);
 
     if (updateError) throw updateError;
+    
     window.dispatchEvent(new Event('contributionUpdated'));
+    if (onSuccess) onSuccess(); // Ensure the UI refreshes
   };
 
   const isGoalReached = displayRemaining <= 0.01;
