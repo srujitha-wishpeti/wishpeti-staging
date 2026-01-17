@@ -836,8 +836,10 @@ const totalGiftValue = wishlist.reduce((acc, item) => {
                     isWonItem={item.winner_id === profile?.id}
                     isGiveaway={true} // New flag for the card
                     onEdit={handleEditItem} 
+                    onDelete={() => confirmDelete(item.id)}
                     onAddToCart={() => handleAddToCart(item)}
                     currencySettings={currency}
+                    username={username || profile?.username}
                 />
                 ))}
             </div>
