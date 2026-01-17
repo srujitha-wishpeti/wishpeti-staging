@@ -1,184 +1,167 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
-const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY');
-const SUPABASE_URL = Deno.env.get('SUPABASE_URL');
-const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY')
+const SUPABASE_URL = Deno.env.get('SUPABASE_URL')
+const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
 
 // --- ENVIRONMENT DETECTION ---
-// Staging Project Reference: tcfnwbyjxrgkwsjwgbdy
 const IS_STAGING = SUPABASE_URL?.includes('tcfnwbyjxrgkwsjwgbdy');
-
-const APP_NAME = IS_STAGING ? "Wishpeti Staging" : "Wishpeti";
+const APP_NAME = IS_STAGING ? "WishPeti Staging" : "WishPeti";
 const FROM_EMAIL = IS_STAGING ? "hello-staging@wishpeti.com" : "hello@wishpeti.com";
 const BASE_URL = IS_STAGING ? "https://wishpeti-staging.vercel.app" : "https://wishpeti.com";
-const BRAND_COLOR = "#6366f1";
+const COMPANY_NAME = "Peti Collective Pvt Ltd";
 
-const emailLayout = (title, body, buttonText, buttonUrl, imageUrl) => `
-  <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 12px;">
-    <h2 style="color: #0f172a; margin-top: 0;">${title}</h2>
-    ${imageUrl ? `<div style="text-align: center; margin-bottom: 20px;"><img src="${imageUrl}" style="max-width: 100%; max-height: 200px; border-radius: 8px;" /></div>` : ''}
-    <div style="color: #475569; font-size: 16px; line-height: 1.6; margin-bottom: 25px;">
-      ${body}
+/**
+ * Clean, Truncated Item Name Helper
+ */
+const formatItemName = (name: string) => name.length > 35 ? name.substring(0, 32) + "..." : name;
+
+/**
+ * PhonePe-Inspired Transactional Layout
+ */
+const emailLayout = (title: string, subtitle: string, amount: string | number, currency: string, details: any[] = [], buttonText: string | null = null, buttonUrl: string = "#") => {
+  const detailRows = details.map(d => `
+    <div style="display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid #f1f5f9; font-size: 14px;">
+      <span style="color: #64748b;">${d.label}</span>
+      <span style="color: #1e293b; font-weight: 600; text-align: right;">${d.value}</span>
     </div>
-    ${buttonText ? `
-    <a href="${buttonUrl}" style="background-color: ${BRAND_COLOR}; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block;">
-      ${buttonText}
-    </a>` : ''}
-    <p style="margin-top: 30px; font-size: 12px; color: #94a3b8; border-top: 1px solid #e2e8f0; padding-top: 20px;">
-      © 2026 ${APP_NAME}. Keeping your connections private and secure.
-      ${IS_STAGING ? `<br><span style="color: #ef4444; font-weight: bold;">[STAGING ENVIRONMENT]</span>` : ''}
-    </p>
-  </div>
-`;
+  `).join('');
+
+  return `
+  <!DOCTYPE html>
+  <html>
+  <body style="font-family: -apple-system, sans-serif; background-color: #f8fafc; margin: 0; padding: 20px;">
+    <div style="max-width: 480px; margin: 0 auto; background: #ffffff; border-radius: 16px; overflow: hidden; border: 1px solid #e2e8f0; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
+      <div style="background: #000000; padding: 24px; text-align: center;">
+        <span style="color: #ffffff; font-weight: 800; font-size: 20px; letter-spacing: -0.5px;">${APP_NAME.toUpperCase()}</span>
+      </div>
+      <div style="padding: 32px 24px;">
+        <h2 style="margin: 0; color: #0f172a; font-size: 18px; text-align: center; font-weight: 700;">${title}</h2>
+        <p style="margin: 10px 0 0; color: #64748b; font-size: 14px; text-align: center; line-height: 1.5;">${subtitle}</p>
+        <div style="margin: 28px 0; padding: 24px; background: #fdfdfd; border-radius: 12px; border: 1.5px dashed #cbd5e1; text-align: center;">
+          <span style="font-size: 11px; color: #94a3b8; text-transform: uppercase; letter-spacing: 1px; font-weight: 600;">Transaction Amount</span>
+          <div style="font-size: 34px; font-weight: 800; color: #1e293b; margin-top: 4px;">
+            ${currency === 'INR' ? '₹' : currency}${amount}
+          </div>
+        </div>
+        <div style="margin-bottom: 24px;">${detailRows}</div>
+        ${buttonText ? `
+        <div style="text-align: center; margin-top: 32px;">
+          <a href="${buttonUrl}" style="display: inline-block; background: #000000; color: #ffffff; padding: 14px 32px; text-decoration: none; border-radius: 10px; font-weight: 600; font-size: 14px;">
+            ${buttonText}
+          </a>
+        </div>` : ''}
+      </div>
+      <div style="padding: 24px; background: #f8fafc; text-align: center; font-size: 11px; color: #94a3b8; border-top: 1px solid #f1f5f9;">
+        <p style="margin: 0 0 10px;">Regards, <br><strong style="color: #475569;">Team Peti Collective</strong></p>
+        <p style="margin: 0; line-height: 1.5;">&copy; 2026 ${COMPANY_NAME}. <br> ${BASE_URL.replace('https://', '')} | Secure Gifting Platform</p>
+        ${IS_STAGING ? `<p style="color: #ef4444; font-weight: bold; margin-top: 10px;">[STAGING ENVIRONMENT]</p>` : ''}
+      </div>
+    </div>
+  </body>
+  </html>
+  `;
+}
 
 serve(async (req) => {
   try {
-    const payload = await req.json();
-    const { record, old_record } = payload;
-    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+    const payload = await req.json()
+    const { record, old_record } = payload
+    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
 
-    // 1. Fetch Creator Details
-    const { data: profile } = await supabase
-      .from('creator_profiles')
-      .select('email, display_name')
-      .eq('id', record.creator_id)
-      .single();
+    const [{ data: profile }, { data: itemData }] = await Promise.all([
+      supabase.from('creator_profiles').select('email, display_name').eq('id', record.creator_id).single(),
+      record.item_id ? supabase.from('wishlist_items').select('title, price').eq('id', record.item_id).single() : Promise.resolve({ data: null })
+    ]);
 
-    // 2. Fetch Item Details from wishlist_items
-    let itemName = "a gift from your wishlist";
-    let itemImage = null;
-    if (record.item_id) {
-      const { data: itemData, error: itemError } = await supabase
-        .from('wishlist_items')
-        .select('title, image_url')
-        .eq('id', record.item_id)
-        .single();
-        
-      if (itemError) console.error("Lookup Error:", itemError.message);
-      if (itemData?.title) itemName = itemData.title;
-      if (itemData?.image_url) itemImage = itemData.image_url;
-    }
-
-    const creatorEmail = profile?.email;
     const creatorName = profile?.display_name || "Creator";
-    const senderEmail = record.buyer_email;
+    const creatorEmail = profile?.email;
+    const rawItemName = itemData?.title || "a gift";
+    const displayItemName = formatItemName(rawItemName);
     const trackingPage = `${BASE_URL}/track/${record.id}`;
     const notifications = [];
 
     const isCrowdfund = record.is_crowdfund === true;
 
-    // SCENARIO: PAYMENT SUCCESS
+    // --- SCENARIO 1: PAYMENT SUCCESS (PAID) ---
     if (record.payment_status === 'paid' && old_record?.payment_status !== 'paid') {
       
-      // ONLY send notifications if this is the designated primary item
-      if (record.send_notification !== false) {
-        
-        // --- SENDER NOTIFICATION ---
-        if (senderEmail) {
-          const subject = isCrowdfund 
-            ? `Confirmed! Your contribution for ${creatorName}`
-            : `Thanks! Your gift for ${creatorName} is confirmed`;
-          
-          const title = isCrowdfund ? "Contribution Confirmed! 💰" : "Gift Confirmed! 🎁";
-          
-          const body = isCrowdfund
-            ? `Hi ${record.buyer_name || 'there'}, <br><br>your contribution towards <strong>${itemName}</strong> was successful. Thank you for supporting this goal!`
-            : `Hi ${record.buyer_name || 'there'}, <br><br>your payment for <strong>${itemName}</strong> was successful. We'll let you know once the creator accepts it.`;
+      // To SENDER (Supporter)
+      if (record.buyer_email) {
+        const title = isCrowdfund ? "Contribution Successful! 📈" : "Gift Payment Successful! 🎁";
+        const subtitle = isCrowdfund 
+          ? `You have fueled the collective goal for <strong>${creatorName}</strong>.` 
+          : `Your personal gift for <strong>${creatorName}</strong> has been securely processed.`;
 
-          notifications.push(sendEmail({
-            to: senderEmail,
-            subject,
-            html: emailLayout(title, body, "Track Status", trackingPage, itemImage)
-          }));
-        }
-
-        // --- CREATOR NOTIFICATION ---
-        if (creatorEmail) {
-          const subject = isCrowdfund
-            ? `Goal Progress! Someone contributed to ${itemName}`
-            : `Good news! Someone just sent you a gift`;
-          
-          const title = isCrowdfund ? "Contribution Received! 📈" : "You've got a gift! 🎈";
-          
-          const body = isCrowdfund
-            ? `Hi ${creatorName}, <br><br>someone just contributed towards your goal: <strong>${itemName}</strong>. Check your dashboard to see your updated progress!`
-            : `Hi ${creatorName}, <br><br>someone just fulfilled <strong>${itemName}</strong> from your wishlist. Check it out in your management panel.`;
-
-          notifications.push(sendEmail({
-            to: creatorEmail,
-            subject,
-            html: emailLayout(title, body, isCrowdfund ? "View Goal Progress" : "Manage Gifts", `${BASE_URL}/manage-gifts`, itemImage)
-          }));
-        }
+        notifications.push(sendEmail({
+          to: record.buyer_email,
+          subject: `[${APP_NAME}] Confirmation: ${displayItemName}`,
+          html: emailLayout(title, subtitle, record.total_amount, record.currency_code, [
+            { label: "Beneficiary", value: creatorName },
+            { label: "Item/Goal", value: displayItemName },
+            { label: "Type", value: isCrowdfund ? "Collective Peti" : "Personal Wish" },
+            { label: "Ref ID", value: record.id.slice(0, 8).toUpperCase() }
+          ], "Track Your Impact", trackingPage)
+        }));
       }
-    }
 
-    // SCENARIO: ORDER ACCEPTED
-    if (record.gift_status === 'accepted' && old_record?.gift_status !== 'accepted' && senderEmail) {
-      notifications.push(sendEmail({
-        to: senderEmail,
-        subject: `Good news! ${creatorName} accepted your gift`,
-        html: emailLayout("Gift Accepted! 🥳", `${creatorName} has accepted your gift (<strong>${itemName}</strong>). It's now being processed for shipping!`, "Track Status", trackingPage, itemImage)
-      }));
-    }
-
-    // SCENARIO: REFUNDED / DISPUTED
-    if (record.payment_status === 'refunded' && old_record?.payment_status !== 'refunded') {
+      // To CREATOR
       if (creatorEmail) {
+        const title = isCrowdfund ? "Peti Updated! 📈" : "You've got a gift! 🎈";
+        const subtitle = isCrowdfund 
+          ? `Someone contributed to your collective goal for <strong>${rawItemName}</strong>.` 
+          : `A supporter just fulfilled <strong>${rawItemName}</strong> from your wishlist!`;
+
         notifications.push(sendEmail({
           to: creatorEmail,
-          subject: `Update: Status change for a gift`,
-          html: emailLayout("Important Delivery Update ℹ️", `Hi ${creatorName}, <br><br>we're letting you know that due to a processing issue with the sender's payment, the delivery for <strong>"${itemName}"</strong> has been cancelled. 
-            <br><br>
-            <strong>What happens now?</strong><br>
-            • If the item hasn't reached you yet, we have stopped the delivery.<br>
-            • If you have already received the item, please keep it packaged. Our team will reach out shortly to arrange a complimentary pickup at your convenience.`, "View Dashboard", `${BASE_URL}/dashboard`, itemImage)
-        }));
-      }
-      if (senderEmail) {
-        notifications.push(sendEmail({
-          to: senderEmail,
-          subject: `Refund Confirmation`,
-          html: emailLayout("Refund Processed ✅", `Hi ${record.buyer_name || 'there'},<br><br> we've processed a reversal for your gift (<strong>${itemName}</strong>) to ${creatorName}. Funds are returning to your original payment method.`, "Support", `${BASE_URL}/support`, itemImage)
+          subject: `[${APP_NAME}] New support for ${displayItemName}`,
+          html: emailLayout(title, subtitle, record.total_amount, record.currency_code, [
+            { label: "From", value: record.buyer_name || "Anonymous Supporter" },
+            { label: "Project", value: displayItemName },
+            { label: "Status", value: record.is_crowdfund_master ? "Goal Met" : "In Progress" }
+          ], "Manage My Gifts", `${BASE_URL}/manage-gifts`)
         }));
       }
     }
 
-    // SCENARIO: SHIPPED
-    if (record.gift_status === 'shipped' && old_record?.gift_status !== 'shipped' && senderEmail) {
-      notifications.push(sendEmail({
-        to: senderEmail,
-        subject: `Update on your gift for ${creatorName}`,
-        html: emailLayout("Your gift is moving! ✅", `The <strong>${itemName}</strong> has been shipped to ${creatorName}!`, "Track Delivery Status", trackingPage, itemImage)
-      }));
+    // --- SCENARIO 2: REFUNDED ---
+    if (record.payment_status === 'refunded' && old_record?.payment_status !== 'refunded' && record.buyer_email) {
+        notifications.push(sendEmail({
+            to: record.buyer_email,
+            subject: `[${APP_NAME}] Refund Confirmation: ${displayItemName}`,
+            html: emailLayout("Refund Processed ✅", "The transaction has been reversed. Funds are returning to your original payment method.", record.total_amount, record.currency_code, [
+                { label: "Item", value: displayItemName },
+                { label: "Refund ID", value: record.id.slice(0, 8).toUpperCase() }
+            ], "Contact Support", `${BASE_URL}/support`)
+        }));
+    }
+
+    // --- SCENARIO 3: SHIPPED ---
+    if (record.gift_status === 'shipped' && old_record?.gift_status !== 'shipped' && record.buyer_email) {
+        notifications.push(sendEmail({
+            to: record.buyer_email,
+            subject: `[${APP_NAME}] Shipping Update: ${displayItemName}`,
+            html: emailLayout("Gift is on the way! 🚚", `The ${rawItemName} has been dispatched to ${creatorName}.`, record.total_amount, record.currency_code, [
+                { label: "Recipient", value: creatorName },
+                { label: "Status", value: "In Transit" }
+            ], "Track Delivery", trackingPage)
+        }));
     }
 
     await Promise.all(notifications);
     return new Response(JSON.stringify({ ok: true }), { status: 200 });
 
   } catch (err) {
-    console.error("Critical Function Error:", err.message);
     return new Response(JSON.stringify({ error: err.message }), { status: 500 });
   }
-});
+})
 
-async function sendEmail({ to, subject, html }) {
-  // Use the dynamic APP_NAME and FROM_EMAIL based on environment detection
+async function sendEmail({ to, subject, html }: { to: string, subject: string, html: string }) {
   const senderIdentity = `${APP_NAME} <${FROM_EMAIL}>`;
-
   return fetch('https://api.resend.com/emails', {
     method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${RESEND_API_KEY}`,
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({
-      from: senderIdentity,
-      reply_to: 'support@wishpeti.com',
-      to: [to],
-      subject,
-      html
-    })
+    headers: { 'Authorization': `Bearer ${RESEND_API_KEY}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ from: senderIdentity, reply_to: 'support@wishpeti.com', to: [to], subject, html })
   });
 }
